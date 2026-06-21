@@ -4,6 +4,7 @@ import com.kartersanamo.raidriot.base.BaseDifficultyStore;
 import com.kartersanamo.raidriot.base.BasePlacementService;
 import com.kartersanamo.raidriot.breach.BreachService;
 import com.kartersanamo.raidriot.chat.ClickableMessageService;
+import com.kartersanamo.raidriot.combat.EventCombatService;
 import com.kartersanamo.raidriot.combat.EventKitStore;
 import com.kartersanamo.raidriot.combat.NakedPatchEnforcer;
 import com.kartersanamo.raidriot.combat.PredefinedKitService;
@@ -53,6 +54,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
     private EventManager eventManager;
     private RespawnQueue respawnQueue;
     private VirtualDeathService virtualDeathService;
+    private EventCombatService eventCombatService;
     private EventFactionService eventFactionService;
     private EventTeamAccessService eventTeamAccessService;
     private EventWorldBorderService eventWorldBorderService;
@@ -117,6 +119,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
         respawnQueue = new RespawnQueue(this);
         virtualDeathService = new VirtualDeathService(this);
+        eventCombatService = new EventCombatService(this);
         eventTeamAccessService = new EventTeamAccessService(this, eventFactionService);
         PredefinedKitService predefinedKitService = new PredefinedKitService(raidRiotConfig, eventKitStore);
         ClickableMessageService clickableMessageService = new ClickableMessageService(this);
@@ -125,7 +128,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
         guiService = new RaidRiotGuiService(this);
         eventManager = new EventManager(this, queueManager, voteManager, basePlacementService,
                 worldResetService, respawnQueue, predefinedKitService, guiService,
-                eventFactionService, eventWorldBorderService, virtualDeathService);
+                eventFactionService, eventWorldBorderService, virtualDeathService, eventCombatService);
 
         breachService = new BreachService(this);
         nakedPatchEnforcer = new NakedPatchEnforcer(this);
@@ -197,6 +200,10 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
     public VirtualDeathService getVirtualDeathService() {
         return virtualDeathService;
+    }
+
+    public EventCombatService getEventCombatService() {
+        return eventCombatService;
     }
 
     public EventFactionService getEventFactionService() {

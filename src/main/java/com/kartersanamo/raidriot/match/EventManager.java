@@ -4,6 +4,7 @@ import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BasePlacementService;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
+import com.kartersanamo.raidriot.combat.EventCombatService;
 import com.kartersanamo.raidriot.combat.PlayerStateSnapshot;
 import com.kartersanamo.raidriot.combat.PredefinedKitService;
 import com.kartersanamo.raidriot.combat.RespawnQueue;
@@ -45,6 +46,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private final EventFactionService eventFactionService;
     private final EventWorldBorderService worldBorderService;
     private final VirtualDeathService virtualDeathService;
+    private final EventCombatService eventCombatService;
     private RaidMatch activeMatch;
     private volatile boolean shuttingDown;
     private BukkitTask timerTask;
@@ -57,7 +59,8 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             BasePlacementService basePlacementService, WorldResetService worldResetService,
             RespawnQueue respawnQueue, PredefinedKitService predefinedKitService,
             RaidRiotGuiService guiService, EventFactionService eventFactionService,
-            EventWorldBorderService worldBorderService, VirtualDeathService virtualDeathService) {
+            EventWorldBorderService worldBorderService, VirtualDeathService virtualDeathService,
+            EventCombatService eventCombatService) {
         this.plugin = plugin;
         this.queueManager = queueManager;
         this.voteManager = voteManager;
@@ -69,6 +72,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         this.eventFactionService = eventFactionService;
         this.worldBorderService = worldBorderService;
         this.virtualDeathService = virtualDeathService;
+        this.eventCombatService = eventCombatService;
         queueManager.setListener(this);
         voteManager.setListener(this);
     }
@@ -124,6 +128,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             RaidMatch match = activeMatch;
             if (match != null) {
                 match.setState(MatchState.RESTORING);
+                eventCombatService.disableForMatch(match);
                 restoreAllPreEventStates(match);
                 eventFactionService.unclaimAll(match);
                 worldBorderService.reset();
@@ -304,6 +309,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         if (player == null || snapshot == null) {
             return;
         }
+        eventCombatService.disableForParticipant(player);
         virtualDeathService.cancel(player.getUniqueId());
         snapshot.apply(player);
     }
@@ -393,6 +399,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         vars.put("teamA", match.getFactionTag(TeamSide.A));
         vars.put("teamB", match.getFactionTag(TeamSide.B));
         plugin.getMessages().broadcast("match.started", vars);
+        eventCombatService.enableForMatch(match);
         startTasks(match);
         startGuiRefreshTask();
     }
@@ -507,6 +514,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         RaidMatch match = activeMatch;
         if (match != null) {
             match.setState(MatchState.RESTORING);
+            eventCombatService.disableForMatch(match);
             restoreAllPreEventStates(match);
             eventFactionService.unclaimAll(match);
             worldBorderService.reset();
