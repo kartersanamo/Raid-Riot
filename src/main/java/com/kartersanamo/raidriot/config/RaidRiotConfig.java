@@ -1,14 +1,18 @@
 package com.kartersanamo.raidriot.config;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 public final class RaidRiotConfig {
@@ -27,10 +31,14 @@ public final class RaidRiotConfig {
     private int queueCountdownSeconds = 120;
     private int voteDurationSeconds = 30;
     private int baseSeparationBlocks = 500;
-    private int spawnY = 256;
+    private int spawnY = 255;
     private int pasteAnchorX;
     private int pasteAnchorZ;
-    private int pasteY = 64;
+    private int pasteY = 0;
+    private int worldBorderPaddingBlocks = 500;
+    private String eventFactionTagA = "FactionA";
+    private String eventFactionTagB = "FactionB";
+    private final Map<BaseVoteOption, int[]> schematicCenterFromMin = new EnumMap<BaseVoteOption, int[]>(BaseVoteOption.class);
     private String baseClaimMethod = "isBaseClaim";
     private List<String> factionsSourceWorlds = new ArrayList<String>();
     private int matchDurationSeconds = 1500;
@@ -72,10 +80,14 @@ public final class RaidRiotConfig {
         queueCountdownSeconds = c.getInt("queue-countdown-seconds", 120);
         voteDurationSeconds = c.getInt("vote-duration-seconds", 30);
         baseSeparationBlocks = c.getInt("base-separation-blocks", 500);
-        spawnY = c.getInt("spawn-y", 256);
+        spawnY = c.getInt("spawn-y", 255);
         pasteAnchorX = c.getInt("paste-anchor-x", 0);
         pasteAnchorZ = c.getInt("paste-anchor-z", 0);
-        pasteY = c.getInt("paste-y", 64);
+        pasteY = c.getInt("paste-y", 0);
+        worldBorderPaddingBlocks = c.getInt("world-border-padding-blocks", 500);
+        eventFactionTagA = c.getString("factions.event-faction-a-tag", "FactionA");
+        eventFactionTagB = c.getString("factions.event-faction-b-tag", "FactionB");
+        loadSchematicCenterOffsets(c);
         baseClaimMethod = c.getString("factions.base-claim-method", "isBaseClaim");
         factionsSourceWorlds = new ArrayList<String>(c.getStringList("factions.source-world"));
         if (factionsSourceWorlds.isEmpty()) {
@@ -109,6 +121,41 @@ public final class RaidRiotConfig {
                     plugin.getLogger().warning("Unknown breach material: " + name);
                 }
             }
+        }
+    }
+
+    private void loadSchematicCenterOffsets(FileConfiguration c) {
+        schematicCenterFromMin.clear();
+        ConfigurationSection section = c.getConfigurationSection("schematic-center-from-min");
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                try {
+                    BaseVoteOption option = BaseVoteOption.valueOf(key.toUpperCase(Locale.ROOT));
+                    schematicCenterFromMin.put(option, parseTriple(section.getString(key), 8, 0, 8));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
+        for (BaseVoteOption option : new BaseVoteOption[]{BaseVoteOption.EASY, BaseVoteOption.MEDIUM, BaseVoteOption.HARD}) {
+            if (!schematicCenterFromMin.containsKey(option)) {
+                schematicCenterFromMin.put(option, new int[]{8, 0, 8});
+            }
+        }
+    }
+
+    private int[] parseTriple(String raw, int defaultX, int defaultY, int defaultZ) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return new int[]{defaultX, defaultY, defaultZ};
+        }
+        String[] parts = raw.split("[,\\s]+");
+        if (parts.length < 3) {
+            return new int[]{defaultX, defaultY, defaultZ};
+        }
+        try {
+            return new int[]{Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()),
+                    Integer.parseInt(parts[2].trim())};
+        } catch (NumberFormatException ex) {
+            return new int[]{defaultX, defaultY, defaultZ};
         }
     }
 
@@ -248,5 +295,22 @@ public final class RaidRiotConfig {
 
     public Set<Material> getBreachMaterials() {
         return breachMaterials;
+    }
+
+    public int getWorldBorderPaddingBlocks() {
+        return worldBorderPaddingBlocks;
+    }
+
+    public String getEventFactionTagA() {
+        return eventFactionTagA;
+    }
+
+    public String getEventFactionTagB() {
+        return eventFactionTagB;
+    }
+
+    public int[] getSchematicCenterOffset(BaseVoteOption option) {
+        int[] offset = schematicCenterFromMin.get(option);
+        return offset == null ? new int[]{8, 0, 8} : offset;
     }
 }

@@ -92,10 +92,12 @@ public final class QueueManager {
                 FactionQueueResolver.assignQualifyingFactions(session, bridge,
                         plugin.getRaidRiotConfig().getPlayersPerTeam());
                 checkFactionLock(bridge);
+                snapshotOnJoin(player);
                 return JoinResult.SUCCESS;
             }
             session.add(id, faction);
             checkImmediateLock();
+            snapshotOnJoin(player);
             return JoinResult.SUCCESS;
         } catch (Exception ex) {
             return JoinResult.ERROR;
@@ -107,6 +109,14 @@ public final class QueueManager {
             return;
         }
         session.remove(player.getUniqueId());
+        com.kartersanamo.raidriot.match.RaidMatch match = plugin.getEventManager().getActiveMatch();
+        if (match != null) {
+            com.kartersanamo.raidriot.combat.PlayerStateSnapshot snapshot = match.getPreEventSnapshot(player.getUniqueId());
+            if (snapshot != null) {
+                plugin.getEventManager().restorePreEventState(player, snapshot);
+                match.removePreEventSnapshot(player.getUniqueId());
+            }
+        }
     }
 
     private int maxQueueSize() {
@@ -114,6 +124,13 @@ public final class QueueManager {
             return plugin.getRaidRiotConfig().getMaxFactionQueuePlayers();
         }
         return plugin.getRaidRiotConfig().getMaxPlayers();
+    }
+
+    private void snapshotOnJoin(Player player) {
+        com.kartersanamo.raidriot.match.RaidMatch match = plugin.getEventManager().getActiveMatch();
+        if (match != null && match.isQueueOpen()) {
+            match.snapshotPreEvent(player);
+        }
     }
 
     private int countOnFaction(Object factionRef) {

@@ -14,6 +14,11 @@ public final class TeamBase {
     private CuboidRegion wallRegion;
     private CuboidRegion cannonRegion;
     private Location spawn;
+    private int pasteOriginX;
+    private int pasteOriginY;
+    private int pasteOriginZ;
+    private int solidCenterX;
+    private int solidCenterZ;
     private int depthAxis;
     private int depthOrigin;
 
@@ -67,6 +72,46 @@ public final class TeamBase {
 
     public void setSpawn(Location spawn) {
         this.spawn = spawn;
+    }
+
+    public int getPasteOriginX() {
+        return pasteOriginX;
+    }
+
+    public void setPasteOrigin(int x, int y, int z) {
+        this.pasteOriginX = x;
+        this.pasteOriginY = y;
+        this.pasteOriginZ = z;
+    }
+
+    public int getPasteOriginY() {
+        return pasteOriginY;
+    }
+
+    public int getPasteOriginZ() {
+        return pasteOriginZ;
+    }
+
+    public int getSolidCenterX() {
+        return solidCenterX;
+    }
+
+    public void setSolidCenter(int x, int z) {
+        this.solidCenterX = x;
+        this.solidCenterZ = z;
+    }
+
+    public int getSolidCenterZ() {
+        return solidCenterZ;
+    }
+
+    public Location spectatorPoint(org.bukkit.World world, int yAbove) {
+        if (bounds == null || world == null) {
+            return spawn;
+        }
+        int cx = solidCenterX != 0 || solidCenterZ != 0 ? solidCenterX : (bounds.getMinX() + bounds.getMaxX()) / 2;
+        int cz = solidCenterX != 0 || solidCenterZ != 0 ? solidCenterZ : (bounds.getMinZ() + bounds.getMaxZ()) / 2;
+        return new Location(world, cx + 0.5, bounds.getMaxY() + yAbove, cz + 0.5);
     }
 
     public boolean containsOwnTerritory(Location loc) {

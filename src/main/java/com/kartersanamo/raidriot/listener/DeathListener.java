@@ -16,7 +16,7 @@ public final class DeathListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onDeath(PlayerDeathEvent event) {
         RaidMatch match = plugin.getEventManager().getActiveMatch();
         Player player = event.getEntity();
@@ -26,6 +26,6 @@ public final class DeathListener implements Listener {
         event.getDrops().clear();
         event.setDroppedExp(0);
         event.setDeathMessage(null);
-        plugin.getRespawnQueue().queueRespawn(match, player);
+        event.setKeepInventory(true);
     }
 }

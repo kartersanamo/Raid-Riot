@@ -46,6 +46,10 @@ patch:
 raid:
   locked-block-change: "{prefix}&cYou cannot modify blocks here during the event."
 
+faction:
+  claim-success: "{prefix}&aClaimed this chunk for your team."
+  claim-failed: "{prefix}&cCould not claim this chunk."
+
 admin:
   world-set: "{prefix}&aEvent world set to &e{world}&7."
   reload: "{prefix}&aReloaded config and messages."

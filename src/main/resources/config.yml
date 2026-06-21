@@ -6,10 +6,19 @@ max-faction-queue-players: 100
 queue-countdown-seconds: 120
 vote-duration-seconds: 30
 base-separation-blocks: 500
-spawn-y: 256
+spawn-y: 255
 paste-anchor-x: 0
 paste-anchor-z: 0
-paste-y: 64
+# Deprecated for schematics; paste normalization places lowest solid row at world Y=0
+paste-y: 0
+
+world-border-padding-blocks: 500
+
+# Local schematic offsets from paste origin min corner (dx, dy, dz) — anchor chunk is always claimed
+schematic-center-from-min:
+  easy: "8, 0, 8"
+  medium: "8, 0, 8"
+  hard: "8, 0, 8"
 
 predefined-kit:
   helmet: IRON_HELMET
@@ -44,3 +53,6 @@ factions:
   base-claim-method: isBaseClaim
   source-world:
     - world
+  # Create these system factions in SaberFactions before running Raid Riot events
+  event-faction-a-tag: FactionA
+  event-faction-b-tag: FactionB

@@ -6,14 +6,18 @@ import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.vote.KitVoteOption;
 import com.kartersanamo.raidriot.breach.DepthTracker;
 import com.kartersanamo.raidriot.combat.KitSnapshot;
+import com.kartersanamo.raidriot.combat.PlayerStateSnapshot;
+import com.kartersanamo.raidriot.world.ChunkKey;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -30,15 +34,9 @@ public final class RaidMatch {
     private final Set<UUID> participants = new HashSet<UUID>();
     private final Map<UUID, TeamSide> participantTeams = new HashMap<UUID, TeamSide>();
     private final Map<UUID, KitSnapshot> kitSnapshots = new HashMap<UUID, KitSnapshot>();
+    private final Map<UUID, PlayerStateSnapshot> preEventSnapshots = new HashMap<UUID, PlayerStateSnapshot>();
+    private final Map<TeamSide, List<ChunkKey>> claimedChunks = new EnumMap<TeamSide, List<ChunkKey>>(TeamSide.class);
     private final DepthTracker depthTracker = new DepthTracker();
-
-    private MatchState state = MatchState.IDLE;
-    private BaseVoteOption selectedBaseVote;
-    private KitVoteOption selectedKitVote;
-    private TeamSide winner;
-    private WinReason winReason;
-    private long activeEndMs;
-    private long countdownEndMs;
 
     public RaidMatch(String eventWorld, TeamAssignmentMode assignmentMode,
             String factionTagA, String factionTagB, Object factionRefA, Object factionRefB) {
@@ -50,7 +48,17 @@ public final class RaidMatch {
         this.factionRefB = factionRefB;
         teamBases.put(TeamSide.A, new TeamBase(TeamSide.A, factionTagA, factionRefA));
         teamBases.put(TeamSide.B, new TeamBase(TeamSide.B, factionTagB, factionRefB));
+        claimedChunks.put(TeamSide.A, new ArrayList<ChunkKey>());
+        claimedChunks.put(TeamSide.B, new ArrayList<ChunkKey>());
     }
+
+    private MatchState state = MatchState.IDLE;
+    private BaseVoteOption selectedBaseVote;
+    private KitVoteOption selectedKitVote;
+    private TeamSide winner;
+    private WinReason winReason;
+    private long activeEndMs;
+    private long countdownEndMs;
 
     public String getEventWorld() {
         return eventWorld;
@@ -158,9 +166,14 @@ public final class RaidMatch {
     }
 
     public void leave(Player player) {
-        participants.remove(player.getUniqueId());
-        participantTeams.remove(player.getUniqueId());
-        kitSnapshots.remove(player.getUniqueId());
+        UUID id = player.getUniqueId();
+        PlayerStateSnapshot snapshot = preEventSnapshots.remove(id);
+        if (snapshot != null) {
+            snapshot.apply(player);
+        }
+        participants.remove(id);
+        participantTeams.remove(id);
+        kitSnapshots.remove(id);
     }
 
     public void snapshotKit(Player player) {
@@ -169,6 +182,51 @@ public final class RaidMatch {
 
     public KitSnapshot getKitSnapshot(UUID playerId) {
         return kitSnapshots.get(playerId);
+    }
+
+    public void snapshotPreEvent(Player player) {
+        preEventSnapshots.put(player.getUniqueId(), PlayerStateSnapshot.capture(player));
+    }
+
+    public void setPreEventSnapshot(UUID id, PlayerStateSnapshot snapshot) {
+        if (snapshot != null) {
+            preEventSnapshots.put(id, snapshot);
+        }
+    }
+
+    public void removePreEventSnapshot(UUID id) {
+        preEventSnapshots.remove(id);
+    }
+
+    public PlayerStateSnapshot getPreEventSnapshot(UUID playerId) {
+        return preEventSnapshots.get(playerId);
+    }
+
+    public Set<UUID> getPreEventSnapshotPlayerIds() {
+        return Collections.unmodifiableSet(preEventSnapshots.keySet());
+    }
+
+    public void addClaimedChunk(TeamSide side, ChunkKey key) {
+        List<ChunkKey> list = claimedChunks.get(side);
+        if (!list.contains(key)) {
+            list.add(key);
+        }
+    }
+
+    public boolean hasClaimedChunk(ChunkKey key) {
+        return claimedChunks.get(TeamSide.A).contains(key) || claimedChunks.get(TeamSide.B).contains(key);
+    }
+
+    public Set<ChunkKey> getAllClaimedChunks() {
+        Set<ChunkKey> all = new HashSet<ChunkKey>();
+        all.addAll(claimedChunks.get(TeamSide.A));
+        all.addAll(claimedChunks.get(TeamSide.B));
+        return all;
+    }
+
+    public void clearClaimedChunks() {
+        claimedChunks.get(TeamSide.A).clear();
+        claimedChunks.get(TeamSide.B).clear();
     }
 
     public Set<UUID> getParticipants() {

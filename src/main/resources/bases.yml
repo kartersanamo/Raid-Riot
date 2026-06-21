@@ -1,4 +1,7 @@
 # Global base schematics (files in plugins/RaidRiot/schematics/)
+# Paste normalization: lowest solid block sits at world Y=0; spawn uses solid footprint center at spawn-y (config)
 easy: ""
 medium: ""
 hard: ""
+
+# schematic-center-from-min offsets (dx, dy, dz from paste origin) are in config.yml per difficulty

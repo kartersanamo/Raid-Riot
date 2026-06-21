@@ -4,8 +4,11 @@ import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BasePlacementService;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
+import com.kartersanamo.raidriot.combat.PlayerStateSnapshot;
 import com.kartersanamo.raidriot.combat.PredefinedKitService;
 import com.kartersanamo.raidriot.combat.RespawnQueue;
+import com.kartersanamo.raidriot.combat.VirtualDeathService;
+import com.kartersanamo.raidriot.faction.EventFactionService;
 import com.kartersanamo.raidriot.faction.FactionsBridge;
 import com.kartersanamo.raidriot.queue.FactionQueueResolver;
 import com.kartersanamo.raidriot.queue.QueueManager;
@@ -14,6 +17,7 @@ import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import com.kartersanamo.raidriot.ui.RaidRiotGuiService;
 import com.kartersanamo.raidriot.vote.KitVoteOption;
 import com.kartersanamo.raidriot.vote.VoteManager;
+import com.kartersanamo.raidriot.world.EventWorldBorderService;
 import com.kartersanamo.raidriot.world.WorldResetService;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -38,6 +42,9 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private final RespawnQueue respawnQueue;
     private final PredefinedKitService predefinedKitService;
     private final RaidRiotGuiService guiService;
+    private final EventFactionService eventFactionService;
+    private final EventWorldBorderService worldBorderService;
+    private final VirtualDeathService virtualDeathService;
     private RaidMatch activeMatch;
     private BukkitTask timerTask;
     private BukkitTask depthTask;
@@ -46,7 +53,8 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     public EventManager(RaidRiotPlugin plugin, QueueManager queueManager, VoteManager voteManager,
             BasePlacementService basePlacementService, WorldResetService worldResetService,
             RespawnQueue respawnQueue, PredefinedKitService predefinedKitService,
-            RaidRiotGuiService guiService) {
+            RaidRiotGuiService guiService, EventFactionService eventFactionService,
+            EventWorldBorderService worldBorderService, VirtualDeathService virtualDeathService) {
         this.plugin = plugin;
         this.queueManager = queueManager;
         this.voteManager = voteManager;
@@ -55,6 +63,9 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         this.respawnQueue = respawnQueue;
         this.predefinedKitService = predefinedKitService;
         this.guiService = guiService;
+        this.eventFactionService = eventFactionService;
+        this.worldBorderService = worldBorderService;
+        this.virtualDeathService = virtualDeathService;
         queueManager.setListener(this);
         voteManager.setListener(this);
     }
@@ -122,6 +133,12 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     @Override
     public synchronized void onQueueCancelled(String reason) {
         stopGuiRefreshTask();
+        if (activeMatch != null) {
+            for (UUID id : activeMatch.getPreEventSnapshotPlayerIds()) {
+                Player player = Bukkit.getPlayer(id);
+                restorePreEventState(player, activeMatch.getPreEventSnapshot(id));
+            }
+        }
         Map<String, String> vars = new HashMap<String, String>();
         vars.put("reason", reason);
         plugin.getMessages().broadcast("queue.cancelled", vars);
@@ -159,7 +176,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                 match.addParticipant(ids.get(i), side);
                 selected.add(ids.get(i));
             }
-            notifyRejected(session, selected);
+            notifyRejectedRandom(session, selected);
             return;
         }
 
@@ -167,6 +184,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         Object factionB = session.getFactionBRef();
         String tagA = session.getFactionATag() != null ? session.getFactionATag() : "TeamA";
         String tagB = session.getFactionBTag() != null ? session.getFactionBTag() : "TeamB";
+        Map<UUID, PlayerStateSnapshot> preservedSnapshots = preserveQueuedSnapshots(activeMatch, session);
         activeMatch = new RaidMatch(match.getEventWorld(), session.getMode(), tagA, tagB, factionA, factionB);
         activeMatch.setState(MatchState.QUEUE_LOCKED);
 
@@ -174,24 +192,61 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         Set<UUID> picked = new HashSet<UUID>();
         for (UUID id : selected.get(TeamSide.A)) {
             activeMatch.addParticipant(id, TeamSide.A);
+            restorePreEventSnapshotToMatch(activeMatch, id, preservedSnapshots);
             picked.add(id);
         }
         for (UUID id : selected.get(TeamSide.B)) {
             activeMatch.addParticipant(id, TeamSide.B);
+            restorePreEventSnapshotToMatch(activeMatch, id, preservedSnapshots);
             picked.add(id);
         }
-        notifyRejected(session, picked);
+        notifyRejected(session, picked, preservedSnapshots);
     }
 
-    private void notifyRejected(QueueSession session, Set<UUID> selected) {
+    private Map<UUID, PlayerStateSnapshot> preserveQueuedSnapshots(RaidMatch match, QueueSession session) {
+        Map<UUID, PlayerStateSnapshot> out = new HashMap<UUID, PlayerStateSnapshot>();
+        if (match == null) {
+            return out;
+        }
+        for (UUID id : session.getQueued()) {
+            PlayerStateSnapshot snapshot = match.getPreEventSnapshot(id);
+            if (snapshot != null) {
+                out.put(id, snapshot);
+            }
+        }
+        return out;
+    }
+
+    private void restorePreEventSnapshotToMatch(RaidMatch match, UUID id, Map<UUID, PlayerStateSnapshot> preserved) {
+        PlayerStateSnapshot snapshot = preserved.get(id);
+        if (snapshot != null) {
+            match.setPreEventSnapshot(id, snapshot);
+        }
+    }
+
+    private void notifyRejected(QueueSession session, Set<UUID> selected,
+            Map<UUID, PlayerStateSnapshot> preservedSnapshots) {
         for (UUID id : session.getQueued()) {
             if (!selected.contains(id)) {
                 Player player = Bukkit.getPlayer(id);
                 if (player != null) {
                     plugin.getMessages().send(player, "queue.not-qualified");
                 }
+                restorePreEventState(player, preservedSnapshots.get(id));
             }
         }
+    }
+
+    public void restorePreEventState(Player player, PlayerStateSnapshot snapshot) {
+        if (player == null || snapshot == null) {
+            return;
+        }
+        virtualDeathService.cancel(player.getUniqueId());
+        snapshot.apply(player);
+    }
+
+    private void notifyRejectedRandom(QueueSession session, Set<UUID> selected) {
+        notifyRejected(session, selected, preserveQueuedSnapshots(activeMatch, session));
     }
 
     @Override
@@ -320,6 +375,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         cancelTasks();
         voteManager.cancel();
         respawnQueue.cancelAll();
+        virtualDeathService.cancelAll();
         startGuiRefreshTask();
 
         TeamSide loser = winner == null ? null : winner.opposite();
@@ -352,6 +408,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         queueManager.cancelQueue(reason);
         voteManager.cancel();
         respawnQueue.cancelAll();
+        virtualDeathService.cancelAll();
         if (activeMatch != null) {
             activeMatch.setState(MatchState.ENDING);
             activeMatch.setWinReason(WinReason.ADMIN_STOP);
@@ -378,13 +435,20 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     private void restoreAndClear() {
         stopGuiRefreshTask();
-        if (activeMatch != null) {
-            activeMatch.setState(MatchState.RESTORING);
+        RaidMatch match = activeMatch;
+        if (match != null) {
+            match.setState(MatchState.RESTORING);
+            for (UUID id : match.getParticipants()) {
+                Player player = Bukkit.getPlayer(id);
+                restorePreEventState(player, match.getPreEventSnapshot(id));
+            }
+            eventFactionService.unclaimAll(match);
+            worldBorderService.reset();
         }
         worldResetService.restoreAll();
         worldResetService.endSession();
-        if (activeMatch != null) {
-            activeMatch.setState(MatchState.IDLE);
+        if (match != null) {
+            match.setState(MatchState.IDLE);
         }
         activeMatch = null;
     }
