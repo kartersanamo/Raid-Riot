@@ -23,7 +23,7 @@ public final class VirtualCombatListener implements Listener {
         this.virtualDeathService = virtualDeathService;
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = false)
     public void onDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player)) {
             return;
@@ -50,7 +50,14 @@ public final class VirtualCombatListener implements Listener {
                     event.setCancelled(true);
                     return;
                 }
+                if (attackerTeam != null && victimTeam != null && attackerTeam != victimTeam && event.isCancelled()) {
+                    event.setCancelled(false);
+                }
             }
+        }
+
+        if (event.isCancelled()) {
+            return;
         }
 
         if (victim.getHealth() - event.getFinalDamage() <= 0.0D) {

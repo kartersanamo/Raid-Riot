@@ -30,7 +30,7 @@ public final class RaidRiotConfig {
     private List<String> predefinedKitItems = new ArrayList<String>();
     private int queueCountdownSeconds = 120;
     private int voteDurationSeconds = 30;
-    private int baseSeparationBlocks = 500;
+    private int baseSeparationBlocks = 200;
     private int spawnY = 255;
     private int pasteAnchorX;
     private int pasteAnchorZ;
@@ -80,7 +80,7 @@ public final class RaidRiotConfig {
         }
         queueCountdownSeconds = c.getInt("queue-countdown-seconds", 120);
         voteDurationSeconds = c.getInt("vote-duration-seconds", 30);
-        baseSeparationBlocks = c.getInt("base-separation-blocks", 500);
+        baseSeparationBlocks = c.getInt("base-separation-blocks", 200);
         spawnY = c.getInt("spawn-y", 255);
         pasteAnchorX = c.getInt("paste-anchor-x", 0);
         pasteAnchorZ = c.getInt("paste-anchor-z", 0);

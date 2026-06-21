@@ -5,7 +5,7 @@ team-b-display-name: Red Team
 max-faction-queue-players: 100
 queue-countdown-seconds: 120
 vote-duration-seconds: 30
-base-separation-blocks: 500
+base-separation-blocks: 200
 spawn-y: 255
 paste-anchor-x: 0
 paste-anchor-z: 0
