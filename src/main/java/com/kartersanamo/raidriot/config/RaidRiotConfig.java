@@ -5,6 +5,7 @@ import com.kartersanamo.raidriot.arena.TeamSide;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -17,6 +18,12 @@ public final class RaidRiotConfig {
     private int playersPerTeam = 10;
     private String teamADisplayName = "Yellow Team";
     private String teamBDisplayName = "Red Team";
+    private int maxFactionQueuePlayers = 100;
+    private Material predefinedKitHelmet = Material.IRON_HELMET;
+    private Material predefinedKitChestplate = Material.IRON_CHESTPLATE;
+    private Material predefinedKitLeggings = Material.IRON_LEGGINGS;
+    private Material predefinedKitBoots = Material.IRON_BOOTS;
+    private List<String> predefinedKitItems = new ArrayList<String>();
     private int queueCountdownSeconds = 120;
     private int voteDurationSeconds = 30;
     private int baseSeparationBlocks = 500;
@@ -25,7 +32,7 @@ public final class RaidRiotConfig {
     private int pasteAnchorZ;
     private int pasteY = 64;
     private String baseClaimMethod = "isBaseClaim";
-    private String factionsSourceWorld = "world";
+    private List<String> factionsSourceWorlds = new ArrayList<String>();
     private int matchDurationSeconds = 1500;
     private int countdownSeconds = 10;
     private int respawnDelaySeconds = 10;
@@ -49,6 +56,19 @@ public final class RaidRiotConfig {
         playersPerTeam = c.getInt("players-per-team", 10);
         teamADisplayName = c.getString("team-a-display-name", "Yellow Team");
         teamBDisplayName = c.getString("team-b-display-name", "Red Team");
+        maxFactionQueuePlayers = c.getInt("max-faction-queue-players", 100);
+        predefinedKitHelmet = parseMaterial(c.getString("predefined-kit.helmet"), Material.IRON_HELMET);
+        predefinedKitChestplate = parseMaterial(c.getString("predefined-kit.chestplate"), Material.IRON_CHESTPLATE);
+        predefinedKitLeggings = parseMaterial(c.getString("predefined-kit.leggings"), Material.IRON_LEGGINGS);
+        predefinedKitBoots = parseMaterial(c.getString("predefined-kit.boots"), Material.IRON_BOOTS);
+        predefinedKitItems = new ArrayList<String>(c.getStringList("predefined-kit.items"));
+        if (predefinedKitItems.isEmpty()) {
+            predefinedKitItems.add("TNT:64");
+            predefinedKitItems.add("SAND:64");
+            predefinedKitItems.add("REDSTONE:64");
+            predefinedKitItems.add("WATER_BUCKET:1");
+            predefinedKitItems.add("LAVA_BUCKET:1");
+        }
         queueCountdownSeconds = c.getInt("queue-countdown-seconds", 120);
         voteDurationSeconds = c.getInt("vote-duration-seconds", 30);
         baseSeparationBlocks = c.getInt("base-separation-blocks", 500);
@@ -57,7 +77,15 @@ public final class RaidRiotConfig {
         pasteAnchorZ = c.getInt("paste-anchor-z", 0);
         pasteY = c.getInt("paste-y", 64);
         baseClaimMethod = c.getString("factions.base-claim-method", "isBaseClaim");
-        factionsSourceWorld = c.getString("factions.source-world", "world");
+        factionsSourceWorlds = new ArrayList<String>(c.getStringList("factions.source-world"));
+        if (factionsSourceWorlds.isEmpty()) {
+            String singleWorld = c.getString("factions.source-world", "world");
+            if (singleWorld != null && !singleWorld.trim().isEmpty()) {
+                factionsSourceWorlds.add(singleWorld.trim());
+            } else {
+                factionsSourceWorlds.add("world");
+            }
+        }
         matchDurationSeconds = c.getInt("match-duration-seconds", 1500);
         countdownSeconds = c.getInt("countdown-seconds", 10);
         respawnDelaySeconds = c.getInt("respawn-delay-seconds", 10);
@@ -106,6 +134,42 @@ public final class RaidRiotConfig {
         return side == TeamSide.A ? teamADisplayName : teamBDisplayName;
     }
 
+    public int getMaxFactionQueuePlayers() {
+        return maxFactionQueuePlayers;
+    }
+
+    public Material getPredefinedKitHelmet() {
+        return predefinedKitHelmet;
+    }
+
+    public Material getPredefinedKitChestplate() {
+        return predefinedKitChestplate;
+    }
+
+    public Material getPredefinedKitLeggings() {
+        return predefinedKitLeggings;
+    }
+
+    public Material getPredefinedKitBoots() {
+        return predefinedKitBoots;
+    }
+
+    public List<String> getPredefinedKitItems() {
+        return predefinedKitItems;
+    }
+
+    private Material parseMaterial(String name, Material fallback) {
+        if (name == null || name.trim().isEmpty()) {
+            return fallback;
+        }
+        try {
+            return Material.valueOf(name.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            plugin.getLogger().warning("Unknown material: " + name);
+            return fallback;
+        }
+    }
+
     public int getQueueCountdownSeconds() {
         return queueCountdownSeconds;
     }
@@ -138,8 +202,8 @@ public final class RaidRiotConfig {
         return baseClaimMethod;
     }
 
-    public String getFactionsSourceWorld() {
-        return factionsSourceWorld;
+    public List<String> getFactionsSourceWorlds() {
+        return factionsSourceWorlds;
     }
 
     public int getMatchDurationSeconds() {

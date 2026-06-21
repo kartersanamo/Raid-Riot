@@ -4,12 +4,15 @@ import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BasePlacementService;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
+import com.kartersanamo.raidriot.combat.PredefinedKitService;
 import com.kartersanamo.raidriot.combat.RespawnQueue;
 import com.kartersanamo.raidriot.faction.FactionsBridge;
+import com.kartersanamo.raidriot.queue.FactionQueueResolver;
 import com.kartersanamo.raidriot.queue.QueueManager;
 import com.kartersanamo.raidriot.queue.QueueSession;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import com.kartersanamo.raidriot.ui.RaidRiotGuiService;
+import com.kartersanamo.raidriot.vote.KitVoteOption;
 import com.kartersanamo.raidriot.vote.VoteManager;
 import com.kartersanamo.raidriot.world.WorldResetService;
 import org.bukkit.Bukkit;
@@ -18,10 +21,11 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public final class EventManager implements QueueManager.QueueListener, VoteManager.VoteListener {
@@ -32,6 +36,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private final BasePlacementService basePlacementService;
     private final WorldResetService worldResetService;
     private final RespawnQueue respawnQueue;
+    private final PredefinedKitService predefinedKitService;
     private final RaidRiotGuiService guiService;
     private RaidMatch activeMatch;
     private BukkitTask timerTask;
@@ -40,13 +45,15 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     public EventManager(RaidRiotPlugin plugin, QueueManager queueManager, VoteManager voteManager,
             BasePlacementService basePlacementService, WorldResetService worldResetService,
-            RespawnQueue respawnQueue, RaidRiotGuiService guiService) {
+            RespawnQueue respawnQueue, PredefinedKitService predefinedKitService,
+            RaidRiotGuiService guiService) {
         this.plugin = plugin;
         this.queueManager = queueManager;
         this.voteManager = voteManager;
         this.basePlacementService = basePlacementService;
         this.worldResetService = worldResetService;
         this.respawnQueue = respawnQueue;
+        this.predefinedKitService = predefinedKitService;
         this.guiService = guiService;
         queueManager.setListener(this);
         voteManager.setListener(this);
@@ -144,36 +151,17 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private void assignTeams(QueueSession session, RaidMatch match) throws Exception {
         FactionsBridge bridge = plugin.getFactionsBridge();
         int perTeam = plugin.getRaidRiotConfig().getPlayersPerTeam();
-        List<UUID> ids = new ArrayList<UUID>(session.getQueued());
 
         if (session.getMode() == TeamAssignmentMode.RANDOM) {
-            Map<TeamSide, Integer> assigned = new EnumMap<TeamSide, Integer>(TeamSide.class);
-            assigned.put(TeamSide.A, 0);
-            assigned.put(TeamSide.B, 0);
-            List<UUID> unassigned = new ArrayList<UUID>();
-
-            for (UUID id : ids) {
-                TeamSide preferred = session.getPreferredTeam(id);
-                if (preferred != null && assigned.get(preferred) < perTeam) {
-                    match.addParticipant(id, preferred);
-                    assigned.put(preferred, assigned.get(preferred) + 1);
-                } else {
-                    unassigned.add(id);
-                }
+            List<UUID> ids = new ArrayList<UUID>(session.getQueued());
+            Collections.shuffle(ids);
+            Set<UUID> selected = new HashSet<UUID>();
+            for (int i = 0; i < ids.size() && i < perTeam * 2; i++) {
+                TeamSide side = i < perTeam ? TeamSide.A : TeamSide.B;
+                match.addParticipant(ids.get(i), side);
+                selected.add(ids.get(i));
             }
-
-            Collections.shuffle(unassigned);
-            for (UUID id : unassigned) {
-                TeamSide side = assigned.get(TeamSide.A) < perTeam ? TeamSide.A : TeamSide.B;
-                if (assigned.get(side) >= perTeam) {
-                    side = side.opposite();
-                }
-                if (assigned.get(side) >= perTeam) {
-                    continue;
-                }
-                match.addParticipant(id, side);
-                assigned.put(side, assigned.get(side) + 1);
-            }
+            notifyRejected(session, selected);
             return;
         }
 
@@ -184,39 +172,46 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         activeMatch = new RaidMatch(match.getEventWorld(), session.getMode(), tagA, tagB, factionA, factionB);
         activeMatch.setState(MatchState.QUEUE_LOCKED);
 
-        for (UUID id : ids) {
-            Object pf = session.getFaction(id);
-            TeamSide side = null;
-            if (bridge.factionsEqual(pf, factionA)) {
-                side = TeamSide.A;
-            } else if (bridge.factionsEqual(pf, factionB)) {
-                side = TeamSide.B;
-            }
-            if (side != null) {
-                activeMatch.addParticipant(id, side);
-            } else {
-                Player p = Bukkit.getPlayer(id);
-                if (p != null) {
-                    plugin.getMessages().send(p, "queue.not-qualified");
+        Map<TeamSide, List<UUID>> selected = FactionQueueResolver.selectParticipants(session, bridge, perTeam);
+        Set<UUID> picked = new HashSet<UUID>();
+        for (UUID id : selected.get(TeamSide.A)) {
+            activeMatch.addParticipant(id, TeamSide.A);
+            picked.add(id);
+        }
+        for (UUID id : selected.get(TeamSide.B)) {
+            activeMatch.addParticipant(id, TeamSide.B);
+            picked.add(id);
+        }
+        notifyRejected(session, picked);
+    }
+
+    private void notifyRejected(QueueSession session, Set<UUID> selected) {
+        for (UUID id : session.getQueued()) {
+            if (!selected.contains(id)) {
+                Player player = Bukkit.getPlayer(id);
+                if (player != null) {
+                    plugin.getMessages().send(player, "queue.not-qualified");
                 }
             }
         }
     }
 
     @Override
-    public synchronized void onVoteComplete(RaidMatch match, BaseVoteOption winner) {
+    public synchronized void onVoteComplete(RaidMatch match, BaseVoteOption baseWinner, KitVoteOption kitWinner) {
         stopGuiRefreshTask();
         activeMatch = match;
-        activeMatch.setSelectedBaseVote(winner);
+        activeMatch.setSelectedBaseVote(baseWinner);
+        activeMatch.setSelectedKitVote(kitWinner);
         activeMatch.setState(MatchState.PREPARING);
 
         Map<String, String> vars = new HashMap<String, String>();
-        vars.put("base", winner.displayName());
+        vars.put("base", baseWinner.displayName());
+        vars.put("kit", kitWinner.displayName());
         plugin.getMessages().broadcast("vote.winner", vars);
 
         worldResetService.beginSession(activeMatch.getEventWorld());
         try {
-            basePlacementService.placeBases(activeMatch, winner);
+            basePlacementService.placeBases(activeMatch, baseWinner);
         } catch (Exception ex) {
             plugin.getLogger().severe("Base placement failed: " + ex.getMessage());
             stopMatch("Base placement failed: " + ex.getMessage());
@@ -256,6 +251,9 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             Player player = Bukkit.getPlayer(id);
             if (player == null) {
                 continue;
+            }
+            if (match.getSelectedKitVote() == KitVoteOption.PREDEFINED) {
+                predefinedKitService.apply(player);
             }
             match.snapshotKit(player);
             TeamSide side = match.getTeamFor(player);

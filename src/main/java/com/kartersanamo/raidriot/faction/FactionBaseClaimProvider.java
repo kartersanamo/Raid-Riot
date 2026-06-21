@@ -57,6 +57,19 @@ public final class FactionBaseClaimProvider {
         return ok;
     }
 
+    public boolean hasBaseClaims(Object factionRef, List<String> worldNames) throws Exception {
+        return findSourceWorldWithBaseClaims(factionRef, worldNames) != null;
+    }
+
+    public String findSourceWorldWithBaseClaims(Object factionRef, List<String> worldNames) throws Exception {
+        for (String worldName : worldNames) {
+            if (hasBaseClaims(factionRef, worldName)) {
+                return worldName;
+            }
+        }
+        return null;
+    }
+
     public boolean hasBaseClaims(Object factionRef, String worldName) throws Exception {
         return !listBaseClaimChunks(factionRef, worldName).isEmpty();
     }

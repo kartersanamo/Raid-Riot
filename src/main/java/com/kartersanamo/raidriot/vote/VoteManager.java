@@ -17,13 +17,14 @@ import java.util.UUID;
 public final class VoteManager {
 
     public interface VoteListener {
-        void onVoteComplete(RaidMatch match, BaseVoteOption winner);
+        void onVoteComplete(RaidMatch match, BaseVoteOption baseWinner, KitVoteOption kitWinner);
     }
 
     private final RaidRiotPlugin plugin;
     private final Random random = new Random();
     private RaidMatch match;
-    private final Map<UUID, BaseVoteOption> votes = new HashMap<UUID, BaseVoteOption>();
+    private final Map<UUID, BaseVoteOption> baseVotes = new HashMap<UUID, BaseVoteOption>();
+    private final Map<UUID, KitVoteOption> kitVotes = new HashMap<UUID, KitVoteOption>();
     private long endMs;
     private BukkitTask task;
     private VoteListener listener;
@@ -46,7 +47,8 @@ public final class VoteManager {
 
     public void startVote(RaidMatch match) {
         this.match = match;
-        this.votes.clear();
+        this.baseVotes.clear();
+        this.kitVotes.clear();
         this.endMs = System.currentTimeMillis() + plugin.getRaidRiotConfig().getVoteDurationSeconds() * 1000L;
         match.setState(com.kartersanamo.raidriot.match.MatchState.VOTING);
 
@@ -68,23 +70,42 @@ public final class VoteManager {
         }, plugin.getRaidRiotConfig().getVoteDurationSeconds() * 20L);
     }
 
-    public void castVote(Player player, BaseVoteOption option) {
+    public void castBaseVote(Player player, BaseVoteOption option) {
         if (match == null || !match.isParticipant(player)) {
             return;
         }
-        votes.put(player.getUniqueId(), option);
+        baseVotes.put(player.getUniqueId(), option);
     }
 
-    public BaseVoteOption getVote(UUID id) {
-        return votes.get(id);
-    }
-
-    public Map<BaseVoteOption, Integer> tally() {
-        Map<BaseVoteOption, Integer> counts = new EnumMap<BaseVoteOption, Integer>(BaseVoteOption.class);
-        for (BaseVoteOption o : BaseVoteOption.values()) {
-            counts.put(o, 0);
+    public void castKitVote(Player player, KitVoteOption option) {
+        if (match == null || !match.isParticipant(player)) {
+            return;
         }
-        for (BaseVoteOption vote : votes.values()) {
+        kitVotes.put(player.getUniqueId(), option);
+    }
+
+    public BaseVoteOption getBaseVote(UUID id) {
+        return baseVotes.get(id);
+    }
+
+    public KitVoteOption getKitVote(UUID id) {
+        return kitVotes.get(id);
+    }
+
+    public Map<BaseVoteOption, Integer> tallyBase() {
+        return tally(baseVotes, BaseVoteOption.class);
+    }
+
+    public Map<KitVoteOption, Integer> tallyKit() {
+        return tally(kitVotes, KitVoteOption.class);
+    }
+
+    private <E extends Enum<E>> Map<E, Integer> tally(Map<UUID, E> votes, Class<E> type) {
+        Map<E, Integer> counts = new EnumMap<E, Integer>(type);
+        for (E value : type.getEnumConstants()) {
+            counts.put(value, 0);
+        }
+        for (E vote : votes.values()) {
             counts.put(vote, counts.get(vote) + 1);
         }
         return counts;
@@ -98,28 +119,8 @@ public final class VoteManager {
         if (match == null) {
             return;
         }
-        Map<BaseVoteOption, Integer> counts = tally();
-        int best = -1;
-        BaseVoteOption winner = BaseVoteOption.MEDIUM;
-        for (Map.Entry<BaseVoteOption, Integer> entry : counts.entrySet()) {
-            if (entry.getValue() > best) {
-                best = entry.getValue();
-                winner = entry.getKey();
-            }
-        }
-        if (best <= 0) {
-            winner = BaseVoteOption.MEDIUM;
-        } else {
-            java.util.List<BaseVoteOption> tied = new java.util.ArrayList<BaseVoteOption>();
-            for (Map.Entry<BaseVoteOption, Integer> entry : counts.entrySet()) {
-                if (entry.getValue() == best) {
-                    tied.add(entry.getKey());
-                }
-            }
-            if (tied.size() > 1) {
-                winner = tied.get(random.nextInt(tied.size()));
-            }
-        }
+        BaseVoteOption baseWinner = resolveWinner(tallyBase(), BaseVoteOption.MEDIUM);
+        KitVoteOption kitWinner = resolveWinner(tallyKit(), KitVoteOption.OWN_GEAR);
 
         RaidMatch finished = match;
         match = null;
@@ -128,8 +129,32 @@ public final class VoteManager {
             task = null;
         }
         if (listener != null) {
-            listener.onVoteComplete(finished, winner);
+            listener.onVoteComplete(finished, baseWinner, kitWinner);
         }
+    }
+
+    private <E extends Enum<E>> E resolveWinner(Map<E, Integer> counts, E defaultWinner) {
+        int best = -1;
+        E winner = defaultWinner;
+        for (Map.Entry<E, Integer> entry : counts.entrySet()) {
+            if (entry.getValue() > best) {
+                best = entry.getValue();
+                winner = entry.getKey();
+            }
+        }
+        if (best <= 0) {
+            return defaultWinner;
+        }
+        java.util.List<E> tied = new java.util.ArrayList<E>();
+        for (Map.Entry<E, Integer> entry : counts.entrySet()) {
+            if (entry.getValue() == best) {
+                tied.add(entry.getKey());
+            }
+        }
+        if (tied.size() > 1) {
+            return tied.get(random.nextInt(tied.size()));
+        }
+        return winner;
     }
 
     public void cancel() {
@@ -138,6 +163,7 @@ public final class VoteManager {
             task = null;
         }
         match = null;
-        votes.clear();
+        baseVotes.clear();
+        kitVotes.clear();
     }
 }

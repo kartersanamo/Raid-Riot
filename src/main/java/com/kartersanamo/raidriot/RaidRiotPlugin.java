@@ -5,6 +5,7 @@ import com.kartersanamo.raidriot.base.BasePlacementService;
 import com.kartersanamo.raidriot.breach.BreachService;
 import com.kartersanamo.raidriot.chat.ClickableMessageService;
 import com.kartersanamo.raidriot.combat.NakedPatchEnforcer;
+import com.kartersanamo.raidriot.combat.PredefinedKitService;
 import com.kartersanamo.raidriot.combat.RespawnQueue;
 import com.kartersanamo.raidriot.command.RaidRiotCommand;
 import com.kartersanamo.raidriot.config.RaidRiotConfig;
@@ -92,12 +93,13 @@ public final class RaidRiotPlugin extends JavaPlugin {
                 claimBaseProvider, worldResetService);
 
         respawnQueue = new RespawnQueue(this);
+        PredefinedKitService predefinedKitService = new PredefinedKitService(raidRiotConfig);
         ClickableMessageService clickableMessageService = new ClickableMessageService(this);
         QueueManager queueManager = new QueueManager(this, clickableMessageService);
         VoteManager voteManager = new VoteManager(this);
         guiService = new RaidRiotGuiService(this);
         eventManager = new EventManager(this, queueManager, voteManager, basePlacementService,
-                worldResetService, respawnQueue, guiService);
+                worldResetService, respawnQueue, predefinedKitService, guiService);
 
         breachService = new BreachService(this);
         nakedPatchEnforcer = new NakedPatchEnforcer(this);

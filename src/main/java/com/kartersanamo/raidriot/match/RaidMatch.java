@@ -3,6 +3,7 @@ package com.kartersanamo.raidriot.match;
 import com.kartersanamo.raidriot.arena.TeamBase;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
+import com.kartersanamo.raidriot.vote.KitVoteOption;
 import com.kartersanamo.raidriot.breach.DepthTracker;
 import com.kartersanamo.raidriot.combat.KitSnapshot;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
@@ -33,6 +34,7 @@ public final class RaidMatch {
 
     private MatchState state = MatchState.IDLE;
     private BaseVoteOption selectedBaseVote;
+    private KitVoteOption selectedKitVote;
     private TeamSide winner;
     private WinReason winReason;
     private long activeEndMs;
@@ -91,6 +93,14 @@ public final class RaidMatch {
 
     public void setSelectedBaseVote(BaseVoteOption selectedBaseVote) {
         this.selectedBaseVote = selectedBaseVote;
+    }
+
+    public KitVoteOption getSelectedKitVote() {
+        return selectedKitVote;
+    }
+
+    public void setSelectedKitVote(KitVoteOption selectedKitVote) {
+        this.selectedKitVote = selectedKitVote;
     }
 
     public DepthTracker getDepthTracker() {

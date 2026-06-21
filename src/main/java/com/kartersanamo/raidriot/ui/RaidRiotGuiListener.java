@@ -1,12 +1,11 @@
 package com.kartersanamo.raidriot.ui;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
-import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.QueueManager;
-import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
+import com.kartersanamo.raidriot.vote.KitVoteOption;
 import com.kartersanamo.raidriot.vote.VoteManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -41,46 +40,30 @@ public final class RaidRiotGuiListener implements Listener {
         int slot = event.getRawSlot();
 
         if (plugin.getEventManager().getQueueManager().isOpen()) {
-            handleQueueClick(player, slot);
+            if (slot == RaidRiotGui.SLOT_JOIN_QUEUE) {
+                QueueManager.JoinResult result = plugin.getEventManager().getQueueManager().tryJoin(player);
+                sendJoinResult(player, result);
+                if (result == QueueManager.JoinResult.SUCCESS) {
+                    guiService.refreshOpenInventories();
+                }
+            }
             return;
         }
 
         RaidMatch match = plugin.getEventManager().getActiveMatch();
         VoteManager voteManager = plugin.getEventManager().getVoteManager();
         if (match != null && match.getState() == MatchState.VOTING && voteManager.isVoting()) {
-            BaseVoteOption option = RaidRiotGui.voteFromSlot(slot);
-            if (option != null) {
-                voteManager.castVote(player, option);
+            BaseVoteOption baseOption = RaidRiotGui.baseVoteFromSlot(slot);
+            if (baseOption != null) {
+                voteManager.castBaseVote(player, baseOption);
                 guiService.refreshOpenInventories();
-            }
-        }
-    }
-
-    private void handleQueueClick(Player player, int slot) {
-        QueueManager queue = plugin.getEventManager().getQueueManager();
-        if (!queue.isOpen()) {
-            return;
-        }
-        TeamAssignmentMode mode = queue.getSession().getMode();
-        QueueManager.JoinResult result;
-
-        if (mode == TeamAssignmentMode.RANDOM) {
-            TeamSide side = RaidRiotGui.teamFromSlot(slot);
-            if (side == null) {
                 return;
             }
-            result = queue.tryJoinTeam(player, side);
-        } else if (slot == RaidRiotGui.SLOT_JOIN_QUEUE
-                || slot == RaidRiotGui.SLOT_TEAM_A
-                || slot == RaidRiotGui.SLOT_TEAM_B) {
-            result = queue.tryJoin(player);
-        } else {
-            return;
-        }
-
-        sendJoinResult(player, result);
-        if (result == QueueManager.JoinResult.SUCCESS) {
-            guiService.refreshOpenInventories();
+            KitVoteOption kitOption = RaidRiotGui.kitVoteFromSlot(slot);
+            if (kitOption != null) {
+                voteManager.castKitVote(player, kitOption);
+                guiService.refreshOpenInventories();
+            }
         }
     }
 
@@ -89,7 +72,7 @@ public final class RaidRiotGuiListener implements Listener {
         switch (result) {
             case SUCCESS:
                 vars.put("count", String.valueOf(plugin.getEventManager().getQueueManager().getSession().size()));
-                vars.put("max", String.valueOf(plugin.getRaidRiotConfig().getMaxPlayers()));
+                vars.put("max", String.valueOf(maxQueueDisplay()));
                 plugin.getMessages().send(player, "queue.joined", vars);
                 break;
             case ALREADY_IN:
@@ -98,21 +81,20 @@ public final class RaidRiotGuiListener implements Listener {
             case FULL:
                 plugin.getMessages().send(player, "queue.full");
                 break;
-            case TEAM_FULL:
-                plugin.getMessages().send(player, "queue.team-full");
-                break;
             case NEED_FACTION:
                 plugin.getMessages().send(player, "queue.need-faction");
-                break;
-            case FACTION_FULL:
-                plugin.getMessages().send(player, "queue.faction-full");
-                break;
-            case FACTION_NOT_QUALIFIED:
-                plugin.getMessages().send(player, "queue.faction-not-qualified");
                 break;
             default:
                 plugin.getMessages().send(player, "join.no-match");
                 break;
         }
+    }
+
+    private int maxQueueDisplay() {
+        if (plugin.getEventManager().getQueueManager().getSession().getMode()
+                == com.kartersanamo.raidriot.queue.TeamAssignmentMode.FACTION) {
+            return plugin.getRaidRiotConfig().getMaxFactionQueuePlayers();
+        }
+        return plugin.getRaidRiotConfig().getMaxPlayers();
     }
 }

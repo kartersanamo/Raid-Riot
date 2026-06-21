@@ -77,7 +77,7 @@ public final class BasePlacementService {
 
     private Map<TeamSide, BaseVoteOption> resolvePerTeam(RaidMatch match, BaseVoteOption voteWinner) throws Exception {
         Map<TeamSide, BaseVoteOption> out = new EnumMap<TeamSide, BaseVoteOption>(TeamSide.class);
-        String sourceWorld = plugin.getRaidRiotConfig().getFactionsSourceWorld();
+        List<String> sourceWorlds = plugin.getRaidRiotConfig().getFactionsSourceWorlds();
         for (TeamSide side : new TeamSide[]{TeamSide.A, TeamSide.B}) {
             if (voteWinner != BaseVoteOption.FACTION) {
                 out.put(side, voteWinner);
@@ -85,7 +85,7 @@ public final class BasePlacementService {
             }
             Object faction = match.getFactionRef(side);
             if (factionBaseClaimProvider.isReady()
-                    && factionBaseClaimProvider.hasBaseClaims(faction, sourceWorld)) {
+                    && factionBaseClaimProvider.hasBaseClaims(faction, sourceWorlds)) {
                 out.put(side, BaseVoteOption.FACTION);
             } else {
                 plugin.getLogger().warning("Faction base missing for " + match.getFactionTag(side) + ", using Hard.");
@@ -127,17 +127,27 @@ public final class BasePlacementService {
 
     private void placeFactionBase(RaidMatch match, TeamSide side, Location anchor) throws Exception {
         Object faction = match.getFactionRef(side);
-        String sourceWorldName = plugin.getRaidRiotConfig().getFactionsSourceWorld();
+        List<String> sourceWorldNames = plugin.getRaidRiotConfig().getFactionsSourceWorlds();
+        String sourceWorldName = null;
+        List<FactionBaseClaimProvider.ChunkCoordinate> chunks = null;
+        for (String worldName : sourceWorldNames) {
+            List<FactionBaseClaimProvider.ChunkCoordinate> found =
+                    factionBaseClaimProvider.listBaseClaimChunks(faction, worldName);
+            if (!found.isEmpty()) {
+                sourceWorldName = worldName;
+                chunks = found;
+                break;
+            }
+        }
+        if (sourceWorldName == null || chunks == null || chunks.isEmpty()) {
+            throw new IllegalStateException("No baseclaims for faction " + match.getFactionTag(side)
+                    + " in configured source worlds: " + sourceWorldNames);
+        }
+
         World sourceWorld = Bukkit.getWorld(sourceWorldName);
         World eventWorld = anchor.getWorld();
         if (sourceWorld == null) {
             throw new IllegalStateException("Factions source world not loaded: " + sourceWorldName);
-        }
-
-        List<FactionBaseClaimProvider.ChunkCoordinate> chunks =
-                factionBaseClaimProvider.listBaseClaimChunks(faction, sourceWorldName);
-        if (chunks.isEmpty()) {
-            throw new IllegalStateException("No baseclaims for faction " + match.getFactionTag(side));
         }
 
         CuboidRegion sourceBounds = factionBaseClaimProvider.computeBounds(chunks, sourceWorldName);

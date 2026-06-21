@@ -1,10 +1,10 @@
 package com.kartersanamo.raidriot.queue;
 
-import com.kartersanamo.raidriot.arena.TeamSide;
-
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -13,9 +13,8 @@ public final class QueueSession {
 
     private final TeamAssignmentMode mode;
     private final Set<UUID> queued = new HashSet<UUID>();
+    private final List<UUID> joinOrder = new ArrayList<UUID>();
     private final Map<UUID, Object> playerFactions = new HashMap<UUID, Object>();
-    private final Map<UUID, TeamSide> preferredTeams = new HashMap<UUID, TeamSide>();
-    private final Map<String, Integer> factionCounts = new HashMap<String, Integer>();
     private Object factionARef;
     private Object factionBRef;
     private String factionATag;
@@ -51,44 +50,20 @@ public final class QueueSession {
         return Collections.unmodifiableSet(queued);
     }
 
-    public void add(UUID id, Object factionRef) {
-        add(id, factionRef, null);
+    public List<UUID> getJoinOrder() {
+        return Collections.unmodifiableList(joinOrder);
     }
 
-    public void add(UUID id, Object factionRef, TeamSide preferredTeam) {
+    public void add(UUID id, Object factionRef) {
         queued.add(id);
+        joinOrder.add(id);
         playerFactions.put(id, factionRef);
-        if (preferredTeam != null) {
-            preferredTeams.put(id, preferredTeam);
-        }
     }
 
     public void remove(UUID id) {
         queued.remove(id);
+        joinOrder.remove(id);
         playerFactions.remove(id);
-        preferredTeams.remove(id);
-    }
-
-    public TeamSide getPreferredTeam(UUID id) {
-        return preferredTeams.get(id);
-    }
-
-    public void setPreferredTeam(UUID id, TeamSide side) {
-        if (side == null) {
-            preferredTeams.remove(id);
-        } else {
-            preferredTeams.put(id, side);
-        }
-    }
-
-    public int countOnTeam(TeamSide side) {
-        int count = 0;
-        for (TeamSide team : preferredTeams.values()) {
-            if (team == side) {
-                count++;
-            }
-        }
-        return count;
     }
 
     public Object getFaction(UUID id) {
@@ -129,19 +104,5 @@ public final class QueueSession {
 
     public void setFactionBTag(String factionBTag) {
         this.factionBTag = factionBTag;
-    }
-
-    public void incrementFactionCount(String factionId) {
-        Integer count = factionCounts.get(factionId);
-        factionCounts.put(factionId, count == null ? 1 : count + 1);
-    }
-
-    public int getFactionCount(String factionId) {
-        Integer count = factionCounts.get(factionId);
-        return count == null ? 0 : count;
-    }
-
-    public boolean isFactionLocked(TeamSide side) {
-        return side == TeamSide.A ? factionARef != null : factionBRef != null;
     }
 }

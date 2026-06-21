@@ -2,6 +2,7 @@ event-world: ""
 players-per-team: 10
 team-a-display-name: Yellow Team
 team-b-display-name: Red Team
+max-faction-queue-players: 100
 queue-countdown-seconds: 120
 vote-duration-seconds: 30
 base-separation-blocks: 500
@@ -9,6 +10,18 @@ spawn-y: 256
 paste-anchor-x: 0
 paste-anchor-z: 0
 paste-y: 64
+
+predefined-kit:
+  helmet: IRON_HELMET
+  chestplate: IRON_CHESTPLATE
+  leggings: IRON_LEGGINGS
+  boots: IRON_BOOTS
+  items:
+    - TNT:64
+    - SAND:64
+    - REDSTONE:64
+    - WATER_BUCKET:1
+    - LAVA_BUCKET:1
 
 match-duration-seconds: 1500
 countdown-seconds: 10
@@ -29,4 +42,5 @@ worldedit-paste-offset:
 
 factions:
   base-claim-method: isBaseClaim
-  source-world: world
+  source-world:
+    - world
