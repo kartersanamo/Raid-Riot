@@ -38,6 +38,7 @@ public final class RaidRiotConfig {
     private int worldBorderPaddingBlocks = 500;
     private String eventFactionTagA = "Yellow";
     private String eventFactionTagB = "Red";
+    private int eventFactionPowerBuffer = 300;
     private final Map<BaseVoteOption, int[]> schematicCenterFromMin = new EnumMap<BaseVoteOption, int[]>(BaseVoteOption.class);
     private String baseClaimMethod = "isBaseClaim";
     private List<String> factionsSourceWorlds = new ArrayList<String>();
@@ -87,6 +88,7 @@ public final class RaidRiotConfig {
         worldBorderPaddingBlocks = c.getInt("world-border-padding-blocks", 500);
         eventFactionTagA = c.getString("factions.event-faction-a-tag", "Yellow");
         eventFactionTagB = c.getString("factions.event-faction-b-tag", "Red");
+        eventFactionPowerBuffer = c.getInt("factions.event-faction-power-buffer", 300);
         loadSchematicCenterOffsets(c);
         baseClaimMethod = c.getString("factions.base-claim-method", "isBaseClaim");
         factionsSourceWorlds = new ArrayList<String>(c.getStringList("factions.source-world"));
@@ -307,6 +309,10 @@ public final class RaidRiotConfig {
 
     public String getEventFactionTagB() {
         return eventFactionTagB;
+    }
+
+    public int getEventFactionPowerBuffer() {
+        return eventFactionPowerBuffer;
     }
 
     public int[] getSchematicCenterOffset(BaseVoteOption option) {

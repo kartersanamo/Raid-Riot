@@ -161,7 +161,7 @@ public final class BasePlacementService {
         analysis.collectClaimChunks(anchor.getWorld().getName(), originX, originZ, claimChunks);
         analysis.ensureAnchorChunkClaimed(anchor.getWorld().getName(), originX, originZ,
                 anchorOffset[0], anchorOffset[2], claimChunks);
-        eventFactionService.claimChunksForTeam(match, side, claimChunks);
+        eventFactionService.claimBaseChunksForTeam(match, side, claimChunks);
     }
 
     private void placeFactionBase(RaidMatch match, TeamSide side, Location anchor) throws Exception {
@@ -216,7 +216,7 @@ public final class BasePlacementService {
                 claimChunks.add(new ChunkKey(eventWorld.getName(), cx, cz));
             }
         }
-        eventFactionService.claimChunksForTeam(match, side, claimChunks);
+        eventFactionService.claimBaseChunksForTeam(match, side, claimChunks);
     }
 
     private int computeTargetMinX(World eventWorld, CuboidRegion sourceBounds,

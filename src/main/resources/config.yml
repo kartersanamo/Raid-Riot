@@ -56,3 +56,5 @@ factions:
   # Memberless system factions auto-created on enable; if the tag exists, Yellow0/Yellow1… or Red0/Red1… is used
   event-faction-a-tag: Yellow
   event-faction-b-tag: Red
+  # Max claim power = base chunk count + this buffer (e.g. 25 base chunks → 325 power)
+  event-faction-power-buffer: 300

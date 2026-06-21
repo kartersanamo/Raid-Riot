@@ -49,6 +49,11 @@ public final class EventFactionService {
         return side == TeamSide.A ? eventFactionA : eventFactionB;
     }
 
+    public void claimBaseChunksForTeam(RaidMatch match, TeamSide side, Set<ChunkKey> chunks) throws Exception {
+        claimChunksForTeam(match, side, chunks);
+        updateMaxPowerForTeam(side, chunks.size());
+    }
+
     public void claimChunksForTeam(RaidMatch match, TeamSide side, Set<ChunkKey> chunks) throws Exception {
         Object faction = getEventFaction(side);
         FactionsBridge bridge = plugin.getFactionsBridge();
@@ -60,6 +65,16 @@ public final class EventFactionService {
             bridge.claimChunkForFaction(chunk, faction);
             match.addClaimedChunk(side, key);
         }
+    }
+
+    private void updateMaxPowerForTeam(TeamSide side, int baseChunkCount) throws Exception {
+        int buffer = plugin.getRaidRiotConfig().getEventFactionPowerBuffer();
+        int maxPower = baseChunkCount + buffer;
+        FactionsBridge bridge = plugin.getFactionsBridge();
+        Object faction = getEventFaction(side);
+        bridge.setPermanentPower(faction, maxPower);
+        plugin.getLogger().info("Set event faction " + bridge.getFactionTag(faction)
+                + " max power to " + maxPower + " (" + baseChunkCount + " base + " + buffer + " buffer).");
     }
 
     public void claimChunkForPlayerTeam(RaidMatch match, Player player) throws Exception {

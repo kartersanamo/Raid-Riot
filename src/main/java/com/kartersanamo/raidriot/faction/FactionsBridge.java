@@ -160,11 +160,15 @@ public final class FactionsBridge {
 
     private void ensureSystemFactionSettings(Object faction, String tag) throws Exception {
         factionSetPermanent.invoke(faction, true);
-        factionSetPermanentPower.invoke(faction, 999999);
         String currentTag = (String) factionGetTag.invoke(faction);
         if (currentTag == null || !currentTag.equalsIgnoreCase(tag)) {
             factionSetTag.invoke(faction, tag);
         }
+    }
+
+    public void setPermanentPower(Object faction, int power) throws Exception {
+        factionSetPermanentPower.invoke(faction, power);
+        factionsForceSave.invoke(factionsInstance);
     }
 
     private boolean isPermanent(Object faction) throws Exception {
