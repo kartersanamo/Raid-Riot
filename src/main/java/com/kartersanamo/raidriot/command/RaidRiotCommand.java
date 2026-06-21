@@ -82,6 +82,10 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         Player player = (Player) sender;
+        if (plugin.getSpectatorService().isSpectating(player.getUniqueId())) {
+            plugin.getSpectatorService().leave(player);
+            return true;
+        }
         if (plugin.getEventManager().getQueueManager().isOpen()) {
             plugin.getEventManager().getQueueManager().leave(player);
             plugin.getGuiService().refreshOpenInventories();

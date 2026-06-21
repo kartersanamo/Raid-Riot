@@ -29,6 +29,7 @@ join:
 
 leave:
   success: "{prefix}&7You left the queue."
+  spectator-success: "{prefix}&7You stopped spectating."
   not-in: "{prefix}&cYou are not in the queue."
 
 status:
@@ -39,6 +40,14 @@ status:
 
 death:
   respawn-wait: "{prefix}&7Respawning in &c{seconds}&7 seconds..."
+  broadcast: "{prefix}&7{victim} &7({team}) was eliminated by &c{killer}&7!"
+  broadcast-no-killer: "{prefix}&7{victim} &7({team}) was eliminated!"
+
+spectator:
+  entered: "{prefix}&aYou are now spectating the match."
+  left: "{prefix}&7You stopped spectating."
+  teleported: "{prefix}&7Teleported to &f{target}&7."
+  no-target: "{prefix}&cThat player is not available."
 
 patch:
   must-be-naked: "{prefix}&cYou must be naked to patch on your base/cannon."

@@ -4,6 +4,7 @@ import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -28,12 +29,15 @@ public final class VirtualDeathService {
         return pending.containsKey(id);
     }
 
-    public void handleVirtualDeath(RaidMatch match, Player player) {
+    public void handleVirtualDeath(RaidMatch match, Player player, Player killer) {
         cancel(player.getUniqueId());
         TeamSide side = match.getTeamFor(player);
         if (side == null) {
             return;
         }
+
+        player.sendTitle(ChatColor.RED + "" + ChatColor.BOLD + "YOU DIED", "");
+        announceDeath(match, player, killer);
 
         player.setHealth(player.getMaxHealth());
         player.setFoodLevel(20);
@@ -60,6 +64,19 @@ public final class VirtualDeathService {
             }
         }, delay * 20L);
         pending.put(player.getUniqueId(), task);
+    }
+
+    private void announceDeath(RaidMatch match, Player victim, Player killer) {
+        Map<String, String> vars = new HashMap<String, String>();
+        vars.put("victim", victim.getName());
+        TeamSide team = match.getTeamFor(victim);
+        vars.put("team", team == null ? "" : match.getFactionTag(team));
+        if (killer != null && killer != victim) {
+            vars.put("killer", killer.getName());
+            plugin.getMessages().broadcast("death.broadcast", vars);
+        } else {
+            plugin.getMessages().broadcast("death.broadcast-no-killer", vars);
+        }
     }
 
     private void finishRespawn(RaidMatch match, Player player) {

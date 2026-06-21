@@ -4,6 +4,7 @@ import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.QueueSession;
+import com.kartersanamo.raidriot.spectator.SpectatorService;
 import com.kartersanamo.raidriot.vote.VoteManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -33,6 +34,13 @@ public final class RaidRiotGuiService {
         VoteManager voteManager = plugin.getEventManager().getVoteManager();
         if (match.getState() == MatchState.VOTING && voteManager.isVoting()) {
             player.openInventory(RaidRiotGui.createVoteGui(plugin, voteManager));
+            return true;
+        }
+
+        if (match.isActive() && !match.isParticipant(player)) {
+            SpectatorService spectatorService = plugin.getSpectatorService();
+            spectatorService.enterIfNeeded(player, match);
+            player.openInventory(RaidRiotGui.createSpectatorGui(plugin, match));
             return true;
         }
 
@@ -73,6 +81,23 @@ public final class RaidRiotGuiService {
             return;
         }
 
+        if (match.isActive()) {
+            SpectatorService spectatorService = plugin.getSpectatorService();
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (!RaidRiotGui.isRaidRiotInventory(player.getOpenInventory().getTopInventory())) {
+                    continue;
+                }
+                if (spectatorService.isSpectating(player.getUniqueId())) {
+                    player.openInventory(RaidRiotGui.createSpectatorGui(plugin, match));
+                } else if (match.isParticipant(player)) {
+                    player.openInventory(RaidRiotGui.createStatusGui(plugin, match));
+                } else {
+                    player.openInventory(RaidRiotGui.createSpectatorGui(plugin, match));
+                }
+            }
+            return;
+        }
+
         if (isStatusView(match.getState())) {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (RaidRiotGui.isRaidRiotInventory(player.getOpenInventory().getTopInventory())) {
@@ -96,7 +121,7 @@ public final class RaidRiotGuiService {
         if (match.getState() == MatchState.VOTING && plugin.getEventManager().getVoteManager().isVoting()) {
             return true;
         }
-        return isStatusView(match.getState());
+        return isStatusView(match.getState()) || match.isActive();
     }
 
     public void closeAllOpen() {

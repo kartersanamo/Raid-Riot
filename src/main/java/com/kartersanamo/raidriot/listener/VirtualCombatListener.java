@@ -41,8 +41,10 @@ public final class VirtualCombatListener implements Listener {
             return;
         }
 
+        Player killer = null;
         if (event instanceof EntityDamageByEntityEvent) {
             Player attacker = resolveAttacker((EntityDamageByEntityEvent) event);
+            killer = attacker;
             if (attacker != null && match.isParticipant(attacker)) {
                 TeamSide attackerTeam = match.getTeamFor(attacker);
                 TeamSide victimTeam = match.getTeamFor(victim);
@@ -62,7 +64,7 @@ public final class VirtualCombatListener implements Listener {
 
         if (victim.getHealth() - event.getFinalDamage() <= 0.0D) {
             event.setCancelled(true);
-            virtualDeathService.handleVirtualDeath(match, victim);
+            virtualDeathService.handleVirtualDeath(match, victim, killer);
         }
     }
 

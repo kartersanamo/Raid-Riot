@@ -10,6 +10,7 @@ import com.kartersanamo.raidriot.combat.NakedPatchEnforcer;
 import com.kartersanamo.raidriot.combat.PredefinedKitService;
 import com.kartersanamo.raidriot.combat.RespawnQueue;
 import com.kartersanamo.raidriot.combat.VirtualDeathService;
+import com.kartersanamo.raidriot.spectator.SpectatorService;
 import com.kartersanamo.raidriot.command.RaidRiotCommand;
 import com.kartersanamo.raidriot.config.RaidRiotConfig;
 import com.kartersanamo.raidriot.faction.ClaimBaseProvider;
@@ -54,6 +55,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
     private EventManager eventManager;
     private RespawnQueue respawnQueue;
     private VirtualDeathService virtualDeathService;
+    private SpectatorService spectatorService;
     private EventCombatService eventCombatService;
     private EventFactionService eventFactionService;
     private EventTeamAccessService eventTeamAccessService;
@@ -119,6 +121,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
         respawnQueue = new RespawnQueue(this);
         virtualDeathService = new VirtualDeathService(this);
+        spectatorService = new SpectatorService(this);
         eventCombatService = new EventCombatService(this);
         eventTeamAccessService = new EventTeamAccessService(this, eventFactionService);
         PredefinedKitService predefinedKitService = new PredefinedKitService(raidRiotConfig, eventKitStore);
@@ -200,6 +203,10 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
     public VirtualDeathService getVirtualDeathService() {
         return virtualDeathService;
+    }
+
+    public SpectatorService getSpectatorService() {
+        return spectatorService;
     }
 
     public EventCombatService getEventCombatService() {

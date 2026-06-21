@@ -123,6 +123,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             voteManager.cancel();
             respawnQueue.cancelAll();
             virtualDeathService.shutdown();
+            plugin.getSpectatorService().shutdown();
             guiService.closeAllOpen();
 
             RaidMatch match = activeMatch;

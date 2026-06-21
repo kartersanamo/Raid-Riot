@@ -5,6 +5,7 @@ import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.QueueManager;
+import com.kartersanamo.raidriot.spectator.SpectatorService;
 import com.kartersanamo.raidriot.vote.KitVoteOption;
 import com.kartersanamo.raidriot.vote.VoteManager;
 import org.bukkit.entity.Player;
@@ -15,6 +16,7 @@ import org.bukkit.inventory.Inventory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public final class RaidRiotGuiListener implements Listener {
 
@@ -38,6 +40,9 @@ public final class RaidRiotGuiListener implements Listener {
         }
         Player player = (Player) event.getWhoClicked();
         int slot = event.getRawSlot();
+        if (slot < 0 || slot >= top.getSize()) {
+            return;
+        }
 
         if (plugin.getEventManager().getQueueManager().isOpen()) {
             if (slot == RaidRiotGui.SLOT_JOIN_QUEUE) {
@@ -63,6 +68,22 @@ public final class RaidRiotGuiListener implements Listener {
             if (kitOption != null) {
                 voteManager.castKitVote(player, kitOption);
                 guiService.refreshOpenInventories();
+            }
+            return;
+        }
+
+        if (match != null && match.isActive()) {
+            SpectatorService spectatorService = plugin.getSpectatorService();
+            if (spectatorService.isSpectating(player.getUniqueId())) {
+                if (slot == RaidRiotGui.SLOT_LEAVE_SPECTATE) {
+                    spectatorService.leave(player);
+                    player.closeInventory();
+                    return;
+                }
+                UUID targetId = spectatorService.getTargetAtSlot(slot);
+                if (targetId != null) {
+                    spectatorService.teleportToTarget(player, targetId, match);
+                }
             }
         }
     }

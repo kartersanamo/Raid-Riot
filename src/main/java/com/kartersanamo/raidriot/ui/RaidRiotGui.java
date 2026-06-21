@@ -3,6 +3,7 @@ package com.kartersanamo.raidriot.ui;
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
+import com.kartersanamo.raidriot.combat.VirtualDeathService;
 import com.kartersanamo.raidriot.faction.FactionsBridge;
 import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
@@ -21,6 +22,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +41,12 @@ public final class RaidRiotGui {
     public static final int SLOT_VOTE_FACTION = 8;
     public static final int SLOT_KIT_PREDEFINED = 11;
     public static final int SLOT_KIT_OWN = 15;
+    public static final int SLOT_LEAVE_SPECTATE = 4;
     public static final int PLAYER_HEADS_START = 27;
+
+    private static final int[] TEAM_A_HEAD_SLOTS = {27, 28, 29, 30, 36, 37, 38, 39, 45, 46, 47, 48};
+    private static final int[] TEAM_B_HEAD_SLOTS = {32, 33, 34, 35, 41, 42, 43, 44, 50, 51, 52, 53};
+    private static final int[] DIVIDER_SLOTS = {31, 40, 49};
 
     private RaidRiotGui() {
     }
@@ -70,7 +77,8 @@ public final class RaidRiotGui {
             inv.setItem(SLOT_STATUS_B, factionStatusItem(session.getFactionBTag(), session, plugin, false));
         }
 
-        placePlayerHeads(inv, session.getJoinOrder(), session, null, plugin);
+        placeQueuePlayerHeads(inv, session, plugin);
+        fillEmptySlots(inv);
         return inv;
     }
 
@@ -102,8 +110,9 @@ public final class RaidRiotGui {
 
         RaidMatch match = voteManager.getMatch();
         if (match != null) {
-            placePlayerHeads(inv, match.getParticipants(), null, voteManager, plugin);
+            placeVotePlayerHeads(inv, match, voteManager, plugin);
         }
+        fillEmptySlots(inv);
         return inv;
     }
 
@@ -121,7 +130,29 @@ public final class RaidRiotGui {
         inv.setItem(SLOT_STATUS_B, matchTeamItem(plugin, match, TeamSide.B));
         inv.setItem(SLOT_JOIN_QUEUE, matchSummaryItem(match));
 
-        placeMatchPlayerHeads(inv, match, plugin);
+        placeMatchPlayerHeads(inv, match, plugin, false, null);
+        fillEmptySlots(inv);
+        return inv;
+    }
+
+    public static Inventory createSpectatorGui(RaidRiotPlugin plugin, RaidMatch match) {
+        Inventory inv = Bukkit.createInventory(null, 54, TITLE);
+        fillTopBorder(inv);
+
+        List<String> infoLore = new ArrayList<String>();
+        infoLore.add(ChatColor.GRAY + "Phase: " + ChatColor.WHITE + "In Progress");
+        appendStatusDetails(match, infoLore);
+        infoLore.add(ChatColor.YELLOW + "Click a player head to teleport.");
+        inv.setItem(0, infoItem(ChatColor.GOLD + "Spectating", infoLore.toArray(new String[0])));
+
+        inv.setItem(SLOT_STATUS_A, matchTeamItem(plugin, match, TeamSide.A));
+        inv.setItem(SLOT_LEAVE_SPECTATE, leaveSpectateItem());
+        inv.setItem(SLOT_STATUS_B, matchTeamItem(plugin, match, TeamSide.B));
+
+        Map<Integer, UUID> targets = new HashMap<Integer, UUID>();
+        placeMatchPlayerHeads(inv, match, plugin, true, targets);
+        plugin.getSpectatorService().setGuiTargets(targets);
+        fillEmptySlots(inv);
         return inv;
     }
 
@@ -200,41 +231,177 @@ public final class RaidRiotGui {
         return stack;
     }
 
-    private static void placeMatchPlayerHeads(Inventory inv, RaidMatch match, RaidRiotPlugin plugin) {
-        List<UUID> ordered = new ArrayList<UUID>();
-        for (TeamSide side : new TeamSide[]{TeamSide.A, TeamSide.B}) {
-            for (UUID id : match.getParticipants()) {
-                if (match.getTeamFor(id) == side) {
-                    ordered.add(id);
-                }
+    private static void placeMatchPlayerHeads(Inventory inv, RaidMatch match, RaidRiotPlugin plugin,
+            boolean clickable, Map<Integer, UUID> slotTargets) {
+        VirtualDeathService virtualDeath = plugin.getVirtualDeathService();
+        List<UUID> teamA = new ArrayList<UUID>();
+        List<UUID> teamB = new ArrayList<UUID>();
+        for (UUID id : match.getParticipants()) {
+            if (clickable && virtualDeath.isVirtualDead(id)) {
+                continue;
+            }
+            TeamSide team = match.getTeamFor(id);
+            if (team == TeamSide.A) {
+                teamA.add(id);
+            } else if (team == TeamSide.B) {
+                teamB.add(id);
             }
         }
-        int slot = PLAYER_HEADS_START;
-        for (UUID id : ordered) {
-            if (slot >= inv.getSize()) {
+        fillTeamHeadSlots(inv, TEAM_A_HEAD_SLOTS, teamA, clickable, slotTargets, new HeadLoreBuilder() {
+            @Override
+            public List<String> build(UUID id, String name, Player online) {
+                List<String> lore = new ArrayList<String>();
+                lore.add(ChatColor.GRAY + "Team: " + ChatColor.WHITE + match.getFactionTag(TeamSide.A));
+                if (online == null) {
+                    lore.add(ChatColor.RED + "Offline");
+                }
+                if (clickable) {
+                    lore.add(ChatColor.YELLOW + "Click to teleport!");
+                }
+                return lore;
+            }
+        });
+        fillTeamHeadSlots(inv, TEAM_B_HEAD_SLOTS, teamB, clickable, slotTargets, new HeadLoreBuilder() {
+            @Override
+            public List<String> build(UUID id, String name, Player online) {
+                List<String> lore = new ArrayList<String>();
+                lore.add(ChatColor.GRAY + "Team: " + ChatColor.WHITE + match.getFactionTag(TeamSide.B));
+                if (online == null) {
+                    lore.add(ChatColor.RED + "Offline");
+                }
+                if (clickable) {
+                    lore.add(ChatColor.YELLOW + "Click to teleport!");
+                }
+                return lore;
+            }
+        });
+    }
+
+    private static void placeQueuePlayerHeads(Inventory inv, QueueSession session, RaidRiotPlugin plugin) {
+        if (session.getFactionARef() != null && session.getFactionBRef() != null) {
+            List<UUID> teamA = new ArrayList<UUID>();
+            List<UUID> teamB = new ArrayList<UUID>();
+            FactionsBridge bridge = plugin.getFactionsBridge();
+            for (UUID id : session.getJoinOrder()) {
+                Object faction = session.getFaction(id);
+                if (faction == null) {
+                    continue;
+                }
+                try {
+                    if (bridge.factionsEqual(faction, session.getFactionARef())) {
+                        teamA.add(id);
+                    } else if (bridge.factionsEqual(faction, session.getFactionBRef())) {
+                        teamB.add(id);
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+            fillTeamHeadSlots(inv, TEAM_A_HEAD_SLOTS, teamA, false, null, queueHeadLore(session, plugin, true));
+            fillTeamHeadSlots(inv, TEAM_B_HEAD_SLOTS, teamB, false, null, queueHeadLore(session, plugin, false));
+            return;
+        }
+        fillTeamHeadSlots(inv, TEAM_A_HEAD_SLOTS, session.getJoinOrder(), false, null, queueHeadLore(session, plugin, null));
+    }
+
+    private static void placeVotePlayerHeads(Inventory inv, RaidMatch match, VoteManager voteManager,
+            RaidRiotPlugin plugin) {
+        List<UUID> teamA = new ArrayList<UUID>();
+        List<UUID> teamB = new ArrayList<UUID>();
+        List<UUID> unassigned = new ArrayList<UUID>();
+        for (UUID id : match.getParticipants()) {
+            TeamSide team = match.getTeamFor(id);
+            if (team == TeamSide.A) {
+                teamA.add(id);
+            } else if (team == TeamSide.B) {
+                teamB.add(id);
+            } else {
+                unassigned.add(id);
+            }
+        }
+        if (teamA.isEmpty() && teamB.isEmpty()) {
+            fillTeamHeadSlots(inv, TEAM_A_HEAD_SLOTS, unassigned, false, null, voteHeadLore(voteManager));
+            return;
+        }
+        fillTeamHeadSlots(inv, TEAM_A_HEAD_SLOTS, teamA, false, null, voteHeadLore(voteManager));
+        fillTeamHeadSlots(inv, TEAM_B_HEAD_SLOTS, teamB, false, null, voteHeadLore(voteManager));
+    }
+
+    private static HeadLoreBuilder queueHeadLore(final QueueSession session, final RaidRiotPlugin plugin,
+            final Boolean teamA) {
+        return new HeadLoreBuilder() {
+            @Override
+            public List<String> build(UUID id, String name, Player online) {
+                List<String> lore = new ArrayList<String>();
+                lore.add(ChatColor.GRAY + "In queue");
+                if (session.getMode() == TeamAssignmentMode.FACTION) {
+                    String factionTag = factionTagFor(plugin, session, id);
+                    if (factionTag != null) {
+                        lore.add(ChatColor.GRAY + "Faction: " + ChatColor.WHITE + factionTag);
+                    }
+                } else if (teamA != null) {
+                    lore.add(ChatColor.GRAY + "Team: " + ChatColor.WHITE
+                            + (teamA ? session.getFactionATag() : session.getFactionBTag()));
+                }
+                return lore;
+            }
+        };
+    }
+
+    private static HeadLoreBuilder voteHeadLore(final VoteManager voteManager) {
+        return new HeadLoreBuilder() {
+            @Override
+            public List<String> build(UUID id, String name, Player online) {
+                List<String> lore = new ArrayList<String>();
+                BaseVoteOption baseVote = voteManager.getBaseVote(id);
+                KitVoteOption kitVote = voteManager.getKitVote(id);
+                lore.add(ChatColor.GRAY + "Base: " + ChatColor.WHITE
+                        + (baseVote == null ? "None" : baseVote.displayName()));
+                lore.add(ChatColor.GRAY + "Kit: " + ChatColor.WHITE
+                        + (kitVote == null ? "None" : kitVote.displayName()));
+                return lore;
+            }
+        };
+    }
+
+    private interface HeadLoreBuilder {
+        List<String> build(UUID id, String name, Player online);
+    }
+
+    private static void fillTeamHeadSlots(Inventory inv, int[] slots, Iterable<UUID> playerIds, boolean clickable,
+            Map<Integer, UUID> slotTargets, HeadLoreBuilder loreBuilder) {
+        int index = 0;
+        for (UUID id : playerIds) {
+            if (index >= slots.length) {
                 break;
             }
+            int slot = slots[index++];
             Player online = Bukkit.getPlayer(id);
             String name = online != null ? online.getName() : Bukkit.getOfflinePlayer(id).getName();
             if (name == null) {
                 name = "Unknown";
             }
-            TeamSide team = match.getTeamFor(id);
             ItemStack head = new ItemStack(Material.SKULL_ITEM, 1, (short) 3);
             SkullMeta meta = (SkullMeta) head.getItemMeta();
             meta.setOwner(name);
             meta.setDisplayName(ChatColor.AQUA + name);
-            List<String> lore = new ArrayList<String>();
-            if (team != null) {
-                lore.add(ChatColor.GRAY + "Team: " + ChatColor.WHITE + match.getFactionTag(team));
-            }
-            if (online == null) {
-                lore.add(ChatColor.RED + "Offline");
-            }
-            meta.setLore(lore);
+            meta.setLore(loreBuilder.build(id, name, online));
             head.setItemMeta(meta);
-            inv.setItem(slot++, head);
+            inv.setItem(slot, head);
+            if (clickable && slotTargets != null) {
+                slotTargets.put(slot, id);
+            }
         }
+    }
+
+    private static ItemStack leaveSpectateItem() {
+        ItemStack stack = new ItemStack(Material.BED, 1);
+        ItemMeta meta = stack.getItemMeta();
+        meta.setDisplayName(ChatColor.RED + "Leave Spectating");
+        meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Return to where you were.",
+                ChatColor.YELLOW + "Click to leave!"));
+        stack.setItemMeta(meta);
+        return stack;
     }
 
     private static ItemStack joinQueueItem(QueueSession session, RaidRiotPlugin plugin) {
@@ -304,48 +471,40 @@ public final class RaidRiotGui {
         return stack;
     }
 
-    private static void placePlayerHeads(Inventory inv, Iterable<UUID> playerIds, QueueSession session,
-            VoteManager voteManager, RaidRiotPlugin plugin) {
-        int slot = PLAYER_HEADS_START;
-        for (UUID id : playerIds) {
-            if (slot >= inv.getSize()) {
-                break;
-            }
-            Player online = Bukkit.getPlayer(id);
-            String name = online != null ? online.getName() : Bukkit.getOfflinePlayer(id).getName();
-            if (name == null) {
-                name = "Unknown";
-            }
-            ItemStack head = new ItemStack(Material.SKULL_ITEM, 1, (short) 3);
-            SkullMeta meta = (SkullMeta) head.getItemMeta();
-            meta.setOwner(name);
-            meta.setDisplayName(ChatColor.AQUA + name);
-            List<String> lore = new ArrayList<String>();
-            if (session != null && session.contains(id)) {
-                lore.add(ChatColor.GRAY + "In queue");
-                if (session.getMode() == TeamAssignmentMode.FACTION) {
-                    String factionTag = factionTagFor(plugin, session, id);
-                    if (factionTag != null) {
-                        lore.add(ChatColor.GRAY + "Faction: " + ChatColor.WHITE + factionTag);
-                    }
-                }
-            }
-            if (voteManager != null && voteManager.getMatch() != null
-                    && voteManager.getMatch().getParticipants().contains(id)) {
-                BaseVoteOption baseVote = voteManager.getBaseVote(id);
-                KitVoteOption kitVote = voteManager.getKitVote(id);
-                lore.add(ChatColor.GRAY + "Base: " + ChatColor.WHITE
-                        + (baseVote == null ? "None" : baseVote.displayName()));
-                lore.add(ChatColor.GRAY + "Kit: " + ChatColor.WHITE
-                        + (kitVote == null ? "None" : kitVote.displayName()));
-            }
-            if (lore.isEmpty()) {
-                lore.add(ChatColor.GRAY + "Queued");
-            }
-            meta.setLore(lore);
-            head.setItemMeta(meta);
-            inv.setItem(slot++, head);
+    private static void fillEmptySlots(Inventory inv) {
+        for (int slot : DIVIDER_SLOTS) {
+            inv.setItem(slot, pane(Material.STAINED_GLASS_PANE, (byte) 15));
         }
+        for (int slot = PLAYER_HEADS_START; slot < inv.getSize(); slot++) {
+            if (inv.getItem(slot) == null) {
+                inv.setItem(slot, pane(Material.STAINED_GLASS_PANE, (byte) 15));
+            }
+        }
+    }
+
+    private static void fillTopBorder(Inventory inv) {
+        for (int i = 1; i < 9; i++) {
+            if (i == SLOT_JOIN_QUEUE || i == SLOT_STATUS_A || i == SLOT_STATUS_B
+                    || i == SLOT_VOTE_EASY || i == SLOT_VOTE_MEDIUM || i == SLOT_VOTE_HARD
+                    || i == SLOT_VOTE_FACTION || i == SLOT_LEAVE_SPECTATE) {
+                continue;
+            }
+            inv.setItem(i, pane(Material.STAINED_GLASS_PANE, (byte) 15));
+        }
+        for (int i = 9; i < PLAYER_HEADS_START; i++) {
+            if (i == SLOT_KIT_PREDEFINED || i == SLOT_KIT_OWN) {
+                continue;
+            }
+            inv.setItem(i, pane(Material.STAINED_GLASS_PANE, (byte) 15));
+        }
+    }
+
+    private static ItemStack pane(Material mat, byte data) {
+        ItemStack stack = new ItemStack(mat, 1, data);
+        ItemMeta meta = stack.getItemMeta();
+        meta.setDisplayName(" ");
+        stack.setItemMeta(meta);
+        return stack;
     }
 
     private static String factionTagFor(RaidRiotPlugin plugin, QueueSession session, UUID id) {
@@ -375,31 +534,6 @@ public final class RaidRiotGui {
             }
         }
         return count;
-    }
-
-    private static void fillTopBorder(Inventory inv) {
-        for (int i = 1; i < 9; i++) {
-            if (i == SLOT_JOIN_QUEUE || i == SLOT_STATUS_A || i == SLOT_STATUS_B
-                    || i == SLOT_VOTE_EASY || i == SLOT_VOTE_MEDIUM || i == SLOT_VOTE_HARD
-                    || i == SLOT_VOTE_FACTION) {
-                continue;
-            }
-            inv.setItem(i, pane(Material.STAINED_GLASS_PANE, (byte) 15));
-        }
-        for (int i = 9; i < PLAYER_HEADS_START; i++) {
-            if (i == SLOT_KIT_PREDEFINED || i == SLOT_KIT_OWN) {
-                continue;
-            }
-            inv.setItem(i, pane(Material.STAINED_GLASS_PANE, (byte) 15));
-        }
-    }
-
-    private static ItemStack pane(Material mat, byte data) {
-        ItemStack stack = new ItemStack(mat, 1, data);
-        ItemMeta meta = stack.getItemMeta();
-        meta.setDisplayName(" ");
-        stack.setItemMeta(meta);
-        return stack;
     }
 
     public static BaseVoteOption baseVoteFromSlot(int slot) {
