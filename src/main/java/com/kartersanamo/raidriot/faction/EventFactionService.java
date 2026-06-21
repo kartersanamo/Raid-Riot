@@ -26,22 +26,20 @@ public final class EventFactionService {
             FactionsBridge bridge = plugin.getFactionsBridge();
             String tagA = plugin.getRaidRiotConfig().getEventFactionTagA();
             String tagB = plugin.getRaidRiotConfig().getEventFactionTagB();
-            eventFactionA = bridge.getFactionByTag(tagA);
-            eventFactionB = bridge.getFactionByTag(tagB);
+            eventFactionA = bridge.getOrCreateSystemFaction(tagA);
+            eventFactionB = bridge.getOrCreateSystemFaction(tagB);
             if (eventFactionA == null || bridge.isWilderness(eventFactionA)) {
-                plugin.getLogger().severe("Event faction not found: " + tagA
-                        + " — create this faction in SaberFactions before running Raid Riot.");
+                plugin.getLogger().severe("Could not prepare event faction: " + tagA);
                 return false;
             }
             if (eventFactionB == null || bridge.isWilderness(eventFactionB)) {
-                plugin.getLogger().severe("Event faction not found: " + tagB
-                        + " — create this faction in SaberFactions before running Raid Riot.");
+                plugin.getLogger().severe("Could not prepare event faction: " + tagB);
                 return false;
             }
             plugin.getLogger().info("Event factions ready: " + tagA + " / " + tagB);
             return true;
         } catch (Exception ex) {
-            plugin.getLogger().severe("Could not resolve event factions: " + ex.getMessage());
+            plugin.getLogger().severe("Could not prepare event factions: " + ex.getMessage());
             return false;
         }
     }

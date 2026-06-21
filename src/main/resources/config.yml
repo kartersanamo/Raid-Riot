@@ -53,6 +53,6 @@ factions:
   base-claim-method: isBaseClaim
   source-world:
     - world
-  # Create these system factions in SaberFactions before running Raid Riot events
+  # Memberless system factions auto-created on enable (permanent, no players required)
   event-faction-a-tag: FactionA
   event-faction-b-tag: FactionB

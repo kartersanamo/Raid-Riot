@@ -92,7 +92,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
         eventFactionService = new EventFactionService(this);
         if (!eventFactionService.init()) {
-            getLogger().severe("Disabling Raid Riot: event factions not configured.");
+            getLogger().severe("Disabling Raid Riot: could not create event system factions.");
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
