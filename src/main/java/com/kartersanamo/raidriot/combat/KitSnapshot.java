@@ -19,6 +19,10 @@ public final class KitSnapshot {
         return new KitSnapshot(inv.getContents(), inv.getArmorContents());
     }
 
+    public static KitSnapshot fromArrays(ItemStack[] contents, ItemStack[] armor) {
+        return new KitSnapshot(contents, armor);
+    }
+
     public void apply(Player player) {
         PlayerInventory inv = player.getInventory();
         inv.setContents(cloneArray(contents));

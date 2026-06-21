@@ -21,6 +21,7 @@ schematic-center-from-min:
   hard: "8, 0, 8"
 
 predefined-kit:
+  # Fallback kit when no kit has been saved with /raidriot admin kit set
   helmet: IRON_HELMET
   chestplate: IRON_CHESTPLATE
   leggings: IRON_LEGGINGS

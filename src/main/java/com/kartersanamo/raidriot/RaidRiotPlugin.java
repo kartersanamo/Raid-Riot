@@ -4,6 +4,7 @@ import com.kartersanamo.raidriot.base.BaseDifficultyStore;
 import com.kartersanamo.raidriot.base.BasePlacementService;
 import com.kartersanamo.raidriot.breach.BreachService;
 import com.kartersanamo.raidriot.chat.ClickableMessageService;
+import com.kartersanamo.raidriot.combat.EventKitStore;
 import com.kartersanamo.raidriot.combat.NakedPatchEnforcer;
 import com.kartersanamo.raidriot.combat.PredefinedKitService;
 import com.kartersanamo.raidriot.combat.RespawnQueue;
@@ -48,6 +49,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
     private MessageService messages;
     private FactionsBridge factionsBridge;
     private BaseDifficultyStore baseDifficultyStore;
+    private EventKitStore eventKitStore;
     private EventManager eventManager;
     private RespawnQueue respawnQueue;
     private VirtualDeathService virtualDeathService;
@@ -99,6 +101,8 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
         baseDifficultyStore = new BaseDifficultyStore(this);
         baseDifficultyStore.load();
+        eventKitStore = new EventKitStore(this);
+        eventKitStore.load();
 
         FactionBaseClaimProvider factionBaseClaimProvider = new FactionBaseClaimProvider(this);
         factionBaseClaimProvider.init();
@@ -114,7 +118,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
         respawnQueue = new RespawnQueue(this);
         virtualDeathService = new VirtualDeathService(this);
         eventTeamAccessService = new EventTeamAccessService(this, eventFactionService);
-        PredefinedKitService predefinedKitService = new PredefinedKitService(raidRiotConfig);
+        PredefinedKitService predefinedKitService = new PredefinedKitService(raidRiotConfig, eventKitStore);
         ClickableMessageService clickableMessageService = new ClickableMessageService(this);
         QueueManager queueManager = new QueueManager(this, clickableMessageService);
         VoteManager voteManager = new VoteManager(this);
@@ -182,6 +186,10 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
     public BaseDifficultyStore getBaseDifficultyStore() {
         return baseDifficultyStore;
+    }
+
+    public EventKitStore getEventKitStore() {
+        return eventKitStore;
     }
 
     public EventManager getEventManager() {

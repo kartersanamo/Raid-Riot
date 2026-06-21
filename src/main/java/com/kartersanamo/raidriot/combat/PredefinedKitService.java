@@ -12,12 +12,22 @@ import java.util.Locale;
 public final class PredefinedKitService {
 
     private final RaidRiotConfig config;
+    private final EventKitStore kitStore;
 
-    public PredefinedKitService(RaidRiotConfig config) {
+    public PredefinedKitService(RaidRiotConfig config, EventKitStore kitStore) {
         this.config = config;
+        this.kitStore = kitStore;
     }
 
     public void apply(Player player) {
+        if (kitStore.hasKit()) {
+            kitStore.getSnapshot().apply(player);
+            return;
+        }
+        applyFromConfig(player);
+    }
+
+    private void applyFromConfig(Player player) {
         PlayerInventory inv = player.getInventory();
         inv.clear();
         inv.setArmorContents(new ItemStack[]{

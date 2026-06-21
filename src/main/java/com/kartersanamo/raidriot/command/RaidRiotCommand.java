@@ -150,9 +150,12 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
                 return adminStop(sender, args);
             case "base":
                 return adminBase(sender, args);
+            case "kit":
+                return adminKit(sender, args);
             case "reload":
                 plugin.getRaidRiotConfig().reload();
                 baseDifficultyStore.load();
+                plugin.getEventKitStore().load();
                 plugin.getMessages().reload();
                 plugin.getMessages().send(sender, "admin.reload");
                 return true;
@@ -257,6 +260,28 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean adminKit(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("raidriot.admin")) {
+            sender.sendMessage(ChatColor.RED + "No permission.");
+            return true;
+        }
+        if (args.length < 3 || !"set".equalsIgnoreCase(args[2])) {
+            sender.sendMessage(ChatColor.RED + "Usage: /raidriot admin kit set");
+            return true;
+        }
+        if (!(sender instanceof Player)) {
+            plugin.getMessages().send(sender, "admin.kit-players-only");
+            return true;
+        }
+        try {
+            plugin.getEventKitStore().saveFrom((Player) sender);
+            plugin.getMessages().send(sender, "admin.kit-set");
+        } catch (Exception ex) {
+            sender.sendMessage(ChatColor.RED + "Could not save kit: " + ex.getMessage());
+        }
+        return true;
+    }
+
     private String joinArgs(String[] args, int start) {
         StringBuilder sb = new StringBuilder();
         for (int i = start; i < args.length; i++) {
@@ -282,6 +307,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/raidriot admin start random|faction");
         sender.sendMessage(ChatColor.YELLOW + "/raidriot admin stop [reason]");
         sender.sendMessage(ChatColor.YELLOW + "/raidriot admin base list|set|clear ...");
+        sender.sendMessage(ChatColor.YELLOW + "/raidriot admin kit set");
         sender.sendMessage(ChatColor.YELLOW + "/raidriot admin reload");
     }
 
@@ -291,7 +317,10 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             return filterPrefix(Arrays.asList("join", "leave", "status", "admin"), args[0]);
         }
         if (args.length == 2 && "admin".equalsIgnoreCase(args[0]) && sender.hasPermission("raidriot.admin")) {
-            return filterPrefix(Arrays.asList("setup", "start", "stop", "base", "reload"), args[1]);
+            return filterPrefix(Arrays.asList("setup", "start", "stop", "base", "kit", "reload"), args[1]);
+        }
+        if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "kit".equalsIgnoreCase(args[1])) {
+            return filterPrefix(Collections.singletonList("set"), args[2]);
         }
         if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "start".equalsIgnoreCase(args[1])) {
             return filterPrefix(Arrays.asList("random", "faction"), args[2]);

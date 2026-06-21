@@ -53,3 +53,5 @@ faction:
 admin:
   world-set: "{prefix}&aEvent world set to &e{world}&7."
   reload: "{prefix}&aReloaded config and messages."
+  kit-set: "{prefix}&aSaved your inventory and armor as the event kit."
+  kit-players-only: "{prefix}&cOnly players can set the event kit."
