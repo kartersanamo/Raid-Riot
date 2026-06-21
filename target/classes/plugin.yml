@@ -1,0 +1,36 @@
+name: RaidRiot
+version: '1.0.0'
+main: com.kartersanamo.raidriot.RaidRiotPlugin
+author: kartersanamo
+depend: [Factions]
+softdepend: [WorldEdit]
+commands:
+  raidriot:
+    description: Raid Riot event commands
+    usage: /<command> [join|leave|status|admin ...]
+    aliases: [rr]
+
+permissions:
+  raidriot.use:
+    description: Use basic Raid Riot commands.
+    default: true
+  raidriot.admin:
+    description: Access Raid Riot admin commands.
+    default: op
+    children:
+      raidriot.admin.start: true
+      raidriot.admin.stop: true
+      raidriot.admin.reload: true
+      raidriot.admin.arena: true
+  raidriot.admin.start:
+    description: Start a Raid Riot match.
+    default: op
+  raidriot.admin.stop:
+    description: Stop the active Raid Riot match.
+    default: op
+  raidriot.admin.reload:
+    description: Reload Raid Riot config.
+    default: op
+  raidriot.admin.arena:
+    description: Manage Raid Riot arena templates.
+    default: op

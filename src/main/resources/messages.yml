@@ -1,0 +1,42 @@
+prefix: "&8[&cRaid Riot&8] &r"
+
+match:
+  preparing: "{prefix}&7Preparing match &e{arena}&7..."
+  countdown: "{prefix}&7Match starts in &c{seconds}&7 seconds!"
+  started: "{prefix}&aRaid Riot has begun! &7{teamA} &fvs &7{teamB}"
+  ended-breach: "{prefix}&a{winner} &7won by breaching &c{loser}&7's wall!"
+  ended-depth: "{prefix}&a{winner} &7won with depth &e{depth}&7 vs &c{otherDepth}&7!"
+  ended-draw: "{prefix}&eDraw! &7Both teams reached depth &e{depth}&7."
+  ended-admin: "{prefix}&cMatch stopped: &7{reason}"
+  timer-warning: "{prefix}&c{minutes}:{seconds} &7remaining!"
+
+join:
+  success: "{prefix}&aYou joined the Raid Riot event for &e{faction}&7!"
+  not-eligible: "{prefix}&cYou must be in faction &e{factionA} &cor &e{factionB}&c."
+  no-match: "{prefix}&cNo Raid Riot event is accepting joins right now."
+  already-in: "{prefix}&cYou are already in this event."
+
+leave:
+  success: "{prefix}&7You left the Raid Riot event."
+  not-in: "{prefix}&cYou are not in a Raid Riot event."
+
+status:
+  none: "{prefix}&7No active Raid Riot match."
+  active: "{prefix}&7{teamA} &fvs &7{teamB} &8| &e{time} &8| Depth: &a{depthA} &7/ &c{depthB}"
+
+death:
+  respawn-wait: "{prefix}&7Respawning in &c{seconds}&7 seconds..."
+
+patch:
+  must-be-naked: "{prefix}&cYou must be naked to patch on your base/cannon."
+
+raid:
+  locked-block-change: "{prefix}&cYou cannot modify blocks here during the event."
+
+admin:
+  arena-created: "{prefix}&aCreated arena &e{name}&7."
+  arena-saved: "{prefix}&aSaved arena &e{name}&7."
+  arena-not-found: "{prefix}&cArena &e{name} &cnot found."
+  pos-set: "{prefix}&aSet position &e{which}&7 for &e{arena}&7 team &e{team}&7."
+  need-pos: "{prefix}&cStand at the location and run this command again, or set pos1/pos2 first with a wand."
+  reload: "{prefix}&aReloaded config and messages."
