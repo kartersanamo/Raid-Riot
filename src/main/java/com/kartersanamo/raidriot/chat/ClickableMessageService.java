@@ -1,10 +1,7 @@
 package com.kartersanamo.raidriot.chat;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 public final class ClickableMessageService {
@@ -15,17 +12,23 @@ public final class ClickableMessageService {
         this.plugin = plugin;
     }
 
-    public void broadcastQueueJoin(int secondsLeft, int current, int max) {
-        TextComponent prefix = new TextComponent(org.bukkit.ChatColor.translateAlternateColorCodes('&',
-                "&8[&cRaid Riot&8] &7Queue open &e" + current + "/" + max + " &7(" + secondsLeft + "s) "));
-        TextComponent click = new TextComponent(org.bukkit.ChatColor.translateAlternateColorCodes('&',
-                "&a&l[CLICK TO JOIN]"));
-        click.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/raidriot join"));
-        click.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                new ComponentBuilder("Join the Raid Riot queue").create()));
-        prefix.addExtra(click);
+    public void broadcastQueueOpened(int secondsLeft) {
         for (Player player : plugin.getServer().getOnlinePlayers()) {
-            player.spigot().sendMessage(prefix);
+            player.sendMessage(color("&c&lRAID RIOT"));
+            player.sendMessage(color("&7The queue for the &cRaid Riot Event &7has opened!"));
+            player.sendMessage(color("&7Run &c/raidriot &7to join either team! The queue will close in &c"
+                    + secondsLeft + " &7seconds."));
+            player.sendMessage(color("&7Be the first team to breach the other base!"));
         }
+    }
+
+    public void broadcastQueueCountdown(int secondsLeft) {
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            player.sendMessage(color("&cRaid Riot &8> &7The event is starting in &f" + secondsLeft + " &7seconds..."));
+        }
+    }
+
+    private String color(String text) {
+        return ChatColor.translateAlternateColorCodes('&', text);
     }
 }

@@ -43,7 +43,7 @@ public final class VoteManager {
         return match;
     }
 
-    public void startVote(RaidMatch match) {
+    public void startVote(RaidMatch match, RaidRiotGuiService guiService) {
         this.match = match;
         this.votes.clear();
         this.endMs = System.currentTimeMillis() + plugin.getRaidRiotConfig().getVoteDurationSeconds() * 1000L;
@@ -52,7 +52,7 @@ public final class VoteManager {
         for (UUID id : match.getParticipants()) {
             Player player = Bukkit.getPlayer(id);
             if (player != null) {
-                player.openInventory(BaseVoteGui.create(plugin, this));
+                player.openInventory(RaidRiotGui.createVoteGui(plugin, this));
             }
         }
 
@@ -72,7 +72,10 @@ public final class VoteManager {
             return;
         }
         votes.put(player.getUniqueId(), option);
-        player.openInventory(BaseVoteGui.create(plugin, this));
+    }
+
+    public BaseVoteOption getVote(UUID id) {
+        return votes.get(id);
     }
 
     public Map<BaseVoteOption, Integer> tally() {

@@ -57,7 +57,7 @@ public final class QueueManager {
         long endMs = System.currentTimeMillis() + plugin.getRaidRiotConfig().getQueueCountdownSeconds() * 1000L;
         session = new QueueSession(mode, endMs);
         startTickTask();
-        broadcastQueueMessage();
+        clickableMessages.broadcastQueueOpened(session.getRemainingSeconds());
     }
 
     public synchronized void cancelQueue(String reason) {
@@ -69,6 +69,74 @@ public final class QueueManager {
         if (listener != null) {
             listener.onQueueCancelled(reason);
         }
+    }
+
+    public synchronized JoinResult tryJoinTeam(Player player, TeamSide side) {
+        if (session == null) {
+            return JoinResult.NO_QUEUE;
+        }
+        if (session.getMode() == TeamAssignmentMode.FACTION) {
+            return tryJoinFactionSide(player, side);
+        }
+
+        UUID id = player.getUniqueId();
+        int perTeam = plugin.getRaidRiotConfig().getPlayersPerTeam();
+        int max = plugin.getRaidRiotConfig().getMaxPlayers();
+
+        if (session.contains(id)) {
+            TeamSide current = session.getPreferredTeam(id);
+            if (current == side) {
+                return JoinResult.ALREADY_IN;
+            }
+            if (session.countOnTeam(side) >= perTeam) {
+                return JoinResult.TEAM_FULL;
+            }
+            session.setPreferredTeam(id, side);
+            return JoinResult.SUCCESS;
+        }
+        if (session.size() >= max) {
+            return JoinResult.FULL;
+        }
+        if (session.countOnTeam(side) >= perTeam) {
+            return JoinResult.TEAM_FULL;
+        }
+
+        FactionsBridge bridge = plugin.getFactionsBridge();
+        try {
+            Object faction = bridge.getPlayerFaction(player);
+            session.add(id, faction, side);
+            checkImmediateLock();
+            return JoinResult.SUCCESS;
+        } catch (Exception ex) {
+            return JoinResult.ERROR;
+        }
+    }
+
+    private JoinResult tryJoinFactionSide(Player player, TeamSide side) {
+        FactionsBridge bridge = plugin.getFactionsBridge();
+        try {
+            Object faction = bridge.getPlayerFaction(player);
+            if (faction == null || bridge.isWilderness(faction)) {
+                return JoinResult.NEED_FACTION;
+            }
+            if (session.getFactionARef() != null && side == TeamSide.A
+                    && !bridge.factionsEqual(faction, session.getFactionARef())) {
+                return JoinResult.FACTION_NOT_QUALIFIED;
+            }
+            if (session.getFactionBRef() != null && side == TeamSide.B
+                    && !bridge.factionsEqual(faction, session.getFactionBRef())) {
+                return JoinResult.FACTION_NOT_QUALIFIED;
+            }
+            if (session.getFactionARef() != null && session.getFactionBRef() != null) {
+                if (!bridge.factionsEqual(faction, session.getFactionARef())
+                        && !bridge.factionsEqual(faction, session.getFactionBRef())) {
+                    return JoinResult.FACTION_NOT_QUALIFIED;
+                }
+            }
+        } catch (Exception ex) {
+            return JoinResult.ERROR;
+        }
+        return tryJoin(player);
     }
 
     public synchronized JoinResult tryJoin(Player player) {
@@ -125,6 +193,15 @@ public final class QueueManager {
         }
 
         session.add(player.getUniqueId(), faction);
+        if (session.getFactionARef() != null && bridge.factionsEqual(faction, session.getFactionARef())) {
+            session.setPreferredTeam(player.getUniqueId(), TeamSide.A);
+        } else if (session.getFactionBRef() != null && bridge.factionsEqual(faction, session.getFactionBRef())) {
+            session.setPreferredTeam(player.getUniqueId(), TeamSide.B);
+        } else if (session.getFactionARef() == null && countOnFaction(faction) <= perTeam) {
+            session.setPreferredTeam(player.getUniqueId(), TeamSide.A);
+        } else if (session.getFactionBRef() == null && !bridge.factionsEqual(faction, session.getFactionARef())) {
+            session.setPreferredTeam(player.getUniqueId(), TeamSide.B);
+        }
         session.incrementFactionCount(factionId);
         int count = countOnFaction(faction);
 
@@ -216,7 +293,7 @@ public final class QueueManager {
             return;
         }
         if (session.getRemainingSeconds() % 10 == 0 || session.getRemainingSeconds() <= 5) {
-            broadcastQueueMessage();
+            clickableMessages.broadcastQueueCountdown(session.getRemainingSeconds());
         }
     }
 
@@ -239,19 +316,12 @@ public final class QueueManager {
         }
     }
 
-    private void broadcastQueueMessage() {
-        if (session == null) {
-            return;
-        }
-        clickableMessages.broadcastQueueJoin(session.getRemainingSeconds(), session.size(),
-                plugin.getRaidRiotConfig().getMaxPlayers());
-    }
-
     public enum JoinResult {
         SUCCESS,
         NO_QUEUE,
         ALREADY_IN,
         FULL,
+        TEAM_FULL,
         NEED_FACTION,
         FACTION_FULL,
         FACTION_NOT_QUALIFIED,

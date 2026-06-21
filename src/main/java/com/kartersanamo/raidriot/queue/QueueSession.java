@@ -14,6 +14,7 @@ public final class QueueSession {
     private final TeamAssignmentMode mode;
     private final Set<UUID> queued = new HashSet<UUID>();
     private final Map<UUID, Object> playerFactions = new HashMap<UUID, Object>();
+    private final Map<UUID, TeamSide> preferredTeams = new HashMap<UUID, TeamSide>();
     private final Map<String, Integer> factionCounts = new HashMap<String, Integer>();
     private Object factionARef;
     private Object factionBRef;
@@ -51,13 +52,43 @@ public final class QueueSession {
     }
 
     public void add(UUID id, Object factionRef) {
+        add(id, factionRef, null);
+    }
+
+    public void add(UUID id, Object factionRef, TeamSide preferredTeam) {
         queued.add(id);
         playerFactions.put(id, factionRef);
+        if (preferredTeam != null) {
+            preferredTeams.put(id, preferredTeam);
+        }
     }
 
     public void remove(UUID id) {
         queued.remove(id);
         playerFactions.remove(id);
+        preferredTeams.remove(id);
+    }
+
+    public TeamSide getPreferredTeam(UUID id) {
+        return preferredTeams.get(id);
+    }
+
+    public void setPreferredTeam(UUID id, TeamSide side) {
+        if (side == null) {
+            preferredTeams.remove(id);
+        } else {
+            preferredTeams.put(id, side);
+        }
+    }
+
+    public int countOnTeam(TeamSide side) {
+        int count = 0;
+        for (TeamSide team : preferredTeams.values()) {
+            if (team == side) {
+                count++;
+            }
+        }
+        return count;
     }
 
     public Object getFaction(UUID id) {

@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.config;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.arena.TeamSide;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 
@@ -14,6 +15,8 @@ public final class RaidRiotConfig {
     private final RaidRiotPlugin plugin;
     private String eventWorld = "";
     private int playersPerTeam = 10;
+    private String teamADisplayName = "Yellow Team";
+    private String teamBDisplayName = "Red Team";
     private int queueCountdownSeconds = 120;
     private int voteDurationSeconds = 30;
     private int baseSeparationBlocks = 500;
@@ -44,6 +47,8 @@ public final class RaidRiotConfig {
         FileConfiguration c = plugin.getConfig();
         eventWorld = c.getString("event-world", "");
         playersPerTeam = c.getInt("players-per-team", 10);
+        teamADisplayName = c.getString("team-a-display-name", "Yellow Team");
+        teamBDisplayName = c.getString("team-b-display-name", "Red Team");
         queueCountdownSeconds = c.getInt("queue-countdown-seconds", 120);
         voteDurationSeconds = c.getInt("vote-duration-seconds", 30);
         baseSeparationBlocks = c.getInt("base-separation-blocks", 500);
@@ -95,6 +100,10 @@ public final class RaidRiotConfig {
 
     public int getPlayersPerTeam() {
         return playersPerTeam;
+    }
+
+    public String getTeamDisplayName(TeamSide side) {
+        return side == TeamSide.A ? teamADisplayName : teamBDisplayName;
     }
 
     public int getQueueCountdownSeconds() {

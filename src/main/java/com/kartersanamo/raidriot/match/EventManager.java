@@ -9,7 +9,7 @@ import com.kartersanamo.raidriot.faction.FactionsBridge;
 import com.kartersanamo.raidriot.queue.QueueManager;
 import com.kartersanamo.raidriot.queue.QueueSession;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
-import com.kartersanamo.raidriot.ui.MatchScoreboard;
+import com.kartersanamo.raidriot.ui.RaidRiotGuiService;
 import com.kartersanamo.raidriot.vote.VoteManager;
 import com.kartersanamo.raidriot.world.WorldResetService;
 import org.bukkit.Bukkit;
@@ -18,6 +18,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,20 +32,22 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private final BasePlacementService basePlacementService;
     private final WorldResetService worldResetService;
     private final RespawnQueue respawnQueue;
+    private final RaidRiotGuiService guiService;
     private RaidMatch activeMatch;
     private BukkitTask timerTask;
     private BukkitTask depthTask;
-    private BukkitTask scoreboardTask;
+    private BukkitTask guiRefreshTask;
 
     public EventManager(RaidRiotPlugin plugin, QueueManager queueManager, VoteManager voteManager,
             BasePlacementService basePlacementService, WorldResetService worldResetService,
-            RespawnQueue respawnQueue) {
+            RespawnQueue respawnQueue, RaidRiotGuiService guiService) {
         this.plugin = plugin;
         this.queueManager = queueManager;
         this.voteManager = voteManager;
         this.basePlacementService = basePlacementService;
         this.worldResetService = worldResetService;
         this.respawnQueue = respawnQueue;
+        this.guiService = guiService;
         queueManager.setListener(this);
         voteManager.setListener(this);
     }
@@ -80,26 +83,40 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         activeMatch = new RaidMatch(
                 plugin.getRaidRiotConfig().getEventWorld(),
                 mode,
-                "TeamA", "TeamB", null, null);
+                plugin.getRaidRiotConfig().getTeamDisplayName(TeamSide.A),
+                plugin.getRaidRiotConfig().getTeamDisplayName(TeamSide.B),
+                null, null);
         activeMatch.setState(MatchState.QUEUE_OPEN);
         queueManager.openQueue(mode);
-        startScoreboardTask();
+        startGuiRefreshTask();
     }
 
-    private void startScoreboardTask() {
-        if (scoreboardTask != null) {
-            scoreboardTask.cancel();
-        }
-        scoreboardTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
+    private void startGuiRefreshTask() {
+        stopGuiRefreshTask();
+        guiRefreshTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
             @Override
             public void run() {
-                MatchScoreboard.apply(activeMatch, voteManager);
+                if (queueManager.isOpen()
+                        || (activeMatch != null && activeMatch.getState() == MatchState.VOTING
+                        && voteManager.isVoting())) {
+                    guiService.refreshOpenInventories();
+                } else {
+                    stopGuiRefreshTask();
+                }
             }
-        }, 0L, 20L);
+        }, 10L, 10L);
+    }
+
+    private void stopGuiRefreshTask() {
+        if (guiRefreshTask != null) {
+            guiRefreshTask.cancel();
+            guiRefreshTask = null;
+        }
     }
 
     @Override
     public synchronized void onQueueCancelled(String reason) {
+        stopGuiRefreshTask();
         Map<String, String> vars = new HashMap<String, String>();
         vars.put("reason", reason);
         plugin.getMessages().broadcast("queue.cancelled", vars);
@@ -120,7 +137,8 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             return;
         }
         plugin.getMessages().broadcast("queue.locked", new HashMap<String, String>());
-        voteManager.startVote(activeMatch);
+        voteManager.startVote(activeMatch, guiService);
+        startGuiRefreshTask();
     }
 
     private void assignTeams(QueueSession session, RaidMatch match) throws Exception {
@@ -129,10 +147,32 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         List<UUID> ids = new ArrayList<UUID>(session.getQueued());
 
         if (session.getMode() == TeamAssignmentMode.RANDOM) {
-            Collections.shuffle(ids);
-            for (int i = 0; i < ids.size(); i++) {
-                TeamSide side = i < perTeam ? TeamSide.A : TeamSide.B;
-                match.addParticipant(ids.get(i), side);
+            Map<TeamSide, Integer> assigned = new EnumMap<TeamSide, Integer>(TeamSide.class);
+            assigned.put(TeamSide.A, 0);
+            assigned.put(TeamSide.B, 0);
+            List<UUID> unassigned = new ArrayList<UUID>();
+
+            for (UUID id : ids) {
+                TeamSide preferred = session.getPreferredTeam(id);
+                if (preferred != null && assigned.get(preferred) < perTeam) {
+                    match.addParticipant(id, preferred);
+                    assigned.put(preferred, assigned.get(preferred) + 1);
+                } else {
+                    unassigned.add(id);
+                }
+            }
+
+            Collections.shuffle(unassigned);
+            for (UUID id : unassigned) {
+                TeamSide side = assigned.get(TeamSide.A) < perTeam ? TeamSide.A : TeamSide.B;
+                if (assigned.get(side) >= perTeam) {
+                    side = side.opposite();
+                }
+                if (assigned.get(side) >= perTeam) {
+                    continue;
+                }
+                match.addParticipant(id, side);
+                assigned.put(side, assigned.get(side) + 1);
             }
             return;
         }
@@ -165,6 +205,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     @Override
     public synchronized void onVoteComplete(RaidMatch match, BaseVoteOption winner) {
+        stopGuiRefreshTask();
         activeMatch = match;
         activeMatch.setSelectedBaseVote(winner);
         activeMatch.setState(MatchState.PREPARING);
@@ -232,7 +273,6 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     private void startTasks(final RaidMatch match) {
         cancelTasks();
-        startScoreboardTask();
         timerTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
             @Override
             public void run() {
@@ -309,6 +349,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     public synchronized void stopMatch(String reason) {
         cancelTasks();
+        stopGuiRefreshTask();
         queueManager.cancelQueue(reason);
         voteManager.cancel();
         respawnQueue.cancelAll();
@@ -342,7 +383,6 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         }
         worldResetService.restoreAll();
         worldResetService.endSession();
-        MatchScoreboard.clearAll();
         if (activeMatch != null) {
             activeMatch.setState(MatchState.IDLE);
         }
@@ -357,10 +397,6 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         if (depthTask != null) {
             depthTask.cancel();
             depthTask = null;
-        }
-        if (scoreboardTask != null) {
-            scoreboardTask.cancel();
-            scoreboardTask = null;
         }
     }
 }

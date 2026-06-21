@@ -178,8 +178,8 @@ public final class RaidRiotGui {
                     lore.add(ChatColor.GRAY + "In queue");
                 }
             }
-            if (voteManager != null && voteManager.getMatch() != null && voteManager.getMatch().isParticipant(
-                    online != null ? online : Bukkit.getOfflinePlayer(id).getPlayer())) {
+            if (voteManager != null && voteManager.getMatch() != null
+                    && voteManager.getMatch().getParticipants().contains(id)) {
                 BaseVoteOption vote = voteManager.getVote(id);
                 lore.add(ChatColor.GRAY + "Vote: " + ChatColor.WHITE
                         + (vote == null ? "None" : vote.displayName()));

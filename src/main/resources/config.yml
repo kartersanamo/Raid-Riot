@@ -1,5 +1,7 @@
 event-world: ""
 players-per-team: 10
+team-a-display-name: Yellow Team
+team-b-display-name: Red Team
 queue-countdown-seconds: 120
 vote-duration-seconds: 30
 base-separation-blocks: 500
