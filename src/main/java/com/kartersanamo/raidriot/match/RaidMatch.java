@@ -1,11 +1,11 @@
 package com.kartersanamo.raidriot.match;
 
-import com.kartersanamo.raidriot.arena.ArenaTemplate;
 import com.kartersanamo.raidriot.arena.TeamBase;
 import com.kartersanamo.raidriot.arena.TeamSide;
+import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.breach.DepthTracker;
 import com.kartersanamo.raidriot.combat.KitSnapshot;
-import com.kartersanamo.raidriot.world.RegionSnapshot;
+import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
@@ -19,7 +19,8 @@ import java.util.UUID;
 
 public final class RaidMatch {
 
-    private final ArenaTemplate arena;
+    private final String eventWorld;
+    private final TeamAssignmentMode assignmentMode;
     private final String factionTagA;
     private final String factionTagB;
     private final Object factionRefA;
@@ -29,17 +30,17 @@ public final class RaidMatch {
     private final Map<UUID, TeamSide> participantTeams = new HashMap<UUID, TeamSide>();
     private final Map<UUID, KitSnapshot> kitSnapshots = new HashMap<UUID, KitSnapshot>();
     private final DepthTracker depthTracker = new DepthTracker();
-    private final java.util.List<RegionSnapshot> regionSnapshots = new java.util.ArrayList<RegionSnapshot>();
 
     private MatchState state = MatchState.IDLE;
+    private BaseVoteOption selectedBaseVote;
     private TeamSide winner;
     private WinReason winReason;
     private long activeEndMs;
-    private boolean joinsOpen;
 
-    public RaidMatch(ArenaTemplate arena, String factionTagA, String factionTagB,
-            Object factionRefA, Object factionRefB) {
-        this.arena = arena;
+    public RaidMatch(String eventWorld, TeamAssignmentMode assignmentMode,
+            String factionTagA, String factionTagB, Object factionRefA, Object factionRefB) {
+        this.eventWorld = eventWorld;
+        this.assignmentMode = assignmentMode;
         this.factionTagA = factionTagA;
         this.factionTagB = factionTagB;
         this.factionRefA = factionRefA;
@@ -48,8 +49,12 @@ public final class RaidMatch {
         teamBases.put(TeamSide.B, new TeamBase(TeamSide.B, factionTagB, factionRefB));
     }
 
-    public ArenaTemplate getArena() {
-        return arena;
+    public String getEventWorld() {
+        return eventWorld;
+    }
+
+    public TeamAssignmentMode getAssignmentMode() {
+        return assignmentMode;
     }
 
     public String getFactionTag(TeamSide side) {
@@ -76,24 +81,20 @@ public final class RaidMatch {
         return state == MatchState.ACTIVE;
     }
 
-    public boolean isJoinable() {
-        return joinsOpen && (state == MatchState.PREPARING || state == MatchState.COUNTDOWN);
+    public boolean isQueueOpen() {
+        return state == MatchState.QUEUE_OPEN;
     }
 
-    public void setJoinsOpen(boolean joinsOpen) {
-        this.joinsOpen = joinsOpen;
+    public BaseVoteOption getSelectedBaseVote() {
+        return selectedBaseVote;
+    }
+
+    public void setSelectedBaseVote(BaseVoteOption selectedBaseVote) {
+        this.selectedBaseVote = selectedBaseVote;
     }
 
     public DepthTracker getDepthTracker() {
         return depthTracker;
-    }
-
-    public java.util.List<RegionSnapshot> getRegionSnapshots() {
-        return regionSnapshots;
-    }
-
-    public void addRegionSnapshot(RegionSnapshot snapshot) {
-        regionSnapshots.add(snapshot);
     }
 
     public TeamSide getWinner() {
@@ -128,14 +129,9 @@ public final class RaidMatch {
         return (int) Math.max(0, left);
     }
 
-    public boolean tryJoin(Player player, Object playerFaction, com.kartersanamo.raidriot.faction.FactionsBridge bridge) throws Exception {
-        TeamSide side = resolveTeam(playerFaction, bridge);
-        if (side == null) {
-            return false;
-        }
-        participants.add(player.getUniqueId());
-        participantTeams.put(player.getUniqueId(), side);
-        return true;
+    public void addParticipant(UUID id, TeamSide side) {
+        participants.add(id);
+        participantTeams.put(id, side);
     }
 
     public void leave(Player player) {
@@ -190,10 +186,10 @@ public final class RaidMatch {
     }
 
     public boolean isInEventWorld(Location loc) {
-        if (loc.getWorld() == null || arena.getWorldName() == null) {
+        if (loc.getWorld() == null || eventWorld == null) {
             return false;
         }
-        return arena.getWorldName().equals(loc.getWorld().getName());
+        return eventWorld.equals(loc.getWorld().getName());
     }
 
     public boolean isInsideAnyBaseBounds(Location loc) {

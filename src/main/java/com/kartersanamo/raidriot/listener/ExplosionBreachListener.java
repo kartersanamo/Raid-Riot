@@ -28,6 +28,10 @@ public final class ExplosionBreachListener implements Listener {
         if (match == null || !match.isActive() || !match.isInEventWorld(event.getLocation())) {
             return;
         }
+        plugin.getWorldResetService().snapshotBeforeChange(event.getLocation());
+        for (org.bukkit.block.Block block : event.blockList()) {
+            plugin.getWorldResetService().snapshotBeforeChange(block.getLocation());
+        }
         TntAttributionTracker.ExplosionAttribution attribution = tntAttributionTracker.resolveExplosion(event);
         Player actor = attribution.player;
         TeamSide attacker = null;

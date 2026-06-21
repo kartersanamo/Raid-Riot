@@ -34,6 +34,7 @@ public final class BlockPlaceListener implements Listener {
             lockNotifier.notifyLocked(event.getPlayer(), "raid.locked-block-change");
             return;
         }
+        plugin.getWorldResetService().snapshotBeforeChange(event.getBlock().getLocation());
         if (nakedPatchEnforcer.mustCancelPatch(event.getPlayer(), match)) {
             event.setCancelled(true);
             plugin.getMessages().send(event.getPlayer(), "patch.must-be-naked");

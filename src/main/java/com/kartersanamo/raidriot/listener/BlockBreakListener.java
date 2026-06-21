@@ -34,6 +34,7 @@ public final class BlockBreakListener implements Listener {
             lockNotifier.notifyLocked(event.getPlayer(), "raid.locked-block-change");
             return;
         }
+        plugin.getWorldResetService().snapshotBeforeChange(event.getBlock().getLocation());
         breachService.tryBreachBlock(match, event.getBlock(), event.getPlayer());
         if (match.isParticipant(event.getPlayer())) {
             match.getDepthTracker().recordLocation(match, event.getBlock().getLocation(), match.getTeamFor(event.getPlayer()));

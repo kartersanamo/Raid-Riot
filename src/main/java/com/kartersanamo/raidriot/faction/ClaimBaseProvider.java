@@ -2,7 +2,6 @@ package com.kartersanamo.raidriot.faction;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.CuboidRegion;
-import com.kartersanamo.raidriot.arena.TeamArenaConfig;
 import com.kartersanamo.raidriot.arena.TeamBase;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -141,12 +140,6 @@ public final class ClaimBaseProvider {
             }
         }
         return new CuboidRegion(bounds.getWorldName(), bounds.getMinX(), bestY - 2, wallZ, bounds.getMaxX(), bestY + 4, wallZ);
-    }
-
-    public void applyConfiguredWall(TeamBase teamBase, TeamArenaConfig config) {
-        if (config.hasWallRegion()) {
-            teamBase.setWallRegion(config.buildWallRegion());
-        }
     }
 
     public List<Chunk> listOwnedChunks(Object factionRef, String worldName) throws Exception {

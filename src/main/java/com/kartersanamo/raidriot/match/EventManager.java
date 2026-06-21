@@ -1,108 +1,187 @@
 package com.kartersanamo.raidriot.match;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
-import com.kartersanamo.raidriot.arena.ArenaTemplate;
-import com.kartersanamo.raidriot.arena.BaseMode;
-import com.kartersanamo.raidriot.arena.SchematicBaseProvider;
-import com.kartersanamo.raidriot.arena.TeamArenaConfig;
-import com.kartersanamo.raidriot.arena.TeamBase;
 import com.kartersanamo.raidriot.arena.TeamSide;
+import com.kartersanamo.raidriot.base.BasePlacementService;
+import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.combat.RespawnQueue;
-import com.kartersanamo.raidriot.faction.ClaimBaseProvider;
+import com.kartersanamo.raidriot.faction.FactionsBridge;
+import com.kartersanamo.raidriot.queue.QueueManager;
+import com.kartersanamo.raidriot.queue.QueueSession;
+import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import com.kartersanamo.raidriot.ui.MatchScoreboard;
-import com.kartersanamo.raidriot.world.RegionSnapshot;
+import com.kartersanamo.raidriot.vote.VoteManager;
+import com.kartersanamo.raidriot.world.WorldResetService;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
-public final class EventManager {
+public final class EventManager implements QueueManager.QueueListener, VoteManager.VoteListener {
 
     private final RaidRiotPlugin plugin;
-    private final SchematicBaseProvider schematicBaseProvider;
-    private final ClaimBaseProvider claimBaseProvider;
+    private final QueueManager queueManager;
+    private final VoteManager voteManager;
+    private final BasePlacementService basePlacementService;
+    private final WorldResetService worldResetService;
     private final RespawnQueue respawnQueue;
     private RaidMatch activeMatch;
     private BukkitTask timerTask;
     private BukkitTask depthTask;
     private BukkitTask scoreboardTask;
 
-    public EventManager(RaidRiotPlugin plugin, SchematicBaseProvider schematicBaseProvider,
-            ClaimBaseProvider claimBaseProvider, RespawnQueue respawnQueue) {
+    public EventManager(RaidRiotPlugin plugin, QueueManager queueManager, VoteManager voteManager,
+            BasePlacementService basePlacementService, WorldResetService worldResetService,
+            RespawnQueue respawnQueue) {
         this.plugin = plugin;
-        this.schematicBaseProvider = schematicBaseProvider;
-        this.claimBaseProvider = claimBaseProvider;
+        this.queueManager = queueManager;
+        this.voteManager = voteManager;
+        this.basePlacementService = basePlacementService;
+        this.worldResetService = worldResetService;
         this.respawnQueue = respawnQueue;
+        queueManager.setListener(this);
+        voteManager.setListener(this);
     }
 
     public RaidMatch getActiveMatch() {
         return activeMatch;
     }
 
-    public boolean hasActiveMatch() {
+    public boolean hasActiveSession() {
         return activeMatch != null && activeMatch.getState() != MatchState.IDLE;
     }
 
-    public synchronized void startMatch(ArenaTemplate arena, String factionTagA, String factionTagB) throws Exception {
-        if (hasActiveMatch()) {
-            throw new IllegalStateException("A Raid Riot match is already active.");
-        }
-        arena.inferWorldFromSpawns();
-        Object factionA = plugin.getFactionsBridge().getFactionByTag(factionTagA);
-        Object factionB = plugin.getFactionsBridge().getFactionByTag(factionTagB);
-        if (factionA == null || plugin.getFactionsBridge().isWilderness(factionA)) {
-            throw new IllegalStateException("Faction not found: " + factionTagA);
-        }
-        if (factionB == null || plugin.getFactionsBridge().isWilderness(factionB)) {
-            throw new IllegalStateException("Faction not found: " + factionTagB);
-        }
-
-        activeMatch = new RaidMatch(arena, factionTagA, factionTagB, factionA, factionB);
-        activeMatch.setState(MatchState.PREPARING);
-        activeMatch.setJoinsOpen(true);
-
-        Map<String, String> prepVars = new HashMap<String, String>();
-        prepVars.put("arena", arena.getName());
-        plugin.getMessages().broadcast("match.preparing", prepVars);
-
-        prepareBases(activeMatch);
-        beginCountdown(activeMatch);
+    public boolean hasActiveMatch() {
+        return activeMatch != null && activeMatch.isActive();
     }
 
-    private void prepareBases(RaidMatch match) throws Exception {
-        ArenaTemplate arena = match.getArena();
-        String worldName = arena.getWorldName();
+    public QueueManager getQueueManager() {
+        return queueManager;
+    }
 
-        List<RegionSnapshot> snapshots = schematicBaseProvider.pasteTeamBases(arena);
-        for (RegionSnapshot snapshot : snapshots) {
-            match.addRegionSnapshot(snapshot);
+    public VoteManager getVoteManager() {
+        return voteManager;
+    }
+
+    public WorldResetService getWorldResetService() {
+        return worldResetService;
+    }
+
+    public synchronized void startQueue(TeamAssignmentMode mode) {
+        if (hasActiveSession() || queueManager.isOpen()) {
+            throw new IllegalStateException("A Raid Riot session is already active.");
+        }
+        activeMatch = new RaidMatch(
+                plugin.getRaidRiotConfig().getEventWorld(),
+                mode,
+                "TeamA", "TeamB", null, null);
+        activeMatch.setState(MatchState.QUEUE_OPEN);
+        queueManager.openQueue(mode);
+        startScoreboardTask();
+    }
+
+    private void startScoreboardTask() {
+        if (scoreboardTask != null) {
+            scoreboardTask.cancel();
+        }
+        scoreboardTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
+            @Override
+            public void run() {
+                MatchScoreboard.apply(activeMatch, voteManager);
+            }
+        }, 0L, 20L);
+    }
+
+    @Override
+    public synchronized void onQueueCancelled(String reason) {
+        Map<String, String> vars = new HashMap<String, String>();
+        vars.put("reason", reason);
+        plugin.getMessages().broadcast("queue.cancelled", vars);
+        activeMatch = null;
+    }
+
+    @Override
+    public synchronized void onQueueLocked(QueueSession session) {
+        if (activeMatch == null) {
+            return;
+        }
+        activeMatch.setState(MatchState.QUEUE_LOCKED);
+        try {
+            assignTeams(session, activeMatch);
+        } catch (Exception ex) {
+            plugin.getLogger().severe("Team assignment failed: " + ex.getMessage());
+            stopMatch("Team assignment failed.");
+            return;
+        }
+        plugin.getMessages().broadcast("queue.locked", new HashMap<String, String>());
+        voteManager.startVote(activeMatch);
+    }
+
+    private void assignTeams(QueueSession session, RaidMatch match) throws Exception {
+        FactionsBridge bridge = plugin.getFactionsBridge();
+        int perTeam = plugin.getRaidRiotConfig().getPlayersPerTeam();
+        List<UUID> ids = new ArrayList<UUID>(session.getQueued());
+
+        if (session.getMode() == TeamAssignmentMode.RANDOM) {
+            Collections.shuffle(ids);
+            for (int i = 0; i < ids.size(); i++) {
+                TeamSide side = i < perTeam ? TeamSide.A : TeamSide.B;
+                match.addParticipant(ids.get(i), side);
+            }
+            return;
         }
 
-        for (TeamSide side : new TeamSide[]{TeamSide.A, TeamSide.B}) {
-            TeamArenaConfig cfg = arena.getTeamConfig(side);
-            TeamBase base = match.getTeamBase(side);
-            if (cfg.getBaseMode() == BaseMode.SCHEMATIC) {
-                schematicBaseProvider.applyConfiguredRegions(base, cfg);
+        Object factionA = session.getFactionARef();
+        Object factionB = session.getFactionBRef();
+        String tagA = session.getFactionATag() != null ? session.getFactionATag() : "TeamA";
+        String tagB = session.getFactionBTag() != null ? session.getFactionBTag() : "TeamB";
+        activeMatch = new RaidMatch(match.getEventWorld(), session.getMode(), tagA, tagB, factionA, factionB);
+        activeMatch.setState(MatchState.QUEUE_LOCKED);
+
+        for (UUID id : ids) {
+            Object pf = session.getFaction(id);
+            TeamSide side = null;
+            if (bridge.factionsEqual(pf, factionA)) {
+                side = TeamSide.A;
+            } else if (bridge.factionsEqual(pf, factionB)) {
+                side = TeamSide.B;
+            }
+            if (side != null) {
+                activeMatch.addParticipant(id, side);
             } else {
-                claimBaseProvider.applyClaimBounds(base, worldName);
-                claimBaseProvider.applyConfiguredWall(base, cfg);
-                if (base.getWallRegion() == null) {
-                    base.setWallRegion(claimBaseProvider.detectWallFromObsidian(base, match.getTeamBase(side.opposite())));
+                Player p = Bukkit.getPlayer(id);
+                if (p != null) {
+                    plugin.getMessages().send(p, "queue.not-qualified");
                 }
-                if (cfg.buildCannonRegion() != null) {
-                    base.setCannonRegion(cfg.buildCannonRegion());
-                }
-                if (cfg.getSpawn() != null) {
-                    base.setSpawn(cfg.getSpawn().clone());
-                }
-            }
-            if (base.getSpawn() == null && cfg.getSpawn() != null) {
-                base.setSpawn(cfg.getSpawn().clone());
             }
         }
+    }
+
+    @Override
+    public synchronized void onVoteComplete(RaidMatch match, BaseVoteOption winner) {
+        activeMatch = match;
+        activeMatch.setSelectedBaseVote(winner);
+        activeMatch.setState(MatchState.PREPARING);
+
+        Map<String, String> vars = new HashMap<String, String>();
+        vars.put("base", winner.displayName());
+        plugin.getMessages().broadcast("vote.winner", vars);
+
+        worldResetService.beginSession(activeMatch.getEventWorld());
+        try {
+            basePlacementService.placeBases(activeMatch, winner);
+        } catch (Exception ex) {
+            plugin.getLogger().severe("Base placement failed: " + ex.getMessage());
+            stopMatch("Base placement failed: " + ex.getMessage());
+            return;
+        }
+        beginCountdown(activeMatch);
     }
 
     private void beginCountdown(final RaidMatch match) {
@@ -119,7 +198,6 @@ public final class EventManager {
                 }
             }, (countdown - sec) * 20L);
         }
-
         Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
             @Override
             public void run() {
@@ -129,18 +207,19 @@ public final class EventManager {
     }
 
     private void activateMatch(RaidMatch match) {
-        match.setJoinsOpen(false);
         match.setState(MatchState.ACTIVE);
         long durationMs = plugin.getRaidRiotConfig().getMatchDurationSeconds() * 1000L;
         match.setActiveEndMs(System.currentTimeMillis() + durationMs);
 
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (match.isParticipant(player)) {
-                match.snapshotKit(player);
-                TeamSide side = match.getTeamFor(player);
-                if (side != null && match.getTeamBase(side).getSpawn() != null) {
-                    player.teleport(match.getTeamBase(side).getSpawn());
-                }
+        for (UUID id : match.getParticipants()) {
+            Player player = Bukkit.getPlayer(id);
+            if (player == null) {
+                continue;
+            }
+            match.snapshotKit(player);
+            TeamSide side = match.getTeamFor(player);
+            if (side != null && match.getTeamBase(side).getSpawn() != null) {
+                player.teleport(match.getTeamBase(side).getSpawn());
             }
         }
 
@@ -148,23 +227,23 @@ public final class EventManager {
         vars.put("teamA", match.getFactionTag(TeamSide.A));
         vars.put("teamB", match.getFactionTag(TeamSide.B));
         plugin.getMessages().broadcast("match.started", vars);
-
         startTasks(match);
     }
 
     private void startTasks(final RaidMatch match) {
         cancelTasks();
+        startScoreboardTask();
         timerTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
             @Override
             public void run() {
                 if (!match.isActive()) {
                     return;
                 }
-                int remaining = match.getRemainingSeconds();
-                if (remaining <= 0) {
+                if (match.getRemainingSeconds() <= 0) {
                     endByDepth();
                     return;
                 }
+                int remaining = match.getRemainingSeconds();
                 if (remaining == 300 || remaining == 60 || remaining == 30 || remaining == 10) {
                     Map<String, String> vars = new HashMap<String, String>();
                     vars.put("minutes", String.valueOf(remaining / 60));
@@ -180,21 +259,15 @@ public final class EventManager {
                 if (!match.isActive()) {
                     return;
                 }
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (match.isParticipant(player)) {
+                for (UUID id : match.getParticipants()) {
+                    Player player = Bukkit.getPlayer(id);
+                    if (player != null) {
                         match.getDepthTracker().recordPlayer(match, player);
                     }
                 }
             }
         }, plugin.getRaidRiotConfig().getDepthSampleIntervalTicks(),
                 plugin.getRaidRiotConfig().getDepthSampleIntervalTicks());
-
-        scoreboardTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
-            @Override
-            public void run() {
-                MatchScoreboard.apply(match);
-            }
-        }, 0L, 20L);
     }
 
     public synchronized void endMatch(TeamSide winner, WinReason reason) {
@@ -207,6 +280,7 @@ public final class EventManager {
         activeMatch.setWinner(winner);
         activeMatch.setWinReason(reason);
         cancelTasks();
+        voteManager.cancel();
         respawnQueue.cancelAll();
 
         TeamSide loser = winner == null ? null : winner.opposite();
@@ -234,17 +308,18 @@ public final class EventManager {
     }
 
     public synchronized void stopMatch(String reason) {
-        if (activeMatch == null) {
-            return;
-        }
-        activeMatch.setState(MatchState.ENDING);
-        activeMatch.setWinReason(WinReason.ADMIN_STOP);
         cancelTasks();
+        queueManager.cancelQueue(reason);
+        voteManager.cancel();
         respawnQueue.cancelAll();
-        Map<String, String> vars = new HashMap<String, String>();
-        vars.put("reason", reason == null ? "Stopped by admin." : reason);
-        plugin.getMessages().broadcast("match.ended-admin", vars);
-        restoreAndClear();
+        if (activeMatch != null) {
+            activeMatch.setState(MatchState.ENDING);
+            activeMatch.setWinReason(WinReason.ADMIN_STOP);
+            Map<String, String> vars = new HashMap<String, String>();
+            vars.put("reason", reason == null ? "Stopped by admin." : reason);
+            plugin.getMessages().broadcast("match.ended-admin", vars);
+            restoreAndClear();
+        }
     }
 
     private void endByDepth() {
@@ -262,15 +337,15 @@ public final class EventManager {
     }
 
     private void restoreAndClear() {
-        if (activeMatch == null) {
-            return;
+        if (activeMatch != null) {
+            activeMatch.setState(MatchState.RESTORING);
         }
-        activeMatch.setState(MatchState.RESTORING);
-        for (RegionSnapshot snapshot : activeMatch.getRegionSnapshots()) {
-            snapshot.restore();
-        }
+        worldResetService.restoreAll();
+        worldResetService.endSession();
         MatchScoreboard.clearAll();
-        activeMatch.setState(MatchState.IDLE);
+        if (activeMatch != null) {
+            activeMatch.setState(MatchState.IDLE);
+        }
         activeMatch = null;
     }
 

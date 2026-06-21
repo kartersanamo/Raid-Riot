@@ -12,6 +12,17 @@ import java.util.Set;
 public final class RaidRiotConfig {
 
     private final RaidRiotPlugin plugin;
+    private String eventWorld = "";
+    private int playersPerTeam = 10;
+    private int queueCountdownSeconds = 120;
+    private int voteDurationSeconds = 30;
+    private int baseSeparationBlocks = 500;
+    private int spawnY = 256;
+    private int pasteAnchorX;
+    private int pasteAnchorZ;
+    private int pasteY = 64;
+    private String baseClaimMethod = "isBaseClaim";
+    private String factionsSourceWorld = "world";
     private int matchDurationSeconds = 1500;
     private int countdownSeconds = 10;
     private int respawnDelaySeconds = 10;
@@ -31,6 +42,17 @@ public final class RaidRiotConfig {
     public void reload() {
         plugin.reloadConfig();
         FileConfiguration c = plugin.getConfig();
+        eventWorld = c.getString("event-world", "");
+        playersPerTeam = c.getInt("players-per-team", 10);
+        queueCountdownSeconds = c.getInt("queue-countdown-seconds", 120);
+        voteDurationSeconds = c.getInt("vote-duration-seconds", 30);
+        baseSeparationBlocks = c.getInt("base-separation-blocks", 500);
+        spawnY = c.getInt("spawn-y", 256);
+        pasteAnchorX = c.getInt("paste-anchor-x", 0);
+        pasteAnchorZ = c.getInt("paste-anchor-z", 0);
+        pasteY = c.getInt("paste-y", 64);
+        baseClaimMethod = c.getString("factions.base-claim-method", "isBaseClaim");
+        factionsSourceWorld = c.getString("factions.source-world", "world");
         matchDurationSeconds = c.getInt("match-duration-seconds", 1500);
         countdownSeconds = c.getInt("countdown-seconds", 10);
         respawnDelaySeconds = c.getInt("respawn-delay-seconds", 10);
@@ -55,6 +77,60 @@ public final class RaidRiotConfig {
                 }
             }
         }
+    }
+
+    public void setEventWorld(String eventWorld) {
+        this.eventWorld = eventWorld;
+        plugin.getConfig().set("event-world", eventWorld);
+        plugin.saveConfig();
+    }
+
+    public int getMaxPlayers() {
+        return playersPerTeam * 2;
+    }
+
+    public String getEventWorld() {
+        return eventWorld;
+    }
+
+    public int getPlayersPerTeam() {
+        return playersPerTeam;
+    }
+
+    public int getQueueCountdownSeconds() {
+        return queueCountdownSeconds;
+    }
+
+    public int getVoteDurationSeconds() {
+        return voteDurationSeconds;
+    }
+
+    public int getBaseSeparationBlocks() {
+        return baseSeparationBlocks;
+    }
+
+    public int getSpawnY() {
+        return spawnY;
+    }
+
+    public int getPasteAnchorX() {
+        return pasteAnchorX;
+    }
+
+    public int getPasteAnchorZ() {
+        return pasteAnchorZ;
+    }
+
+    public int getPasteY() {
+        return pasteY;
+    }
+
+    public String getBaseClaimMethod() {
+        return baseClaimMethod;
+    }
+
+    public String getFactionsSourceWorld() {
+        return factionsSourceWorld;
     }
 
     public int getMatchDurationSeconds() {

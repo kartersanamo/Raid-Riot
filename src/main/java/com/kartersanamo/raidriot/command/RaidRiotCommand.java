@@ -1,12 +1,17 @@
 package com.kartersanamo.raidriot.command;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
-import com.kartersanamo.raidriot.arena.ArenaStore;
-import com.kartersanamo.raidriot.arena.ArenaTemplate;
 import com.kartersanamo.raidriot.arena.TeamSide;
+import com.kartersanamo.raidriot.base.BaseDifficultyStore;
+import com.kartersanamo.raidriot.base.BaseVoteOption;
+import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
+import com.kartersanamo.raidriot.queue.QueueManager;
+import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import com.kartersanamo.raidriot.ui.MatchScoreboard;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -24,13 +29,11 @@ import java.util.Map;
 public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
 
     private final RaidRiotPlugin plugin;
-    private final ArenaStore arenaStore;
-    private final AdminArenaCommand adminArenaCommand;
+    private final BaseDifficultyStore baseDifficultyStore;
 
-    public RaidRiotCommand(RaidRiotPlugin plugin, ArenaStore arenaStore, AdminArenaCommand adminArenaCommand) {
+    public RaidRiotCommand(RaidRiotPlugin plugin, BaseDifficultyStore baseDifficultyStore) {
         this.plugin = plugin;
-        this.arenaStore = arenaStore;
-        this.adminArenaCommand = adminArenaCommand;
+        this.baseDifficultyStore = baseDifficultyStore;
     }
 
     @Override
@@ -61,30 +64,37 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         Player player = (Player) sender;
-        RaidMatch match = plugin.getEventManager().getActiveMatch();
-        if (match == null || !match.isJoinable()) {
+        QueueManager queue = plugin.getEventManager().getQueueManager();
+        if (!queue.isOpen()) {
             plugin.getMessages().send(player, "join.no-match");
             return true;
         }
-        if (match.isParticipant(player)) {
-            plugin.getMessages().send(player, "join.already-in");
-            return true;
-        }
-        try {
-            Object pf = plugin.getFactionsBridge().getPlayerFaction(player);
-            if (!match.tryJoin(player, pf, plugin.getFactionsBridge())) {
+        QueueManager.JoinResult result = queue.tryJoin(player);
+        switch (result) {
+            case SUCCESS:
                 Map<String, String> vars = new HashMap<String, String>();
-                vars.put("factionA", match.getFactionTag(TeamSide.A));
-                vars.put("factionB", match.getFactionTag(TeamSide.B));
-                plugin.getMessages().send(player, "join.not-eligible", vars);
-                return true;
-            }
-            Map<String, String> vars = new HashMap<String, String>();
-            TeamSide side = match.getTeamFor(player);
-            vars.put("faction", match.getFactionTag(side));
-            plugin.getMessages().send(player, "join.success", vars);
-        } catch (Exception ex) {
-            player.sendMessage(ChatColor.RED + "Could not join: " + ex.getMessage());
+                vars.put("count", String.valueOf(queue.getSession().size()));
+                vars.put("max", String.valueOf(plugin.getRaidRiotConfig().getMaxPlayers()));
+                plugin.getMessages().send(player, "queue.joined", vars);
+                break;
+            case ALREADY_IN:
+                plugin.getMessages().send(player, "join.already-in");
+                break;
+            case FULL:
+                plugin.getMessages().send(player, "queue.full");
+                break;
+            case NEED_FACTION:
+                plugin.getMessages().send(player, "queue.need-faction");
+                break;
+            case FACTION_FULL:
+                plugin.getMessages().send(player, "queue.faction-full");
+                break;
+            case FACTION_NOT_QUALIFIED:
+                plugin.getMessages().send(player, "queue.faction-not-qualified");
+                break;
+            default:
+                plugin.getMessages().send(player, "join.no-match");
+                break;
         }
         return true;
     }
@@ -95,30 +105,51 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         Player player = (Player) sender;
-        RaidMatch match = plugin.getEventManager().getActiveMatch();
-        if (match == null || !match.isParticipant(player)) {
-            plugin.getMessages().send(player, "leave.not-in");
+        if (plugin.getEventManager().getQueueManager().isOpen()) {
+            plugin.getEventManager().getQueueManager().leave(player);
+            plugin.getMessages().send(player, "leave.success");
             return true;
         }
-        match.leave(player);
-        plugin.getRespawnQueue().cancel(player.getUniqueId());
-        plugin.getMessages().send(player, "leave.success");
+        RaidMatch match = plugin.getEventManager().getActiveMatch();
+        if (match != null && match.isParticipant(player) && match.getState() == MatchState.QUEUE_OPEN) {
+            match.leave(player);
+            plugin.getMessages().send(player, "leave.success");
+            return true;
+        }
+        plugin.getMessages().send(player, "leave.not-in");
         return true;
     }
 
     private boolean status(CommandSender sender) {
         RaidMatch match = plugin.getEventManager().getActiveMatch();
-        if (match == null || match.getState().ordinal() < com.kartersanamo.raidriot.match.MatchState.COUNTDOWN.ordinal()) {
+        if (match == null || match.getState() == MatchState.IDLE) {
             plugin.getMessages().send(sender, "status.none");
             return true;
         }
         Map<String, String> vars = new HashMap<String, String>();
-        vars.put("teamA", match.getFactionTag(TeamSide.A));
-        vars.put("teamB", match.getFactionTag(TeamSide.B));
-        vars.put("time", MatchScoreboard.formatTime(match.getRemainingSeconds()));
-        vars.put("depthA", String.valueOf(match.getDepthTracker().getDepth(TeamSide.A)));
-        vars.put("depthB", String.valueOf(match.getDepthTracker().getDepth(TeamSide.B)));
-        plugin.getMessages().send(sender, "status.active", vars);
+        vars.put("phase", match.getState().name());
+        if (plugin.getEventManager().getQueueManager().isOpen()) {
+            vars.put("count", String.valueOf(plugin.getEventManager().getQueueManager().getSession().size()));
+            vars.put("max", String.valueOf(plugin.getRaidRiotConfig().getMaxPlayers()));
+            vars.put("time", String.valueOf(plugin.getEventManager().getQueueManager().getSession().getRemainingSeconds()));
+            plugin.getMessages().send(sender, "status.queue", vars);
+            return true;
+        }
+        if (match.getState() == MatchState.VOTING) {
+            vars.put("time", String.valueOf(plugin.getEventManager().getVoteManager().getRemainingSeconds()));
+            plugin.getMessages().send(sender, "status.voting", vars);
+            return true;
+        }
+        if (match.isActive()) {
+            vars.put("teamA", match.getFactionTag(TeamSide.A));
+            vars.put("teamB", match.getFactionTag(TeamSide.B));
+            vars.put("time", MatchScoreboard.formatTime(match.getRemainingSeconds()));
+            vars.put("depthA", String.valueOf(match.getDepthTracker().getDepth(TeamSide.A)));
+            vars.put("depthB", String.valueOf(match.getDepthTracker().getDepth(TeamSide.B)));
+            plugin.getMessages().send(sender, "status.active", vars);
+            return true;
+        }
+        plugin.getMessages().send(sender, "status.none");
         return true;
     }
 
@@ -133,25 +164,41 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         }
         String sub = args[1].toLowerCase(Locale.ROOT);
         switch (sub) {
+            case "setup":
+                return adminSetup(sender, args);
             case "start":
                 return adminStart(sender, args);
             case "stop":
                 return adminStop(sender, args);
+            case "base":
+                return adminBase(sender, args);
             case "reload":
                 plugin.getRaidRiotConfig().reload();
+                baseDifficultyStore.load();
                 plugin.getMessages().reload();
                 plugin.getMessages().send(sender, "admin.reload");
                 return true;
-            case "arena":
-                if (!sender.hasPermission("raidriot.admin.arena")) {
-                    sender.sendMessage(ChatColor.RED + "No permission.");
-                    return true;
-                }
-                return adminArenaCommand.handle(sender, Arrays.copyOfRange(args, 2, args.length));
             default:
                 sendAdminHelp(sender);
                 return true;
         }
+    }
+
+    private boolean adminSetup(CommandSender sender, String[] args) {
+        if (args.length < 4 || !"world".equalsIgnoreCase(args[2])) {
+            sender.sendMessage(ChatColor.RED + "Usage: /raidriot admin setup world <world>");
+            return true;
+        }
+        World world = Bukkit.getWorld(args[3]);
+        if (world == null) {
+            sender.sendMessage(ChatColor.RED + "World not loaded: " + args[3]);
+            return true;
+        }
+        plugin.getRaidRiotConfig().setEventWorld(world.getName());
+        Map<String, String> vars = new HashMap<String, String>();
+        vars.put("world", world.getName());
+        plugin.getMessages().send(sender, "admin.world-set", vars);
+        return true;
     }
 
     private boolean adminStart(CommandSender sender, String[] args) {
@@ -159,20 +206,22 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(ChatColor.RED + "No permission.");
             return true;
         }
-        if (args.length < 5) {
-            sender.sendMessage(ChatColor.RED + "Usage: /raidriot admin start <arena> <factionA> <factionB>");
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Usage: /raidriot admin start random|faction");
             return true;
         }
-        ArenaTemplate arena = arenaStore.get(args[2]);
-        if (arena == null) {
-            Map<String, String> vars = new HashMap<String, String>();
-            vars.put("name", args[2]);
-            plugin.getMessages().send(sender, "admin.arena-not-found", vars);
+        TeamAssignmentMode mode;
+        if ("random".equalsIgnoreCase(args[2])) {
+            mode = TeamAssignmentMode.RANDOM;
+        } else if ("faction".equalsIgnoreCase(args[2])) {
+            mode = TeamAssignmentMode.FACTION;
+        } else {
+            sender.sendMessage(ChatColor.RED + "Mode must be random or faction.");
             return true;
         }
         try {
-            plugin.getEventManager().startMatch(arena, args[3], args[4]);
-            sender.sendMessage(ChatColor.GREEN + "Raid Riot match starting.");
+            plugin.getEventManager().startQueue(mode);
+            sender.sendMessage(ChatColor.GREEN + "Raid Riot queue opened (" + mode.name().toLowerCase(Locale.ROOT) + ").");
         } catch (Exception ex) {
             sender.sendMessage(ChatColor.RED + ex.getMessage());
         }
@@ -186,7 +235,47 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         }
         String reason = args.length >= 3 ? joinArgs(args, 2) : "Stopped by admin.";
         plugin.getEventManager().stopMatch(reason);
-        sender.sendMessage(ChatColor.GREEN + "Match stopped.");
+        sender.sendMessage(ChatColor.GREEN + "Raid Riot session stopped.");
+        return true;
+    }
+
+    private boolean adminBase(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("raidriot.admin.arena")) {
+            sender.sendMessage(ChatColor.RED + "No permission.");
+            return true;
+        }
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Usage: /raidriot admin base list|set|clear ...");
+            return true;
+        }
+        String action = args[2].toLowerCase(Locale.ROOT);
+        try {
+            if ("list".equals(action)) {
+                sender.sendMessage(ChatColor.GOLD + "Base schematics:");
+                for (BaseVoteOption option : new BaseVoteOption[]{BaseVoteOption.EASY, BaseVoteOption.MEDIUM, BaseVoteOption.HARD}) {
+                    String file = baseDifficultyStore.getSchematic(option);
+                    sender.sendMessage(ChatColor.YELLOW + option.displayName() + ": "
+                            + ChatColor.WHITE + (file == null ? "(not set)" : file));
+                }
+                return true;
+            }
+            if ("set".equals(action) && args.length >= 5) {
+                BaseVoteOption option = BaseVoteOption.parse(args[3]);
+                baseDifficultyStore.setSchematic(option, args[4]);
+                sender.sendMessage(ChatColor.GREEN + "Set " + option.displayName() + " to " + args[4]);
+                return true;
+            }
+            if ("clear".equals(action) && args.length >= 4) {
+                BaseVoteOption option = BaseVoteOption.parse(args[3]);
+                baseDifficultyStore.clear(option);
+                sender.sendMessage(ChatColor.GREEN + "Cleared " + option.displayName() + ".");
+                return true;
+            }
+        } catch (Exception ex) {
+            sender.sendMessage(ChatColor.RED + ex.getMessage());
+            return true;
+        }
+        sender.sendMessage(ChatColor.RED + "Usage: /raidriot admin base list|set <easy|medium|hard> <file>|clear <easy|medium|hard>");
         return true;
     }
 
@@ -206,15 +295,15 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/raidriot join");
         sender.sendMessage(ChatColor.YELLOW + "/raidriot leave");
         sender.sendMessage(ChatColor.YELLOW + "/raidriot status");
-        sender.sendMessage(ChatColor.YELLOW + "/raidriot admin ...");
     }
 
     private void sendAdminHelp(CommandSender sender) {
         sender.sendMessage(ChatColor.GOLD + "Admin:");
-        sender.sendMessage(ChatColor.YELLOW + "/raidriot admin start <arena> <factionA> <factionB>");
+        sender.sendMessage(ChatColor.YELLOW + "/raidriot admin setup world <world>");
+        sender.sendMessage(ChatColor.YELLOW + "/raidriot admin start random|faction");
         sender.sendMessage(ChatColor.YELLOW + "/raidriot admin stop [reason]");
+        sender.sendMessage(ChatColor.YELLOW + "/raidriot admin base list|set|clear ...");
         sender.sendMessage(ChatColor.YELLOW + "/raidriot admin reload");
-        sender.sendMessage(ChatColor.YELLOW + "/raidriot admin arena ...");
     }
 
     @Override
@@ -223,24 +312,20 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             return filterPrefix(Arrays.asList("join", "leave", "status", "admin"), args[0]);
         }
         if (args.length == 2 && "admin".equalsIgnoreCase(args[0]) && sender.hasPermission("raidriot.admin")) {
-            return filterPrefix(Arrays.asList("start", "stop", "reload", "arena"), args[1]);
-        }
-        if (args.length >= 2 && "admin".equalsIgnoreCase(args[0]) && "arena".equalsIgnoreCase(args[1]) && sender.hasPermission("raidriot.admin.arena")) {
-            if (args.length == 3) {
-                return filterPrefix(Arrays.asList("create", "list", "save", "setspawn", "setpaste", "setwall", "setcannon", "setbounds", "setbase", "pos1", "pos2"), args[2]);
-            }
-            if (args.length == 4 && arenaStore.listNames().contains(args[3])) {
-                return Collections.emptyList();
-            }
-            if (args.length == 4) {
-                return filterPrefix(arenaStore.listNames(), args[3]);
-            }
-            if (args.length == 5) {
-                return filterPrefix(Arrays.asList("a", "b"), args[4]);
-            }
+            return filterPrefix(Arrays.asList("setup", "start", "stop", "base", "reload"), args[1]);
         }
         if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "start".equalsIgnoreCase(args[1])) {
-            return filterPrefix(arenaStore.listNames(), args[2]);
+            return filterPrefix(Arrays.asList("random", "faction"), args[2]);
+        }
+        if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "setup".equalsIgnoreCase(args[1])) {
+            return filterPrefix(Collections.singletonList("world"), args[2]);
+        }
+        if (args.length == 4 && "admin".equalsIgnoreCase(args[0]) && "setup".equalsIgnoreCase(args[1])) {
+            List<String> worlds = new ArrayList<String>();
+            for (World w : Bukkit.getWorlds()) {
+                worlds.add(w.getName());
+            }
+            return filterPrefix(worlds, args[3]);
         }
         return Collections.emptyList();
     }
