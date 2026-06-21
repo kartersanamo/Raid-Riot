@@ -75,6 +75,7 @@ public final class VoteManager {
             return;
         }
         baseVotes.put(player.getUniqueId(), option);
+        tryFinishEarly();
     }
 
     public void castKitVote(Player player, KitVoteOption option) {
@@ -82,6 +83,7 @@ public final class VoteManager {
             return;
         }
         kitVotes.put(player.getUniqueId(), option);
+        tryFinishEarly();
     }
 
     public BaseVoteOption getBaseVote(UUID id) {
@@ -113,6 +115,26 @@ public final class VoteManager {
 
     public int getRemainingSeconds() {
         return (int) Math.max(0, (endMs - System.currentTimeMillis()) / 1000L);
+    }
+
+    private void tryFinishEarly() {
+        if (match == null || !isVoting()) {
+            return;
+        }
+        if (match.getParticipants().isEmpty()) {
+            return;
+        }
+        for (UUID id : match.getParticipants()) {
+            if (!baseVotes.containsKey(id) || !kitVotes.containsKey(id)) {
+                return;
+            }
+        }
+        if (task != null) {
+            task.cancel();
+            task = null;
+        }
+        endMs = 0;
+        finishVote();
     }
 
     private void finishVote() {

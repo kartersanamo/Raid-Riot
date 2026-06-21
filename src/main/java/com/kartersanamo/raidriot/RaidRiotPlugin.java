@@ -156,7 +156,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
             getLogger().severe("Command 'raidriot' missing from plugin.yml — commands will not work.");
         }
 
-        getLogger().info("Raid Riot enabled for Minecadia.");
+        getLogger().info("Raid Riot enabled.");
     }
 
     @Override
