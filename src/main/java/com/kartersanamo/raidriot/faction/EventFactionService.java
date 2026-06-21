@@ -29,14 +29,15 @@ public final class EventFactionService {
             eventFactionA = bridge.getOrCreateSystemFaction(tagA);
             eventFactionB = bridge.getOrCreateSystemFaction(tagB);
             if (eventFactionA == null || bridge.isWilderness(eventFactionA)) {
-                plugin.getLogger().severe("Could not prepare event faction: " + tagA);
+                plugin.getLogger().severe("Could not prepare event faction for team A.");
                 return false;
             }
             if (eventFactionB == null || bridge.isWilderness(eventFactionB)) {
-                plugin.getLogger().severe("Could not prepare event faction: " + tagB);
+                plugin.getLogger().severe("Could not prepare event faction for team B.");
                 return false;
             }
-            plugin.getLogger().info("Event factions ready: " + tagA + " / " + tagB);
+            plugin.getLogger().info("Event factions ready: "
+                    + bridge.getFactionTag(eventFactionA) + " / " + bridge.getFactionTag(eventFactionB));
             return true;
         } catch (Exception ex) {
             plugin.getLogger().severe("Could not prepare event factions: " + ex.getMessage());

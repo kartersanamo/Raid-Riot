@@ -105,34 +105,55 @@ public final class FactionsBridge {
     }
 
     /**
-     * Returns an existing faction by tag, or creates a memberless permanent system faction for event claims.
+     * Returns an existing reusable system faction, or creates a memberless permanent faction.
+     * If {@code preferredTag} is taken by another faction, tries {@code preferredTag0}, {@code preferredTag1}, …
      */
-    public Object getOrCreateSystemFaction(String tag) throws Exception {
-        if (tag == null || tag.trim().isEmpty()) {
+    public Object getOrCreateSystemFaction(String preferredTag) throws Exception {
+        if (preferredTag == null || preferredTag.trim().isEmpty()) {
             throw new IllegalArgumentException("Faction tag required.");
         }
-        String normalizedTag = tag.trim();
-        Object existing = getFactionByTag(normalizedTag);
-        if (existing != null && !isWilderness(existing)) {
-            if (getFactionSize(existing) > 0 && !isPermanent(existing)) {
-                throw new IllegalStateException("Faction tag '" + normalizedTag
-                        + "' is already used by a player faction. Choose a different event-faction tag in config.");
+        String baseTag = preferredTag.trim();
+        int suffix = 0;
+        while (suffix <= 9999) {
+            String candidate = suffixSuffix(baseTag, suffix);
+            if (!isTagTaken(candidate)) {
+                return createSystemFaction(candidate);
             }
-            ensureSystemFactionSettings(existing, normalizedTag);
-            factionsForceSave.invoke(factionsInstance);
-            return existing;
+            Object existing = getFactionByTag(candidate);
+            if (existing != null && !isWilderness(existing) && canReuseAsSystemFaction(existing)) {
+                ensureSystemFactionSettings(existing, candidate);
+                factionsForceSave.invoke(factionsInstance);
+                return existing;
+            }
+            suffix++;
         }
-        if ((Boolean) factionsIsTagTaken.invoke(factionsInstance, normalizedTag)) {
-            throw new IllegalStateException("Faction tag '" + normalizedTag + "' is already taken.");
+        throw new IllegalStateException("Could not find an available faction tag for base name '" + baseTag + "'.");
+    }
+
+    private String suffixSuffix(String baseTag, int suffix) {
+        if (suffix == 0) {
+            return baseTag;
         }
+        return baseTag + (suffix - 1);
+    }
+
+    private boolean isTagTaken(String tag) throws Exception {
+        return (Boolean) factionsIsTagTaken.invoke(factionsInstance, tag);
+    }
+
+    private boolean canReuseAsSystemFaction(Object faction) throws Exception {
+        return isPermanent(faction) && getFactionSize(faction) == 0;
+    }
+
+    private Object createSystemFaction(String tag) throws Exception {
         Object created = factionsCreateFaction.invoke(factionsInstance);
         if (created == null) {
             throw new IllegalStateException("SaberFactions returned null from createFaction().");
         }
-        factionSetTag.invoke(created, normalizedTag);
-        ensureSystemFactionSettings(created, normalizedTag);
+        factionSetTag.invoke(created, tag);
+        ensureSystemFactionSettings(created, tag);
         factionsForceSave.invoke(factionsInstance);
-        plugin.getLogger().info("Created Raid Riot system faction '" + normalizedTag
+        plugin.getLogger().info("Created Raid Riot system faction '" + tag
                 + "' (id=" + factionGetId.invoke(created) + ").");
         return created;
     }

@@ -36,8 +36,8 @@ public final class RaidRiotConfig {
     private int pasteAnchorZ;
     private int pasteY = 0;
     private int worldBorderPaddingBlocks = 500;
-    private String eventFactionTagA = "FactionA";
-    private String eventFactionTagB = "FactionB";
+    private String eventFactionTagA = "Yellow";
+    private String eventFactionTagB = "Red";
     private final Map<BaseVoteOption, int[]> schematicCenterFromMin = new EnumMap<BaseVoteOption, int[]>(BaseVoteOption.class);
     private String baseClaimMethod = "isBaseClaim";
     private List<String> factionsSourceWorlds = new ArrayList<String>();
@@ -85,8 +85,8 @@ public final class RaidRiotConfig {
         pasteAnchorZ = c.getInt("paste-anchor-z", 0);
         pasteY = c.getInt("paste-y", 0);
         worldBorderPaddingBlocks = c.getInt("world-border-padding-blocks", 500);
-        eventFactionTagA = c.getString("factions.event-faction-a-tag", "FactionA");
-        eventFactionTagB = c.getString("factions.event-faction-b-tag", "FactionB");
+        eventFactionTagA = c.getString("factions.event-faction-a-tag", "Yellow");
+        eventFactionTagB = c.getString("factions.event-faction-b-tag", "Red");
         loadSchematicCenterOffsets(c);
         baseClaimMethod = c.getString("factions.base-claim-method", "isBaseClaim");
         factionsSourceWorlds = new ArrayList<String>(c.getStringList("factions.source-world"));
