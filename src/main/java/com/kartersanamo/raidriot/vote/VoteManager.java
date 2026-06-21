@@ -3,6 +3,7 @@ package com.kartersanamo.raidriot.vote;
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.match.RaidMatch;
+import com.kartersanamo.raidriot.ui.RaidRiotGui;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -43,7 +44,7 @@ public final class VoteManager {
         return match;
     }
 
-    public void startVote(RaidMatch match, RaidRiotGuiService guiService) {
+    public void startVote(RaidMatch match) {
         this.match = match;
         this.votes.clear();
         this.endMs = System.currentTimeMillis() + plugin.getRaidRiotConfig().getVoteDurationSeconds() * 1000L;

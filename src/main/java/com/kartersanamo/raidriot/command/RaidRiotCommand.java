@@ -6,9 +6,9 @@ import com.kartersanamo.raidriot.base.BaseDifficultyStore;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
-import com.kartersanamo.raidriot.queue.QueueManager;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
-import com.kartersanamo.raidriot.ui.MatchScoreboard;
+import com.kartersanamo.raidriot.ui.RaidRiotGuiService;
+import com.kartersanamo.raidriot.ui.TimeFormat;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
@@ -39,6 +39,10 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
+            if (sender instanceof Player) {
+                openGui((Player) sender);
+                return true;
+            }
             sendHelp(sender);
             return true;
         }
@@ -63,40 +67,23 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(ChatColor.RED + "Players only.");
             return true;
         }
-        Player player = (Player) sender;
-        QueueManager queue = plugin.getEventManager().getQueueManager();
-        if (!queue.isOpen()) {
-            plugin.getMessages().send(player, "join.no-match");
-            return true;
-        }
-        QueueManager.JoinResult result = queue.tryJoin(player);
-        switch (result) {
-            case SUCCESS:
-                Map<String, String> vars = new HashMap<String, String>();
-                vars.put("count", String.valueOf(queue.getSession().size()));
-                vars.put("max", String.valueOf(plugin.getRaidRiotConfig().getMaxPlayers()));
-                plugin.getMessages().send(player, "queue.joined", vars);
-                break;
-            case ALREADY_IN:
-                plugin.getMessages().send(player, "join.already-in");
-                break;
-            case FULL:
-                plugin.getMessages().send(player, "queue.full");
-                break;
-            case NEED_FACTION:
-                plugin.getMessages().send(player, "queue.need-faction");
-                break;
-            case FACTION_FULL:
-                plugin.getMessages().send(player, "queue.faction-full");
-                break;
-            case FACTION_NOT_QUALIFIED:
-                plugin.getMessages().send(player, "queue.faction-not-qualified");
-                break;
-            default:
-                plugin.getMessages().send(player, "join.no-match");
-                break;
-        }
+        openGui((Player) sender);
         return true;
+    }
+
+    private void openGui(Player player) {
+        RaidRiotGuiService gui = plugin.getGuiService();
+        if (plugin.getEventManager().getQueueManager().isOpen()) {
+            gui.openFor(player);
+            return;
+        }
+        RaidMatch match = plugin.getEventManager().getActiveMatch();
+        if (match != null && match.getState() == MatchState.VOTING
+                && plugin.getEventManager().getVoteManager().isVoting()) {
+            gui.openFor(player);
+            return;
+        }
+        plugin.getMessages().send(player, "join.no-match");
     }
 
     private boolean leave(CommandSender sender) {
@@ -107,6 +94,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         Player player = (Player) sender;
         if (plugin.getEventManager().getQueueManager().isOpen()) {
             plugin.getEventManager().getQueueManager().leave(player);
+            plugin.getGuiService().refreshOpenInventories();
             plugin.getMessages().send(player, "leave.success");
             return true;
         }
@@ -143,7 +131,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         if (match.isActive()) {
             vars.put("teamA", match.getFactionTag(TeamSide.A));
             vars.put("teamB", match.getFactionTag(TeamSide.B));
-            vars.put("time", MatchScoreboard.formatTime(match.getRemainingSeconds()));
+            vars.put("time", TimeFormat.format(match.getRemainingSeconds()));
             vars.put("depthA", String.valueOf(match.getDepthTracker().getDepth(TeamSide.A)));
             vars.put("depthB", String.valueOf(match.getDepthTracker().getDepth(TeamSide.B)));
             plugin.getMessages().send(sender, "status.active", vars);
@@ -292,6 +280,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
 
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(ChatColor.GOLD + "Raid Riot:");
+        sender.sendMessage(ChatColor.YELLOW + "/raidriot" + ChatColor.GRAY + " - Open queue/vote GUI");
         sender.sendMessage(ChatColor.YELLOW + "/raidriot join");
         sender.sendMessage(ChatColor.YELLOW + "/raidriot leave");
         sender.sendMessage(ChatColor.YELLOW + "/raidriot status");

@@ -3,6 +3,7 @@ package com.kartersanamo.raidriot.ui;
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
+import com.kartersanamo.raidriot.faction.FactionsBridge;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.QueueSession;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
@@ -91,7 +92,7 @@ public final class RaidRiotGui {
         String name = plugin.getRaidRiotConfig().getTeamDisplayName(side);
         ChatColor color = side == TeamSide.A ? ChatColor.YELLOW : ChatColor.RED;
         byte wool = side == TeamSide.A ? (byte) 4 : (byte) 14;
-        int count = session.countOnTeam(side);
+        int count = teamCount(plugin, session, side);
         int max = plugin.getRaidRiotConfig().getPlayersPerTeam();
 
         ItemStack stack = new ItemStack(Material.WOOL, 1, wool);
@@ -107,7 +108,7 @@ public final class RaidRiotGui {
     }
 
     private static ItemStack factionTeamItem(String tag, TeamSide side, QueueSession session, RaidRiotPlugin plugin) {
-        int count = session.countOnTeam(side);
+        int count = teamCount(plugin, session, side);
         int max = plugin.getRaidRiotConfig().getPlayersPerTeam();
         ItemStack stack = new ItemStack(Material.BANNER, 1);
         ItemMeta meta = stack.getItemMeta();
@@ -243,5 +244,26 @@ public final class RaidRiotGui {
 
     public static boolean isRaidRiotInventory(Inventory inv) {
         return inv != null && inv.getTitle() != null && inv.getTitle().equals(TITLE);
+    }
+
+    private static int teamCount(RaidRiotPlugin plugin, QueueSession session, TeamSide side) {
+        if (session.getMode() == TeamAssignmentMode.FACTION) {
+            Object ref = side == TeamSide.A ? session.getFactionARef() : session.getFactionBRef();
+            if (ref == null) {
+                return 0;
+            }
+            FactionsBridge bridge = plugin.getFactionsBridge();
+            int count = 0;
+            for (Map.Entry<UUID, Object> entry : session.getPlayerFactions().entrySet()) {
+                try {
+                    if (bridge.factionsEqual(entry.getValue(), ref)) {
+                        count++;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+            return count;
+        }
+        return session.countOnTeam(side);
     }
 }

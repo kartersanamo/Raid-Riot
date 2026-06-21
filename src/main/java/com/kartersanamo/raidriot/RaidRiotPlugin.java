@@ -22,7 +22,8 @@ import com.kartersanamo.raidriot.listener.TntSpawnListener;
 import com.kartersanamo.raidriot.match.EventManager;
 import com.kartersanamo.raidriot.message.MessageService;
 import com.kartersanamo.raidriot.queue.QueueManager;
-import com.kartersanamo.raidriot.vote.BaseVoteGuiListener;
+import com.kartersanamo.raidriot.ui.RaidRiotGuiListener;
+import com.kartersanamo.raidriot.ui.RaidRiotGuiService;
 import com.kartersanamo.raidriot.vote.VoteManager;
 import com.kartersanamo.raidriot.world.SchematicService;
 import com.kartersanamo.raidriot.world.WorldResetService;
@@ -44,6 +45,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
     private BreachService breachService;
     private NakedPatchEnforcer nakedPatchEnforcer;
     private WorldResetService worldResetService;
+    private RaidRiotGuiService guiService;
 
     public static RaidRiotPlugin getInstance() {
         return instance;
@@ -93,8 +95,9 @@ public final class RaidRiotPlugin extends JavaPlugin {
         ClickableMessageService clickableMessageService = new ClickableMessageService(this);
         QueueManager queueManager = new QueueManager(this, clickableMessageService);
         VoteManager voteManager = new VoteManager(this);
+        guiService = new RaidRiotGuiService(this);
         eventManager = new EventManager(this, queueManager, voteManager, basePlacementService,
-                worldResetService, respawnQueue);
+                worldResetService, respawnQueue, guiService);
 
         breachService = new BreachService(this);
         nakedPatchEnforcer = new NakedPatchEnforcer(this);
@@ -110,7 +113,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new BlockBreakListener(this, breachService, lockNotifier), this);
         Bukkit.getPluginManager().registerEvents(new BlockPlaceListener(this, nakedPatchEnforcer, lockNotifier), this);
         Bukkit.getPluginManager().registerEvents(new DeathListener(this), this);
-        Bukkit.getPluginManager().registerEvents(new BaseVoteGuiListener(this, voteManager), this);
+        Bukkit.getPluginManager().registerEvents(new RaidRiotGuiListener(this, guiService), this);
 
         org.bukkit.command.PluginCommand raidriotCommand = getCommand("raidriot");
         if (raidriotCommand != null) {
@@ -167,5 +170,9 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
     public WorldResetService getWorldResetService() {
         return worldResetService;
+    }
+
+    public RaidRiotGuiService getGuiService() {
+        return guiService;
     }
 }

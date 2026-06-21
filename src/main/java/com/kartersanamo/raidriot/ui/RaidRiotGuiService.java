@@ -38,10 +38,9 @@ public final class RaidRiotGuiService {
             if (session == null) {
                 return;
             }
-            Inventory fresh = RaidRiotGui.createQueueGui(plugin, session);
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (RaidRiotGui.isRaidRiotInventory(player.getOpenInventory().getTopInventory())) {
-                    player.openInventory(fresh);
+                    player.openInventory(RaidRiotGui.createQueueGui(plugin, session));
                 }
             }
             return;
@@ -49,10 +48,9 @@ public final class RaidRiotGuiService {
         VoteManager voteManager = plugin.getEventManager().getVoteManager();
         RaidMatch match = plugin.getEventManager().getActiveMatch();
         if (match != null && match.getState() == MatchState.VOTING && voteManager.isVoting()) {
-            Inventory fresh = RaidRiotGui.createVoteGui(plugin, voteManager);
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (RaidRiotGui.isRaidRiotInventory(player.getOpenInventory().getTopInventory())) {
-                    player.openInventory(fresh);
+                    player.openInventory(RaidRiotGui.createVoteGui(plugin, voteManager));
                 }
             }
         }

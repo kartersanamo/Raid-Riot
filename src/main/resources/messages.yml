@@ -1,8 +1,9 @@
-prefix: "&8[&cRaid Riot&8] &r"
+prefix: "&cRaid Riot &8> &r"
 
 queue:
   joined: "{prefix}&aYou joined the queue! &7({count}/{max})"
   full: "{prefix}&cThe queue is full."
+  team-full: "{prefix}&cThat team is full."
   need-faction: "{prefix}&cYou must be in a faction to join this event."
   faction-full: "{prefix}&cYour faction team is already full."
   faction-not-qualified: "{prefix}&cYour faction is not eligible for this event."
@@ -14,7 +15,7 @@ vote:
   winner: "{prefix}&aSelected base: &e{base}&7. Preparing arena..."
 
 match:
-  countdown: "{prefix}&7Match starts in &c{seconds}&7 seconds!"
+  countdown: "{prefix}&7The event is starting in &f{seconds} &7seconds..."
   started: "{prefix}&aRaid Riot has begun! &7{teamA} &fvs &7{teamB}"
   ended-breach: "{prefix}&a{winner} &7won by breaching &c{loser}&7's wall!"
   ended-depth: "{prefix}&a{winner} &7won with depth &e{depth}&7 vs &c{otherDepth}&7!"

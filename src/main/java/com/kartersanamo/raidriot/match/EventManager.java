@@ -137,7 +137,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             return;
         }
         plugin.getMessages().broadcast("queue.locked", new HashMap<String, String>());
-        voteManager.startVote(activeMatch, guiService);
+        voteManager.startVote(activeMatch);
         startGuiRefreshTask();
     }
 
