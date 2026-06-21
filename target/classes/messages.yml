@@ -1,0 +1,50 @@
+prefix: "&8[&cRaid Riot&8] &r"
+
+queue:
+  joined: "{prefix}&aYou joined the queue! &7({count}/{max})"
+  full: "{prefix}&cThe queue is full."
+  need-faction: "{prefix}&cYou must be in a faction to join this event."
+  faction-full: "{prefix}&cYour faction team is already full."
+  faction-not-qualified: "{prefix}&cYour faction is not eligible for this event."
+  not-qualified: "{prefix}&cYou did not qualify for this event."
+  cancelled: "{prefix}&cEvent cancelled: &7{reason}"
+  locked: "{prefix}&aQueue locked! Vote for the base type in the GUI."
+
+vote:
+  winner: "{prefix}&aSelected base: &e{base}&7. Preparing arena..."
+
+match:
+  countdown: "{prefix}&7Match starts in &c{seconds}&7 seconds!"
+  started: "{prefix}&aRaid Riot has begun! &7{teamA} &fvs &7{teamB}"
+  ended-breach: "{prefix}&a{winner} &7won by breaching &c{loser}&7's wall!"
+  ended-depth: "{prefix}&a{winner} &7won with depth &e{depth}&7 vs &c{otherDepth}&7!"
+  ended-draw: "{prefix}&eDraw! &7Both teams reached depth &e{depth}&7."
+  ended-admin: "{prefix}&cMatch stopped: &7{reason}"
+  timer-warning: "{prefix}&c{minutes}:{seconds} &7remaining!"
+
+join:
+  no-match: "{prefix}&cNo Raid Riot queue is open right now."
+  already-in: "{prefix}&cYou are already in the queue."
+
+leave:
+  success: "{prefix}&7You left the queue."
+  not-in: "{prefix}&cYou are not in the queue."
+
+status:
+  none: "{prefix}&7No active Raid Riot session."
+  queue: "{prefix}&7Queue: &e{count}/{max} &8| &e{time}s &8| &7{phase}"
+  voting: "{prefix}&7Voting open &8| &e{time}s remaining"
+  active: "{prefix}&7{teamA} &fvs &7{teamB} &8| &e{time} &8| Depth: &a{depthA} &7/ &c{depthB}"
+
+death:
+  respawn-wait: "{prefix}&7Respawning in &c{seconds}&7 seconds..."
+
+patch:
+  must-be-naked: "{prefix}&cYou must be naked to patch on your base/cannon."
+
+raid:
+  locked-block-change: "{prefix}&cYou cannot modify blocks here during the event."
+
+admin:
+  world-set: "{prefix}&aEvent world set to &e{world}&7."
+  reload: "{prefix}&aReloaded config and messages."
