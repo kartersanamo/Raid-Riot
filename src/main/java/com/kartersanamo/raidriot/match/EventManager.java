@@ -103,9 +103,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         guiRefreshTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
             @Override
             public void run() {
-                if (queueManager.isOpen()
-                        || (activeMatch != null && activeMatch.getState() == MatchState.VOTING
-                        && voteManager.isVoting())) {
+                if (guiService.shouldAutoRefresh()) {
                     guiService.refreshOpenInventories();
                 } else {
                     stopGuiRefreshTask();
@@ -198,7 +196,6 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     @Override
     public synchronized void onVoteComplete(RaidMatch match, BaseVoteOption baseWinner, KitVoteOption kitWinner) {
-        stopGuiRefreshTask();
         activeMatch = match;
         activeMatch.setSelectedBaseVote(baseWinner);
         activeMatch.setSelectedKitVote(kitWinner);
@@ -223,6 +220,8 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private void beginCountdown(final RaidMatch match) {
         match.setState(MatchState.COUNTDOWN);
         final int countdown = plugin.getRaidRiotConfig().getCountdownSeconds();
+        match.setCountdownEndMs(System.currentTimeMillis() + countdown * 1000L);
+        startGuiRefreshTask();
         for (int i = countdown; i >= 1; i--) {
             final int sec = i;
             Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
@@ -267,6 +266,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         vars.put("teamB", match.getFactionTag(TeamSide.B));
         plugin.getMessages().broadcast("match.started", vars);
         startTasks(match);
+        startGuiRefreshTask();
     }
 
     private void startTasks(final RaidMatch match) {
@@ -320,6 +320,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         cancelTasks();
         voteManager.cancel();
         respawnQueue.cancelAll();
+        startGuiRefreshTask();
 
         TeamSide loser = winner == null ? null : winner.opposite();
         Map<String, String> vars = new HashMap<String, String>();
@@ -376,6 +377,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     }
 
     private void restoreAndClear() {
+        stopGuiRefreshTask();
         if (activeMatch != null) {
             activeMatch.setState(MatchState.RESTORING);
         }

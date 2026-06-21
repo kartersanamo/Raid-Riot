@@ -1,9 +1,12 @@
 package com.kartersanamo.raidriot.ui;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.faction.FactionsBridge;
+import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
+import com.kartersanamo.raidriot.match.WinReason;
 import com.kartersanamo.raidriot.queue.QueueSession;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import com.kartersanamo.raidriot.vote.KitVoteOption;
@@ -102,6 +105,136 @@ public final class RaidRiotGui {
             placePlayerHeads(inv, match.getParticipants(), null, voteManager, plugin);
         }
         return inv;
+    }
+
+    public static Inventory createStatusGui(RaidRiotPlugin plugin, RaidMatch match) {
+        Inventory inv = Bukkit.createInventory(null, 54, TITLE);
+        fillTopBorder(inv);
+
+        MatchState state = match.getState();
+        List<String> infoLore = new ArrayList<String>();
+        infoLore.add(ChatColor.GRAY + "Phase: " + ChatColor.WHITE + formatPhase(state));
+        appendStatusDetails(match, infoLore);
+        inv.setItem(0, infoItem(ChatColor.GOLD + "Raid Riot Status", infoLore.toArray(new String[0])));
+
+        inv.setItem(SLOT_STATUS_A, matchTeamItem(plugin, match, TeamSide.A));
+        inv.setItem(SLOT_STATUS_B, matchTeamItem(plugin, match, TeamSide.B));
+        inv.setItem(SLOT_JOIN_QUEUE, matchSummaryItem(match));
+
+        placeMatchPlayerHeads(inv, match, plugin);
+        return inv;
+    }
+
+    private static void appendStatusDetails(RaidMatch match, List<String> lore) {
+        MatchState state = match.getState();
+        if (state == MatchState.COUNTDOWN) {
+            lore.add(ChatColor.GRAY + "Starts in: " + ChatColor.WHITE + match.getCountdownRemainingSeconds() + "s");
+        } else if (state == MatchState.ACTIVE) {
+            lore.add(ChatColor.GRAY + "Time left: " + ChatColor.WHITE + TimeFormat.format(match.getRemainingSeconds()));
+        }
+        if (match.getSelectedBaseVote() != null) {
+            lore.add(ChatColor.GRAY + "Base: " + ChatColor.WHITE + match.getSelectedBaseVote().displayName());
+        }
+        if (match.getSelectedKitVote() != null) {
+            lore.add(ChatColor.GRAY + "Kit: " + ChatColor.WHITE + match.getSelectedKitVote().displayName());
+        }
+        if (state == MatchState.ENDING && match.getWinner() != null) {
+            lore.add(ChatColor.GREEN + "Winner: " + ChatColor.WHITE + match.getFactionTag(match.getWinner()));
+        } else if (state == MatchState.ENDING && match.getWinReason() == WinReason.DRAW) {
+            lore.add(ChatColor.YELLOW + "Result: Draw");
+        }
+    }
+
+    private static String formatPhase(MatchState state) {
+        switch (state) {
+            case QUEUE_LOCKED:
+                return "Teams Locked";
+            case PREPARING:
+                return "Preparing";
+            case COUNTDOWN:
+                return "Starting";
+            case ACTIVE:
+                return "In Progress";
+            case ENDING:
+                return "Ended";
+            default:
+                return state.name();
+        }
+    }
+
+    private static ItemStack matchTeamItem(RaidRiotPlugin plugin, RaidMatch match, TeamSide side) {
+        String name = match.getFactionTag(side);
+        ChatColor color = side == TeamSide.A ? ChatColor.YELLOW : ChatColor.RED;
+        byte wool = side == TeamSide.A ? (byte) 4 : (byte) 14;
+        int players = match.countOnTeam(side);
+        ItemStack stack = new ItemStack(Material.WOOL, 1, wool);
+        ItemMeta meta = stack.getItemMeta();
+        meta.setDisplayName(color + name + ChatColor.GRAY + " (" + players + ")");
+        List<String> lore = new ArrayList<String>();
+        lore.add(ChatColor.GRAY + "Players: " + ChatColor.WHITE + players);
+        if (match.isActive() || match.getState() == MatchState.ENDING) {
+            lore.add(ChatColor.GRAY + "Wall depth: " + ChatColor.WHITE + match.getDepthTracker().getDepth(side));
+        }
+        meta.setLore(lore);
+        stack.setItemMeta(meta);
+        return stack;
+    }
+
+    private static ItemStack matchSummaryItem(RaidMatch match) {
+        Material material = match.getState() == MatchState.ACTIVE ? Material.NETHER_STAR
+                : match.getState() == MatchState.ENDING ? Material.BARRIER : Material.PAPER;
+        ItemStack stack = new ItemStack(material, 1);
+        ItemMeta meta = stack.getItemMeta();
+        meta.setDisplayName(ChatColor.AQUA + "Match Info");
+        List<String> lore = new ArrayList<String>();
+        lore.add(ChatColor.GRAY + "Mode: " + ChatColor.WHITE + match.getAssignmentMode().name().toLowerCase());
+        lore.add(ChatColor.GRAY + "World: " + ChatColor.WHITE + match.getEventWorld());
+        if (match.isActive()) {
+            lore.add(ChatColor.GRAY + "Depth " + ChatColor.YELLOW + match.getFactionTag(TeamSide.A)
+                    + ChatColor.GRAY + ": " + ChatColor.WHITE + match.getDepthTracker().getDepth(TeamSide.A));
+            lore.add(ChatColor.GRAY + "Depth " + ChatColor.RED + match.getFactionTag(TeamSide.B)
+                    + ChatColor.GRAY + ": " + ChatColor.WHITE + match.getDepthTracker().getDepth(TeamSide.B));
+        }
+        meta.setLore(lore);
+        stack.setItemMeta(meta);
+        return stack;
+    }
+
+    private static void placeMatchPlayerHeads(Inventory inv, RaidMatch match, RaidRiotPlugin plugin) {
+        List<UUID> ordered = new ArrayList<UUID>();
+        for (TeamSide side : new TeamSide[]{TeamSide.A, TeamSide.B}) {
+            for (UUID id : match.getParticipants()) {
+                if (match.getTeamFor(id) == side) {
+                    ordered.add(id);
+                }
+            }
+        }
+        int slot = PLAYER_HEADS_START;
+        for (UUID id : ordered) {
+            if (slot >= inv.getSize()) {
+                break;
+            }
+            Player online = Bukkit.getPlayer(id);
+            String name = online != null ? online.getName() : Bukkit.getOfflinePlayer(id).getName();
+            if (name == null) {
+                name = "Unknown";
+            }
+            TeamSide team = match.getTeamFor(id);
+            ItemStack head = new ItemStack(Material.SKULL_ITEM, 1, (short) 3);
+            SkullMeta meta = (SkullMeta) head.getItemMeta();
+            meta.setOwner(name);
+            meta.setDisplayName(ChatColor.AQUA + name);
+            List<String> lore = new ArrayList<String>();
+            if (team != null) {
+                lore.add(ChatColor.GRAY + "Team: " + ChatColor.WHITE + match.getFactionTag(team));
+            }
+            if (online == null) {
+                lore.add(ChatColor.RED + "Offline");
+            }
+            meta.setLore(lore);
+            head.setItemMeta(meta);
+            inv.setItem(slot++, head);
+        }
     }
 
     private static ItemStack joinQueueItem(QueueSession session, RaidRiotPlugin plugin) {

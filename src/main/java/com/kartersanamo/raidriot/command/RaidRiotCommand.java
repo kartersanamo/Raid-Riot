@@ -7,7 +7,6 @@ import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
-import com.kartersanamo.raidriot.ui.RaidRiotGuiService;
 import com.kartersanamo.raidriot.ui.TimeFormat;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -72,18 +71,9 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
     }
 
     private void openGui(Player player) {
-        RaidRiotGuiService gui = plugin.getGuiService();
-        if (plugin.getEventManager().getQueueManager().isOpen()) {
-            gui.openFor(player);
-            return;
+        if (!plugin.getGuiService().openFor(player)) {
+            plugin.getMessages().send(player, "join.no-match");
         }
-        RaidMatch match = plugin.getEventManager().getActiveMatch();
-        if (match != null && match.getState() == MatchState.VOTING
-                && plugin.getEventManager().getVoteManager().isVoting()) {
-            gui.openFor(player);
-            return;
-        }
-        plugin.getMessages().send(player, "join.no-match");
     }
 
     private boolean leave(CommandSender sender) {

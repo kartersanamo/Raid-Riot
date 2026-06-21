@@ -38,6 +38,7 @@ public final class RaidMatch {
     private TeamSide winner;
     private WinReason winReason;
     private long activeEndMs;
+    private long countdownEndMs;
 
     public RaidMatch(String eventWorld, TeamAssignmentMode assignmentMode,
             String factionTagA, String factionTagB, Object factionRefA, Object factionRefB) {
@@ -131,6 +132,18 @@ public final class RaidMatch {
         this.activeEndMs = activeEndMs;
     }
 
+    public void setCountdownEndMs(long countdownEndMs) {
+        this.countdownEndMs = countdownEndMs;
+    }
+
+    public int getCountdownRemainingSeconds() {
+        if (state != MatchState.COUNTDOWN) {
+            return 0;
+        }
+        long left = (countdownEndMs - System.currentTimeMillis()) / 1000L;
+        return (int) Math.max(0, left);
+    }
+
     public int getRemainingSeconds() {
         if (!isActive()) {
             return 0;
@@ -168,6 +181,20 @@ public final class RaidMatch {
 
     public TeamSide getTeamFor(Player player) {
         return participantTeams.get(player.getUniqueId());
+    }
+
+    public TeamSide getTeamFor(UUID id) {
+        return participantTeams.get(id);
+    }
+
+    public int countOnTeam(TeamSide side) {
+        int count = 0;
+        for (TeamSide team : participantTeams.values()) {
+            if (team == side) {
+                count++;
+            }
+        }
+        return count;
     }
 
     public boolean isOnTeam(Player player, TeamSide side) {
