@@ -162,14 +162,9 @@ public final class RaidRiotPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (eventManager != null) {
-            eventManager.stopMatch("Server shutdown.");
+            eventManager.shutdown("Server shutdown.");
         }
-        if (respawnQueue != null) {
-            respawnQueue.cancelAll();
-        }
-        if (virtualDeathService != null) {
-            virtualDeathService.cancelAll();
-        }
+        instance = null;
     }
 
     public RaidRiotConfig getRaidRiotConfig() {

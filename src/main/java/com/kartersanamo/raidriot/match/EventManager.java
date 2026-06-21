@@ -46,9 +46,12 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private final EventWorldBorderService worldBorderService;
     private final VirtualDeathService virtualDeathService;
     private RaidMatch activeMatch;
+    private volatile boolean shuttingDown;
     private BukkitTask timerTask;
     private BukkitTask depthTask;
     private BukkitTask guiRefreshTask;
+    private BukkitTask pendingRestoreTask;
+    private final List<BukkitTask> countdownTasks = new ArrayList<BukkitTask>();
 
     public EventManager(RaidRiotPlugin plugin, QueueManager queueManager, VoteManager voteManager,
             BasePlacementService basePlacementService, WorldResetService worldResetService,
@@ -94,6 +97,62 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         return worldResetService;
     }
 
+    public boolean isShuttingDown() {
+        return shuttingDown;
+    }
+
+    public synchronized void shutdown(String reason) {
+        shutdown(reason, false);
+    }
+
+    public synchronized void shutdown(String reason, boolean broadcast) {
+        if (shuttingDown) {
+            return;
+        }
+        shuttingDown = true;
+        try {
+            cancelTasks();
+            cancelCountdownTasks();
+            cancelPendingRestoreTask();
+            stopGuiRefreshTask();
+            queueManager.shutdown();
+            voteManager.cancel();
+            respawnQueue.cancelAll();
+            virtualDeathService.shutdown();
+            guiService.closeAllOpen();
+
+            RaidMatch match = activeMatch;
+            if (match != null) {
+                match.setState(MatchState.RESTORING);
+                restoreAllPreEventStates(match);
+                eventFactionService.unclaimAll(match);
+                worldBorderService.reset();
+                worldResetService.restoreAll();
+                worldResetService.endSession();
+                match.setState(MatchState.IDLE);
+                activeMatch = null;
+                if (broadcast && reason != null && !reason.isEmpty()) {
+                    Map<String, String> vars = new HashMap<String, String>();
+                    vars.put("reason", reason);
+                    plugin.getMessages().broadcast("match.ended-admin", vars);
+                }
+            } else if (worldResetService.getSnapshotCount() > 0) {
+                worldBorderService.reset();
+                worldResetService.restoreAll();
+                worldResetService.endSession();
+            }
+        } finally {
+            shuttingDown = false;
+        }
+    }
+
+    private void restoreAllPreEventStates(RaidMatch match) {
+        for (UUID id : match.getPreEventSnapshotPlayerIds()) {
+            Player player = Bukkit.getPlayer(id);
+            restorePreEventState(player, match.getPreEventSnapshot(id));
+        }
+    }
+
     public synchronized void startQueue(TeamAssignmentMode mode) {
         if (hasActiveSession() || queueManager.isOpen()) {
             throw new IllegalStateException("A Raid Riot session is already active.");
@@ -114,6 +173,10 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         guiRefreshTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
             @Override
             public void run() {
+                if (shuttingDown) {
+                    stopGuiRefreshTask();
+                    return;
+                }
                 if (guiService.shouldAutoRefresh()) {
                     guiService.refreshOpenInventories();
                 } else {
@@ -273,30 +336,40 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     }
 
     private void beginCountdown(final RaidMatch match) {
+        cancelCountdownTasks();
         match.setState(MatchState.COUNTDOWN);
         final int countdown = plugin.getRaidRiotConfig().getCountdownSeconds();
         match.setCountdownEndMs(System.currentTimeMillis() + countdown * 1000L);
         startGuiRefreshTask();
         for (int i = countdown; i >= 1; i--) {
             final int sec = i;
-            Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+            countdownTasks.add(Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
                 @Override
                 public void run() {
+                    if (shuttingDown || activeMatch != match || match.getState() != MatchState.COUNTDOWN) {
+                        return;
+                    }
                     Map<String, String> vars = new HashMap<String, String>();
                     vars.put("seconds", String.valueOf(sec));
                     plugin.getMessages().broadcast("match.countdown", vars);
                 }
-            }, (countdown - sec) * 20L);
+            }, (countdown - sec) * 20L));
         }
-        Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+        countdownTasks.add(Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
             @Override
             public void run() {
+                if (shuttingDown || activeMatch != match || match.getState() != MatchState.COUNTDOWN) {
+                    return;
+                }
                 activateMatch(match);
             }
-        }, countdown * 20L);
+        }, countdown * 20L));
     }
 
     private void activateMatch(RaidMatch match) {
+        if (shuttingDown || activeMatch != match) {
+            return;
+        }
         match.setState(MatchState.ACTIVE);
         long durationMs = plugin.getRaidRiotConfig().getMatchDurationSeconds() * 1000L;
         match.setActiveEndMs(System.currentTimeMillis() + durationMs);
@@ -394,29 +467,25 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             plugin.getMessages().broadcast("match.ended-draw", vars);
         }
 
-        Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+        cancelPendingRestoreTask();
+        final RaidMatch endingMatch = activeMatch;
+        pendingRestoreTask = Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
             @Override
             public void run() {
+                pendingRestoreTask = null;
+                if (shuttingDown || activeMatch != endingMatch) {
+                    return;
+                }
                 restoreAndClear();
             }
         }, 60L);
     }
 
     public synchronized void stopMatch(String reason) {
-        cancelTasks();
-        stopGuiRefreshTask();
-        queueManager.cancelQueue(reason);
-        voteManager.cancel();
-        respawnQueue.cancelAll();
-        virtualDeathService.cancelAll();
         if (activeMatch != null) {
-            activeMatch.setState(MatchState.ENDING);
             activeMatch.setWinReason(WinReason.ADMIN_STOP);
-            Map<String, String> vars = new HashMap<String, String>();
-            vars.put("reason", reason == null ? "Stopped by admin." : reason);
-            plugin.getMessages().broadcast("match.ended-admin", vars);
-            restoreAndClear();
         }
+        shutdown(reason == null ? "Stopped by admin." : reason, true);
     }
 
     private void endByDepth() {
@@ -438,10 +507,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         RaidMatch match = activeMatch;
         if (match != null) {
             match.setState(MatchState.RESTORING);
-            for (UUID id : match.getParticipants()) {
-                Player player = Bukkit.getPlayer(id);
-                restorePreEventState(player, match.getPreEventSnapshot(id));
-            }
+            restoreAllPreEventStates(match);
             eventFactionService.unclaimAll(match);
             worldBorderService.reset();
         }
@@ -461,6 +527,20 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         if (depthTask != null) {
             depthTask.cancel();
             depthTask = null;
+        }
+    }
+
+    private void cancelCountdownTasks() {
+        for (BukkitTask task : countdownTasks) {
+            task.cancel();
+        }
+        countdownTasks.clear();
+    }
+
+    private void cancelPendingRestoreTask() {
+        if (pendingRestoreTask != null) {
+            pendingRestoreTask.cancel();
+            pendingRestoreTask = null;
         }
     }
 }

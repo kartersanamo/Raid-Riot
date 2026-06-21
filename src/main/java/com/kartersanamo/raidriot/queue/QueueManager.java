@@ -58,6 +58,11 @@ public final class QueueManager {
         clickableMessages.broadcastQueueOpened(session.getRemainingSeconds(), mode);
     }
 
+    public synchronized void shutdown() {
+        cancelTickTask();
+        session = null;
+    }
+
     public synchronized void cancelQueue(String reason) {
         if (session == null) {
             return;

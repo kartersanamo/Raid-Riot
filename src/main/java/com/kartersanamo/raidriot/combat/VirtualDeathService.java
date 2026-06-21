@@ -10,7 +10,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public final class VirtualDeathService {
@@ -94,6 +96,17 @@ public final class VirtualDeathService {
     public void cancelAll() {
         for (BukkitTask task : pending.values()) {
             task.cancel();
+        }
+        pending.clear();
+    }
+
+    public void shutdown() {
+        for (UUID playerId : new HashSet<UUID>(pending.keySet())) {
+            cancel(playerId);
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null && player.isOnline()) {
+                player.setGameMode(GameMode.SURVIVAL);
+            }
         }
         pending.clear();
     }

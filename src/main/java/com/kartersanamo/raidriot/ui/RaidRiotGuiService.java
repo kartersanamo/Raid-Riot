@@ -83,6 +83,9 @@ public final class RaidRiotGuiService {
     }
 
     public boolean shouldAutoRefresh() {
+        if (plugin.getEventManager().isShuttingDown()) {
+            return false;
+        }
         if (plugin.getEventManager().getQueueManager().isOpen()) {
             return true;
         }
@@ -94,6 +97,15 @@ public final class RaidRiotGuiService {
             return true;
         }
         return isStatusView(match.getState());
+    }
+
+    public void closeAllOpen() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getOpenInventory() != null
+                    && RaidRiotGui.isRaidRiotInventory(player.getOpenInventory().getTopInventory())) {
+                player.closeInventory();
+            }
+        }
     }
 
     private boolean isStatusView(MatchState state) {
