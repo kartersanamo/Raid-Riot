@@ -5,6 +5,7 @@ import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BaseDifficultyStore;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.config.ConfigManager;
+import com.kartersanamo.raidriot.match.AdminStopChoice;
 import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
@@ -53,6 +54,8 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
                 return leave(sender);
             case "status":
                 return status(sender);
+            case "queue":
+                return queue(sender, args);
             case "admin":
                 return admin(sender, args);
             default:
@@ -74,6 +77,14 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         if (!plugin.getGuiService().openFor(player)) {
             ConfigManager.get().send(player, "join.no-match");
         }
+    }
+
+    private boolean queue(CommandSender sender, String[] args) {
+        if (args.length < 2 || !"leave".equalsIgnoreCase(args[1])) {
+            ConfigManager.get().send(sender, "command.usage-queue-leave");
+            return true;
+        }
+        return leave(sender);
     }
 
     private boolean leave(CommandSender sender) {
@@ -141,6 +152,10 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length < 2) {
+            if (sender instanceof Player) {
+                plugin.getAdminGuiService().openHub((Player) sender);
+                return true;
+            }
             sendAdminHelp(sender);
             return true;
         }
@@ -152,6 +167,8 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
                 return adminStart(sender, args);
             case "stop":
                 return adminStop(sender, args);
+            case "stopqueue":
+                return adminStopQueue(sender, args);
             case "base":
                 return adminBase(sender, args);
             case "kit":
@@ -221,10 +238,90 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             ConfigManager.get().send(sender, "command.no-permission");
             return true;
         }
-        String reason = args.length >= 3 ? joinArgs(args, 2) : ConfigManager.get("messages.match.default-stop-reason");
-        plugin.getEventManager().stopMatch(reason);
-        ConfigManager.get().send(sender, "admin.session-stopped");
+        String defaultReason = ConfigManager.get("messages.match.default-stop-reason");
+        if (args.length == 2) {
+            if (sender instanceof Player && plugin.getEventManager().hasTeamsAssigned()) {
+                plugin.getAdminGuiService().openWinnerPicker((Player) sender);
+                return true;
+            }
+            return forceAdminStop(sender, defaultReason);
+        }
+        AdminStopChoice choice = parseStopChoice(args[2]);
+        if (choice != null) {
+            String reason = args.length >= 4 ? joinArgs(args, 3) : defaultReason;
+            return executeAdminStop(sender, choice, reason);
+        }
+        String reason = joinArgs(args, 2);
+        return forceAdminStop(sender, reason);
+    }
+
+    private boolean adminStopQueue(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("raidriot.admin.stop")) {
+            ConfigManager.get().send(sender, "command.no-permission");
+            return true;
+        }
+        String reason = args.length >= 3
+                ? joinArgs(args, 2)
+                : ConfigManager.get("messages.admin.default-queue-stop-reason");
+        try {
+            plugin.getEventManager().stopQueue(reason);
+            ConfigManager.get().send(sender, "admin.queue-stopped");
+        } catch (Exception ex) {
+            sender.sendMessage(ConfigManager.colorize("&c" + ex.getMessage()));
+        }
         return true;
+    }
+
+    private boolean forceAdminStop(CommandSender sender, String reason) {
+        try {
+            if (plugin.getEventManager().getQueueManager().isOpen()) {
+                plugin.getEventManager().stopQueue(reason);
+                ConfigManager.get().send(sender, "admin.queue-stopped");
+            } else if (plugin.getEventManager().hasTeamsAssigned()) {
+                plugin.getEventManager().adminStopMatch(AdminStopChoice.NONE, reason);
+                ConfigManager.get().send(sender, "admin.session-stopped");
+            } else {
+                ConfigManager.get().send(sender, "admin.no-session-to-stop");
+            }
+        } catch (Exception ex) {
+            sender.sendMessage(ConfigManager.colorize("&c" + ex.getMessage()));
+        }
+        return true;
+    }
+
+    private boolean executeAdminStop(CommandSender sender, AdminStopChoice choice, String reason) {
+        try {
+            boolean queueOpen = plugin.getEventManager().getQueueManager().isOpen();
+            plugin.getEventManager().adminStopMatch(choice, reason);
+            if (queueOpen) {
+                ConfigManager.get().send(sender, "admin.queue-stopped");
+            } else {
+                ConfigManager.get().send(sender, "admin.session-stopped");
+            }
+        } catch (Exception ex) {
+            sender.sendMessage(ConfigManager.colorize("&c" + ex.getMessage()));
+        }
+        return true;
+    }
+
+    private AdminStopChoice parseStopChoice(String arg) {
+        if (arg == null) {
+            return null;
+        }
+        String lower = arg.toLowerCase(Locale.ROOT);
+        if ("a".equals(lower) || "teama".equals(lower) || "team-a".equals(lower)) {
+            return AdminStopChoice.TEAM_A;
+        }
+        if ("b".equals(lower) || "teamb".equals(lower) || "team-b".equals(lower)) {
+            return AdminStopChoice.TEAM_B;
+        }
+        if ("draw".equals(lower)) {
+            return AdminStopChoice.DRAW;
+        }
+        if ("none".equals(lower)) {
+            return AdminStopChoice.NONE;
+        }
+        return null;
     }
 
     private boolean adminBase(CommandSender sender, String[] args) {
@@ -315,6 +412,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         ConfigManager.get().send(sender, "command.help-header");
         ConfigManager.get().send(sender, "command.help-join");
         ConfigManager.get().send(sender, "command.help-leave");
+        ConfigManager.get().send(sender, "command.help-queue-leave");
         ConfigManager.get().send(sender, "command.help-status");
     }
 
@@ -323,6 +421,8 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         ConfigManager.get().send(sender, "command.admin-help-setup");
         ConfigManager.get().send(sender, "command.admin-help-start");
         ConfigManager.get().send(sender, "command.admin-help-stop");
+        ConfigManager.get().send(sender, "command.admin-help-stopqueue");
+        ConfigManager.get().send(sender, "command.admin-help-gui");
         ConfigManager.get().send(sender, "command.admin-help-base");
         ConfigManager.get().send(sender, "command.admin-help-reload");
     }
@@ -330,16 +430,23 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return filterPrefix(Arrays.asList("join", "leave", "status", "admin"), args[0]);
+            return filterPrefix(Arrays.asList("join", "leave", "queue", "status", "admin"), args[0]);
+        }
+        if (args.length == 2 && "queue".equalsIgnoreCase(args[0])) {
+            return filterPrefix(Collections.singletonList("leave"), args[1]);
         }
         if (args.length == 2 && "admin".equalsIgnoreCase(args[0]) && sender.hasPermission("raidriot.admin")) {
-            return filterPrefix(Arrays.asList("setup", "start", "stop", "base", "kit", "reload"), args[1]);
+            return filterPrefix(Arrays.asList("setup", "start", "stop", "stopqueue", "base", "kit", "reload"), args[1]);
         }
         if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "kit".equalsIgnoreCase(args[1])) {
             return filterPrefix(Collections.singletonList("set"), args[2]);
         }
         if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "start".equalsIgnoreCase(args[1])) {
             return filterPrefix(Arrays.asList("random", "faction"), args[2]);
+        }
+        if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "stop".equalsIgnoreCase(args[1])
+                && sender.hasPermission("raidriot.admin.stop")) {
+            return filterPrefix(Arrays.asList("a", "b", "draw", "none"), args[2]);
         }
         if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "setup".equalsIgnoreCase(args[1])) {
             return filterPrefix(Collections.singletonList("world"), args[2]);

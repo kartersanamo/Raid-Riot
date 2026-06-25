@@ -53,7 +53,7 @@ public final class RaidRiotGui {
         return ConfigManager.get().formatGui("title");
     }
 
-    public static Inventory createQueueGui(RaidRiotPlugin plugin, QueueSession session) {
+    public static Inventory createQueueGui(RaidRiotPlugin plugin, QueueSession session, UUID viewerId) {
         Inventory inv = Bukkit.createInventory(null, 54, getTitle());
         fillTopBorder(inv);
 
@@ -75,7 +75,7 @@ public final class RaidRiotGui {
                 g("queue.players", vars),
                 modeLine));
 
-        inv.setItem(SLOT_JOIN_QUEUE, joinQueueItem(session));
+        inv.setItem(SLOT_JOIN_QUEUE, queueActionItem(session, viewerId));
 
         if (session.getFactionATag() != null) {
             inv.setItem(SLOT_STATUS_A, factionStatusItem(session.getFactionATag(), session, plugin, true));
@@ -442,20 +442,30 @@ public final class RaidRiotGui {
         return stack;
     }
 
-    private static ItemStack joinQueueItem(QueueSession session) {
+    private static ItemStack queueActionItem(QueueSession session, UUID viewerId) {
         int maxDisplay = session.getMode() == TeamAssignmentMode.FACTION
                 ? ConfigManager.get().getMaxFactionQueuePlayers()
                 : ConfigManager.get().getMaxPlayers();
-        ItemStack stack = new ItemStack(Material.EMERALD, 1);
-        ItemMeta meta = stack.getItemMeta();
-        meta.setDisplayName(g("join-queue.title"));
         Map<String, String> vars = new HashMap<String, String>();
         vars.put("count", String.valueOf(session.size()));
         vars.put("max", String.valueOf(maxDisplay));
-        meta.setLore(Arrays.asList(
-                g("join-queue.description"),
-                g("join-queue.players", vars),
-                g("join-queue.click")));
+        boolean inQueue = viewerId != null && session.contains(viewerId);
+        Material material = inQueue ? Material.REDSTONE_BLOCK : Material.EMERALD;
+        ItemStack stack = new ItemStack(material, 1);
+        ItemMeta meta = stack.getItemMeta();
+        if (inQueue) {
+            meta.setDisplayName(g("leave-queue.title"));
+            meta.setLore(Arrays.asList(
+                    g("leave-queue.description"),
+                    g("join-queue.players", vars),
+                    g("leave-queue.click")));
+        } else {
+            meta.setDisplayName(g("join-queue.title"));
+            meta.setLore(Arrays.asList(
+                    g("join-queue.description"),
+                    g("join-queue.players", vars),
+                    g("join-queue.click")));
+        }
         stack.setItemMeta(meta);
         return stack;
     }

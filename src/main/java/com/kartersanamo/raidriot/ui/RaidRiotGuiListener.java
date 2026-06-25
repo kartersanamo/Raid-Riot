@@ -6,6 +6,7 @@ import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.QueueManager;
+import com.kartersanamo.raidriot.queue.QueueSession;
 import com.kartersanamo.raidriot.spectator.SpectatorService;
 import com.kartersanamo.raidriot.vote.KitVoteOption;
 import com.kartersanamo.raidriot.vote.VoteManager;
@@ -47,10 +48,17 @@ public final class RaidRiotGuiListener implements Listener {
 
         if (plugin.getEventManager().getQueueManager().isOpen()) {
             if (slot == RaidRiotGui.SLOT_JOIN_QUEUE) {
-                QueueManager.JoinResult result = plugin.getEventManager().getQueueManager().tryJoin(player);
-                sendJoinResult(player, result);
-                if (result == QueueManager.JoinResult.SUCCESS) {
+                QueueSession session = plugin.getEventManager().getQueueManager().getSession();
+                if (session != null && session.contains(player.getUniqueId())) {
+                    plugin.getEventManager().getQueueManager().leave(player);
+                    ConfigManager.get().send(player, "leave.success");
                     guiService.refreshOpenInventories();
+                } else {
+                    QueueManager.JoinResult result = plugin.getEventManager().getQueueManager().tryJoin(player);
+                    sendJoinResult(player, result);
+                    if (result == QueueManager.JoinResult.SUCCESS) {
+                        guiService.refreshOpenInventories();
+                    }
                 }
             }
             return;

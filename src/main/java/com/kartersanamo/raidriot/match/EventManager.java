@@ -140,6 +140,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             virtualDeathService.shutdown();
             plugin.getSpectatorService().shutdown();
             guiService.closeAllOpen();
+            plugin.getAdminGuiService().closeAllOpen();
 
             RaidMatch match = activeMatch;
             if (match != null) {
@@ -520,6 +521,56 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                 restoreAndClear();
             }
         }, 60L);
+    }
+
+    public boolean hasTeamsAssigned() {
+        if (activeMatch == null) {
+            return false;
+        }
+        MatchState state = activeMatch.getState();
+        return state != MatchState.IDLE
+                && state != MatchState.QUEUE_OPEN
+                && state != MatchState.RESTORING;
+    }
+
+    public synchronized void stopQueue(String reason) {
+        if (!queueManager.isOpen()) {
+            throw new IllegalStateException(ConfigManager.get("messages.admin.no-queue-to-stop"));
+        }
+        if (activeMatch == null || activeMatch.getState() != MatchState.QUEUE_OPEN) {
+            throw new IllegalStateException(ConfigManager.get("messages.admin.no-queue-to-stop"));
+        }
+        queueManager.cancelQueue(reason == null || reason.isEmpty()
+                ? ConfigManager.get("messages.admin.default-queue-stop-reason")
+                : reason);
+    }
+
+    public synchronized void adminStopMatch(AdminStopChoice choice, String reason) {
+        String stopReason = reason == null || reason.isEmpty()
+                ? ConfigManager.get("messages.match.default-stop-reason")
+                : reason;
+        if (queueManager.isOpen() && activeMatch != null && activeMatch.getState() == MatchState.QUEUE_OPEN) {
+            stopQueue(stopReason);
+            return;
+        }
+        if (!hasTeamsAssigned()) {
+            throw new IllegalStateException(ConfigManager.get("messages.admin.no-session-to-stop"));
+        }
+        switch (choice) {
+            case TEAM_A:
+                endMatch(TeamSide.A, WinReason.ADMIN_STOP);
+                break;
+            case TEAM_B:
+                endMatch(TeamSide.B, WinReason.ADMIN_STOP);
+                break;
+            case DRAW:
+                endMatch(null, WinReason.DRAW);
+                break;
+            case NONE:
+            default:
+                stopMatch(stopReason);
+                break;
+        }
     }
 
     public synchronized void stopMatch(String reason) {

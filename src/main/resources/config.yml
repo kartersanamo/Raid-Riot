@@ -156,6 +156,16 @@ messages:
     base-set: "&aSet {option} to {file}"
     base-cleared: "&aCleared {option}."
     kit-save-failed: "&cCould not save kit: {error}"
+    default-queue-stop-reason: "Queue cancelled by admin."
+    queue-stopped: "{prefix}&aQueue cancelled."
+    no-queue-to-stop: "No queue is open to cancel."
+    no-session-to-stop: "No active Raid Riot session to stop."
+    world-not-set: "(not set)"
+    status-idle: "Idle"
+    status-idle-detail: "No session running."
+    status-queue: "Queue open"
+    status-queue-detail: "{count}/{max} players, {time}s remaining"
+    status-match-detail: "{teamA} vs {teamB}"
 
   command:
     players-only: "&cPlayers only."
@@ -170,11 +180,15 @@ messages:
     help-header: "&6Raid Riot:"
     help-join: "&e/raidriot &7- Open queue/vote GUI"
     help-leave: "&e/raidriot leave"
+    help-queue-leave: "&e/raidriot queue leave"
     help-status: "&e/raidriot status"
+    usage-queue-leave: "&cUsage: /raidriot queue leave"
     admin-help-header: "&6Admin:"
     admin-help-setup: "&e/raidriot admin setup world <world>"
     admin-help-start: "&e/raidriot admin start random|faction"
-    admin-help-stop: "&e/raidriot admin stop [reason]"
+    admin-help-stop: "&e/raidriot admin stop [a|b|draw|none] [reason]"
+    admin-help-stopqueue: "&e/raidriot admin stopqueue [reason]"
+    admin-help-gui: "&e/raidriot admin &7- Open admin GUI"
     admin-help-base: "&e/raidriot admin base list|set|clear ..."
     admin-help-reload: "&e/raidriot admin reload"
 
@@ -260,6 +274,10 @@ gui:
     description: "&7Join the Raid Riot queue."
     players: "&7Players: &f{count}/{max}"
     click: "&eClick to join!"
+  leave-queue:
+    title: "&cLeave Queue"
+    description: "&7You are in the queue."
+    click: "&eClick to leave!"
   faction-status:
     title: "&6{tag}&7 ({count}/{max})"
     qualified: "&7Qualified faction team."
@@ -282,3 +300,78 @@ gui:
   player-head:
     name: "&b{name}"
     unknown: "Unknown"
+  admin:
+    title: "&8Raid Riot &7| &cAdmin"
+    title-winner: "&8Select Winner"
+    title-world: "&8Select Event World"
+    title-base: "&8Base Schematics"
+    status:
+      title: "&bSession Status"
+      world: "&7World: &f{world}"
+      phase: "&7Phase: &f{phase}"
+      detail: "&7{detail}"
+    start-random:
+      title: "&aStart Random Queue"
+      description: "&7Open queue with random teams."
+      click: "&eClick to start!"
+    start-faction:
+      title: "&6Start Faction Queue"
+      description: "&7Open queue with faction teams."
+      click: "&eClick to start!"
+    cancel-queue:
+      title: "&cCancel Queue"
+      description: "&7Stop the open queue."
+      click: "&eClick to cancel!"
+      disabled: "&7No queue is open."
+    stop-match:
+      title: "&4Stop Match"
+      description: "&7End match and pick a winner."
+      click: "&eClick to stop!"
+      disabled: "&7No match to stop."
+    set-world:
+      title: "&bSet Event World"
+      description: "&7Choose the event world."
+      click: "&eClick to browse!"
+    reload:
+      title: "&eReload Config"
+      description: "&7Reload config, bases, and kit."
+      click: "&eClick to reload!"
+    base-settings:
+      title: "&6Base Settings"
+      description: "&7View configured schematics."
+      click: "&eClick to view!"
+    set-kit:
+      title: "&bSet Event Kit"
+      description: "&7Save your inventory as the kit."
+      click: "&eClick to save!"
+    winner:
+      team-a:
+        title: "&aWinner: &f{team}"
+        description: "&7Declare this team the winner."
+      team-b:
+        title: "&cWinner: &f{team}"
+        description: "&7Declare this team the winner."
+      draw:
+        title: "&eDeclare Draw"
+        description: "&7End with no winner."
+      force:
+        title: "&4Force Stop"
+        description: "&7Stop immediately without winner broadcast."
+      click: "&eClick to confirm!"
+    back:
+      title: "&7Back"
+      description: "&7Return to admin menu."
+      click: "&eClick to go back!"
+    world:
+      option:
+        title: "&f{world}"
+        description: "&7Set as event world."
+      selected:
+        title: "&a{world} &7(current)"
+        description: "&7This is the current event world."
+      click: "&eClick to select!"
+    base:
+      option:
+        title: "&6{option}"
+        file: "&7File: &f{file}"
+        hint: "&7Use &f/rr admin base set {option} <file>"

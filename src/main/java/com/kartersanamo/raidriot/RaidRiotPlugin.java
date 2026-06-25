@@ -36,6 +36,8 @@ import com.kartersanamo.raidriot.listener.VirtualCombatListener;
 import com.kartersanamo.raidriot.match.EventManager;
 import com.kartersanamo.raidriot.queue.QueueManager;
 import com.kartersanamo.raidriot.spectator.SpectatorService;
+import com.kartersanamo.raidriot.ui.AdminGuiListener;
+import com.kartersanamo.raidriot.ui.AdminGuiService;
 import com.kartersanamo.raidriot.ui.RaidRiotGuiListener;
 import com.kartersanamo.raidriot.ui.RaidRiotGuiService;
 import com.kartersanamo.raidriot.vote.VoteManager;
@@ -65,6 +67,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
     private WorldResetService worldResetService;
     private AsyncWorldRestorer asyncWorldRestorer;
     private RaidRiotGuiService guiService;
+    private AdminGuiService adminGuiService;
     private ClickableMessageService clickableMessageService;
 
     public static RaidRiotPlugin getInstance() {
@@ -129,6 +132,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
         QueueManager queueManager = new QueueManager(this, clickableMessageService);
         VoteManager voteManager = new VoteManager(this);
         guiService = new RaidRiotGuiService(this);
+        adminGuiService = new AdminGuiService(this);
         eventManager = new EventManager(this, queueManager, voteManager, basePlacementService,
                 worldResetService, respawnQueue, predefinedKitService, guiService,
                 eventFactionService, eventWorldBorderService, virtualDeathService, eventCombatService,
@@ -154,6 +158,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new EventFactionAccessListener(this, eventTeamAccessService), this);
         Bukkit.getPluginManager().registerEvents(new FactionCommandListener(this, eventFactionService), this);
         Bukkit.getPluginManager().registerEvents(new RaidRiotGuiListener(this, guiService), this);
+        Bukkit.getPluginManager().registerEvents(new AdminGuiListener(this, adminGuiService), this);
 
         org.bukkit.command.PluginCommand raidriotCommand = getCommand("raidriot");
         if (raidriotCommand != null) {
@@ -239,6 +244,10 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
     public RaidRiotGuiService getGuiService() {
         return guiService;
+    }
+
+    public AdminGuiService getAdminGuiService() {
+        return adminGuiService;
     }
 
     public ClickableMessageService getClickableMessageService() {

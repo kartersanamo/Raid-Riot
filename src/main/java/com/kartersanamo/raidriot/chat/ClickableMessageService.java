@@ -48,7 +48,10 @@ public final class ClickableMessageService {
     }
 
     public void broadcastEventEnded(RaidMatch match) {
-        if (match == null || match.getWinReason() == WinReason.ADMIN_STOP) {
+        if (match == null) {
+            return;
+        }
+        if (match.getWinReason() == WinReason.ADMIN_STOP && match.getWinner() == null) {
             return;
         }
         TeamSide winner = match.getWinner();

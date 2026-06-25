@@ -22,7 +22,7 @@ public final class RaidRiotGuiService {
         if (plugin.getEventManager().getQueueManager().isOpen()) {
             QueueSession session = plugin.getEventManager().getQueueManager().getSession();
             if (session != null) {
-                player.openInventory(RaidRiotGui.createQueueGui(plugin, session));
+                player.openInventory(RaidRiotGui.createQueueGui(plugin, session, player.getUniqueId()));
                 return true;
             }
         }
@@ -62,7 +62,7 @@ public final class RaidRiotGuiService {
             }
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (RaidRiotGui.isRaidRiotInventory(player.getOpenInventory().getTopInventory())) {
-                    player.openInventory(RaidRiotGui.createQueueGui(plugin, session));
+                    player.openInventory(RaidRiotGui.createQueueGui(plugin, session, player.getUniqueId()));
                 }
             }
             return;
