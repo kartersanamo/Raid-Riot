@@ -14,6 +14,7 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -29,6 +30,7 @@ import com.kartersanamo.raidriot.combat.PredefinedKitService;
 import com.kartersanamo.raidriot.combat.RespawnQueue;
 import com.kartersanamo.raidriot.combat.VirtualDeathService;
 import com.kartersanamo.raidriot.config.ConfigManager;
+import com.kartersanamo.raidriot.item.EventItemService;
 import com.kartersanamo.raidriot.faction.EventFactionService;
 import com.kartersanamo.raidriot.faction.FactionsBridge;
 import com.kartersanamo.raidriot.queue.FactionQueueResolver;
@@ -316,6 +318,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             stopMatch("Team assignment failed.");
             return;
         }
+        notifyTeamAssignments(activeMatch);
         ConfigManager.get().broadcast("queue.locked", new HashMap<>());
         if (activeMatch.getEventWorld() != null && !activeMatch.getEventWorld().isEmpty()) {
             worldResetService.beginSession(activeMatch.getEventWorld());
@@ -458,6 +461,60 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                 restorePreEventState(player, preservedSnapshots.get(id));
             }
         }
+    }
+
+    private void notifyTeamAssignments(RaidMatch match) {
+        for (UUID id : match.getEnrolledParticipants()) {
+            Player player = Bukkit.getPlayer(id);
+            if (player == null) {
+                continue;
+            }
+            TeamSide side = match.getTeamFor(id);
+            if (side == null) {
+                continue;
+            }
+            Map<String, String> vars = new HashMap<>();
+            vars.put("team", match.getFactionTag(side));
+            vars.put("teamColor", ConfigManager.get().getTeamChatColor(side));
+            ConfigManager.get().send(player, "team.assigned", vars);
+
+            String teammates = formatTeammateNames(match, id, side);
+            if (teammates != null) {
+                Map<String, String> teammateVars = new HashMap<>();
+                teammateVars.put("teammates", teammates);
+                ConfigManager.get().send(player, "team.assigned-teammates", teammateVars);
+            }
+        }
+    }
+
+    private static String formatTeammateNames(RaidMatch match, UUID self, TeamSide side) {
+        List<String> names = new ArrayList<>();
+        for (UUID id : match.getEnrolledParticipants()) {
+            if (id.equals(self) || match.getTeamFor(id) != side) {
+                continue;
+            }
+            Player online = Bukkit.getPlayer(id);
+            String name = online != null ? online.getName() : null;
+            if (name == null) {
+                OfflinePlayer offline = Bukkit.getOfflinePlayer(id);
+                name = offline.getName();
+            }
+            if (name != null && !name.isEmpty()) {
+                names.add(name);
+            }
+        }
+        Collections.sort(names);
+        if (names.isEmpty()) {
+            return null;
+        }
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < names.size(); i++) {
+            if (i > 0) {
+                builder.append("&8, ");
+            }
+            builder.append("&8").append(names.get(i));
+        }
+        return builder.toString();
     }
 
     public boolean isInEventMatch(RaidMatch match) {
@@ -615,6 +672,10 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     public void restorePreEventState(Player player, PlayerStateSnapshot snapshot) {
         if (player == null) {
             return;
+        }
+        EventItemService eventItemService = plugin.getEventItemService();
+        if (eventItemService != null) {
+            eventItemService.purgeCarrier(player, false);
         }
         eventCombatService.disableForParticipant(player);
         virtualDeathService.cancel(player.getUniqueId());

@@ -1,5 +1,6 @@
 package com.kartersanamo.raidriot.combat;
 
+import com.kartersanamo.raidriot.item.EventItemService;
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -49,6 +50,11 @@ public final class EventKitStore {
         PlayerInventory inv = player.getInventory();
         ItemStack[] contents = cloneArray(inv.getContents());
         ItemStack[] armor = cloneArray(inv.getArmorContents());
+        EventItemService eventItemService = plugin.getEventItemService();
+        if (eventItemService != null) {
+            eventItemService.unmarkStacks(contents);
+            eventItemService.unmarkStacks(armor);
+        }
         snapshot = KitSnapshot.fromArrays(contents, armor);
 
         FileConfiguration yaml = new YamlConfiguration();

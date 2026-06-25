@@ -8,21 +8,25 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 import com.kartersanamo.raidriot.config.ConfigManager;
+import com.kartersanamo.raidriot.item.EventItemService;
 
 public final class PredefinedKitService {
 
     private final EventKitStore kitStore;
+    private final EventItemService eventItemService;
 
-    public PredefinedKitService(EventKitStore kitStore) {
+    public PredefinedKitService(EventKitStore kitStore, EventItemService eventItemService) {
         this.kitStore = kitStore;
+        this.eventItemService = eventItemService;
     }
 
     public void apply(Player player) {
         if (kitStore.hasKit()) {
             kitStore.getSnapshot().apply(player);
-            return;
+        } else {
+            applyFromConfig(player);
         }
-        applyFromConfig(player);
+        eventItemService.markKit(player);
     }
 
     private void applyFromConfig(Player player) {

@@ -151,6 +151,10 @@ messages:
     success: "{prefix}&7You rejoined the event!"
     not-eligible: "{prefix}&cYou cannot rejoin this event right now."
 
+  team:
+    assigned: "{prefix}&7You have been assigned to {teamColor}{team}&7!"
+    assigned-teammates: "{prefix}&7Your teammates: {teammates}"
+
   status:
     none: "{prefix}&7No active Raid Riot session."
     queue: "{prefix}&7Queue: &e{count}/{max} &8| &e{time}s &8| &7{phase}"
@@ -172,6 +176,9 @@ messages:
 
   patch:
     must-be-naked: "{prefix}&cYou must be naked to patch on your base/cannon."
+
+  event-item:
+    deleted: "{prefix}&cAn event item was removed — event items cannot leave the Raid Riot world."
 
   raid:
     locked-block-change: "{prefix}&cYou cannot modify blocks here during the event."
@@ -303,13 +310,18 @@ gui:
     leave-spectate-hint: "&eClick to stop spectating."
     in-match-hint: "&7You are currently in this match."
     spectate-disabled-hint: "&8Spectating is disabled."
-    queue-players: "&7Queue: &f{count}/{max}"
-    queue-closes: "&7Closes in &f{seconds}&7 seconds"
-    starts-in: "&7Starts in &f{seconds}&7 seconds"
-    match-time: "&7Time left: &f{time}"
-    match-depth: "&7{teamColor}{team}&7 depth: &f{depth}"
-    selected-base: "&7Base: &f{base}"
-    selected-kit: "&7Kit: &f{kit}"
+    queue-players: "&f- &7Queue: &f{count}/{max}"
+    queue-closes: "&f- &7Closes in &f{seconds}&7 seconds"
+    starts-in: "&f- &7Starts in &f{seconds}&7 seconds"
+    match-header: "&cMatch:"
+    match-time: "&f- &7Time left: &f{time}"
+    match-team: "&f- {teamColor}{team}&7 — depth: &f{depth}"
+    match-team-no-depth: "&f- {teamColor}{team}"
+    match-team-players: "&8  {players}"
+    match-players-separator: "&8, "
+    match-players-none: "&8  (none)"
+    match-base: "&f- &7Base: &f{base}"
+    match-kit: "&f- &7Kit: &f{kit}"
   queue:
     info-title: "&cQueue"
     closes-in: "&7Closes in &f{seconds}&7 seconds"

@@ -8,11 +8,16 @@ import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.QueueSession;
 import com.kartersanamo.raidriot.vote.VoteManager;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public final class RaidRiotGuiService {
 
@@ -232,12 +237,17 @@ public final class RaidRiotGuiService {
     private static void appendMatchDetailVars(RaidMatch match, Map<String, String> vars) {
         if (match.getState() == MatchState.COUNTDOWN) {
             vars.put("seconds", String.valueOf(match.getCountdownRemainingSeconds()));
-        } else if (match.isActive()) {
-            vars.put("time", TimeFormat.format(match.getRemainingSeconds()));
+        } else if (match.isActive() || match.getState() == MatchState.ENDING) {
+            vars.put("liveMatch", "true");
+            if (match.isActive()) {
+                vars.put("time", TimeFormat.format(match.getRemainingSeconds()));
+            }
             vars.put("depthA", String.valueOf(match.getDepthTracker().getDepth(TeamSide.A)));
             vars.put("depthB", String.valueOf(match.getDepthTracker().getDepth(TeamSide.B)));
             vars.put("teamA", match.getFactionTag(TeamSide.A));
             vars.put("teamB", match.getFactionTag(TeamSide.B));
+            vars.put("teamAPlayers", formatTeamPlayerList(match, TeamSide.A));
+            vars.put("teamBPlayers", formatTeamPlayerList(match, TeamSide.B));
         }
         if (match.getSelectedBaseVote() != null) {
             vars.put("base", match.getSelectedBaseVote().displayName());
@@ -245,5 +255,36 @@ public final class RaidRiotGuiService {
         if (match.getSelectedKitVote() != null) {
             vars.put("kit", match.getSelectedKitVote().displayName());
         }
+    }
+
+    private static String formatTeamPlayerList(RaidMatch match, TeamSide side) {
+        List<String> names = new ArrayList<>();
+        for (UUID id : match.getEnrolledParticipants()) {
+            if (match.getTeamFor(id) != side) {
+                continue;
+            }
+            Player online = Bukkit.getPlayer(id);
+            String name = online != null ? online.getName() : null;
+            if (name == null) {
+                OfflinePlayer offline = Bukkit.getOfflinePlayer(id);
+                name = offline.getName();
+            }
+            if (name != null && !name.isEmpty()) {
+                names.add("&8" + name);
+            }
+        }
+        Collections.sort(names);
+        if (names.isEmpty()) {
+            return ConfigManager.get().formatGui("info.match-players-none");
+        }
+        String separator = ConfigManager.get().formatGui("info.match-players-separator");
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < names.size(); i++) {
+            if (i > 0) {
+                builder.append(separator);
+            }
+            builder.append(names.get(i));
+        }
+        return builder.toString();
     }
 }

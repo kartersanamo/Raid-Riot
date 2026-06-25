@@ -26,6 +26,7 @@ import com.kartersanamo.raidriot.listener.BlockBreakListener;
 import com.kartersanamo.raidriot.listener.BlockPlaceListener;
 import com.kartersanamo.raidriot.listener.DeathListener;
 import com.kartersanamo.raidriot.listener.EventFactionAccessListener;
+import com.kartersanamo.raidriot.listener.EventItemListener;
 import com.kartersanamo.raidriot.listener.ExplosionBreachListener;
 import com.kartersanamo.raidriot.listener.FactionCommandListener;
 import com.kartersanamo.raidriot.listener.MatchParticipantListener;
@@ -35,6 +36,7 @@ import com.kartersanamo.raidriot.listener.TntAttributionTracker;
 import com.kartersanamo.raidriot.listener.TntDispenseListener;
 import com.kartersanamo.raidriot.listener.TntSpawnListener;
 import com.kartersanamo.raidriot.listener.VirtualCombatListener;
+import com.kartersanamo.raidriot.item.EventItemService;
 import com.kartersanamo.raidriot.match.EventManager;
 import com.kartersanamo.raidriot.queue.QueueManager;
 import com.kartersanamo.raidriot.spectator.SpectatorService;
@@ -71,6 +73,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
     private RaidRiotGuiService guiService;
     private AdminGuiService adminGuiService;
     private ClickableMessageService clickableMessageService;
+    private EventItemService eventItemService;
 
     public static RaidRiotPlugin getInstance() {
         return instance;
@@ -129,7 +132,8 @@ public final class RaidRiotPlugin extends JavaPlugin {
         spectatorService = new SpectatorService(this);
         eventCombatService = new EventCombatService(this);
         eventTeamAccessService = new EventTeamAccessService(this, eventFactionService);
-        PredefinedKitService predefinedKitService = new PredefinedKitService(eventKitStore);
+        eventItemService = new EventItemService(this);
+        PredefinedKitService predefinedKitService = new PredefinedKitService(eventKitStore, eventItemService);
         clickableMessageService = new ClickableMessageService(configManager);
         QueueManager queueManager = new QueueManager(this, clickableMessageService);
         VoteManager voteManager = new VoteManager(this);
@@ -163,6 +167,8 @@ public final class RaidRiotPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new SpectatorRestrictionListener(this), this);
         Bukkit.getPluginManager().registerEvents(new RaidRiotGuiListener(this, guiService), this);
         Bukkit.getPluginManager().registerEvents(new AdminGuiListener(this, adminGuiService), this);
+        Bukkit.getPluginManager().registerEvents(new EventItemListener(this, eventItemService), this);
+        eventItemService.start();
 
         org.bukkit.command.PluginCommand raidriotCommand = getCommand("raidriot");
         if (raidriotCommand != null) {
@@ -177,6 +183,9 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (eventItemService != null) {
+            eventItemService.stop();
+        }
         if (eventManager != null) {
             eventManager.shutdown("Server shutdown.", false, true);
         }
@@ -256,5 +265,9 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
     public ClickableMessageService getClickableMessageService() {
         return clickableMessageService;
+    }
+
+    public EventItemService getEventItemService() {
+        return eventItemService;
     }
 }

@@ -47,11 +47,15 @@ public final class RaidRiotInfoGui {
         meta.setDisplayName(g("info.item-title"));
 
         List<String> lore = new ArrayList<>();
-        lore.addAll(formatLines("info.description", vars));
-        lore.add(" ");
-        lore.add(g("info.information-header"));
-        lore.addAll(formatLines("info.information", vars));
-        appendLiveDetails(lore, status, vars);
+        if (isLiveMatchView(vars)) {
+            appendLiveMatchSection(lore, vars);
+        } else {
+            lore.addAll(formatLines("info.description", vars));
+            lore.add(" ");
+            lore.add(g("info.information-header"));
+            lore.addAll(formatLines("info.information", vars));
+            appendPrematchDetails(lore, status, vars);
+        }
         lore.add(" ");
         lore.add(g("info.status-header"));
         lore.add(g(statusLineKey(status, action, vars), vars));
@@ -62,7 +66,46 @@ public final class RaidRiotInfoGui {
         return stack;
     }
 
-    private static void appendLiveDetails(List<String> lore, EventPortalStatus status, Map<String, String> vars) {
+    private static boolean isLiveMatchView(Map<String, String> vars) {
+        return "true".equals(vars.get("liveMatch"));
+    }
+
+    private static void appendLiveMatchSection(List<String> lore, Map<String, String> vars) {
+        lore.add(g("info.match-header"));
+        if (vars.containsKey("time")) {
+            lore.add(g("info.match-time", vars));
+        }
+        appendTeamMatchLines(lore, vars, "teamA", "depthA", "teamAPlayers", "&e");
+        appendTeamMatchLines(lore, vars, "teamB", "depthB", "teamBPlayers", "&c");
+        if (vars.containsKey("base")) {
+            lore.add(g("info.match-base", vars));
+        }
+        if (vars.containsKey("kit")) {
+            lore.add(g("info.match-kit", vars));
+        }
+    }
+
+    private static void appendTeamMatchLines(List<String> lore, Map<String, String> vars,
+            String teamKey, String depthKey, String playersKey, String teamColor) {
+        if (!vars.containsKey(teamKey)) {
+            return;
+        }
+        Map<String, String> teamVars = new HashMap<>(vars);
+        teamVars.put("teamColor", teamColor);
+        teamVars.put("team", vars.get(teamKey));
+        if (vars.containsKey(depthKey)) {
+            teamVars.put("depth", vars.get(depthKey));
+            lore.add(g("info.match-team", teamVars));
+        } else {
+            lore.add(g("info.match-team-no-depth", teamVars));
+        }
+        if (vars.containsKey(playersKey)) {
+            teamVars.put("players", vars.get(playersKey));
+            lore.add(g("info.match-team-players", teamVars));
+        }
+    }
+
+    private static void appendPrematchDetails(List<String> lore, EventPortalStatus status, Map<String, String> vars) {
         if (status == EventPortalStatus.OPEN && vars.containsKey("count")) {
             lore.add(g("info.queue-players", vars));
             if (vars.containsKey("seconds")) {
@@ -72,30 +115,6 @@ public final class RaidRiotInfoGui {
         }
         if (status == EventPortalStatus.STARTING && vars.containsKey("seconds")) {
             lore.add(g("info.starts-in", vars));
-            return;
-        }
-        if (status == EventPortalStatus.IN_PROGRESS && vars.containsKey("time")) {
-            lore.add(g("info.match-time", vars));
-            if (vars.containsKey("depthA")) {
-                Map<String, String> depthA = new HashMap<>(vars);
-                depthA.put("teamColor", "&e");
-                depthA.put("team", vars.get("teamA"));
-                depthA.put("depth", vars.get("depthA"));
-                lore.add(g("info.match-depth", depthA));
-            }
-            if (vars.containsKey("depthB")) {
-                Map<String, String> depthB = new HashMap<>(vars);
-                depthB.put("teamColor", "&c");
-                depthB.put("team", vars.get("teamB"));
-                depthB.put("depth", vars.get("depthB"));
-                lore.add(g("info.match-depth", depthB));
-            }
-        }
-        if (vars.containsKey("base")) {
-            lore.add(g("info.selected-base", vars));
-        }
-        if (vars.containsKey("kit")) {
-            lore.add(g("info.selected-kit", vars));
         }
     }
 
