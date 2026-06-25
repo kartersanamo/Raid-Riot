@@ -1,21 +1,23 @@
 package com.kartersanamo.raidriot.world;
 
-import com.kartersanamo.raidriot.arena.CuboidRegion;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.kartersanamo.raidriot.arena.CuboidRegion;
 
 /**
- * Captures and restores block states inside a cuboid for schematic arena rollback.
+ * Captures and restores block states inside a cuboid for schematic arena
+ * rollback.
  */
 public final class RegionSnapshot {
 
     private final CuboidRegion region;
-    private final Map<Long, Material> blocks = new HashMap<Long, Material>();
-    private final Map<Long, Byte> data = new HashMap<Long, Byte>();
+    private final Map<Long, Material> blocks = new HashMap<>();
+    private final Map<Long, Byte> data = new HashMap<>();
 
     private RegionSnapshot(CuboidRegion region) {
         this.region = region;
@@ -51,7 +53,11 @@ public final class RegionSnapshot {
             int z = unpackZ(entry.getKey());
             Block block = world.getBlockAt(x, y, z);
             Material mat = entry.getValue();
-            byte d = data.containsKey(entry.getKey()) ? data.get(entry.getKey()) : 0;
+            Byte stored = data.get(entry.getKey());
+            byte d = 0;
+            if (stored != null) {
+                d = stored;
+            }
             block.setType(mat);
             block.setData(d);
         }

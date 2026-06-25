@@ -1,5 +1,10 @@
 package com.kartersanamo.raidriot;
 
+import java.io.File;
+
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.java.JavaPlugin;
+
 import com.kartersanamo.raidriot.base.BaseDifficultyStore;
 import com.kartersanamo.raidriot.base.BasePlacementService;
 import com.kartersanamo.raidriot.breach.BreachService;
@@ -10,7 +15,6 @@ import com.kartersanamo.raidriot.combat.NakedPatchEnforcer;
 import com.kartersanamo.raidriot.combat.PredefinedKitService;
 import com.kartersanamo.raidriot.combat.RespawnQueue;
 import com.kartersanamo.raidriot.combat.VirtualDeathService;
-import com.kartersanamo.raidriot.spectator.SpectatorService;
 import com.kartersanamo.raidriot.command.RaidRiotCommand;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.faction.ClaimBaseProvider;
@@ -31,6 +35,7 @@ import com.kartersanamo.raidriot.listener.TntSpawnListener;
 import com.kartersanamo.raidriot.listener.VirtualCombatListener;
 import com.kartersanamo.raidriot.match.EventManager;
 import com.kartersanamo.raidriot.queue.QueueManager;
+import com.kartersanamo.raidriot.spectator.SpectatorService;
 import com.kartersanamo.raidriot.ui.RaidRiotGuiListener;
 import com.kartersanamo.raidriot.ui.RaidRiotGuiService;
 import com.kartersanamo.raidriot.vote.VoteManager;
@@ -38,10 +43,6 @@ import com.kartersanamo.raidriot.world.AsyncWorldRestorer;
 import com.kartersanamo.raidriot.world.EventWorldBorderService;
 import com.kartersanamo.raidriot.world.SchematicService;
 import com.kartersanamo.raidriot.world.WorldResetService;
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.java.JavaPlugin;
-
-import java.io.File;
 
 public final class RaidRiotPlugin extends JavaPlugin {
 
@@ -124,8 +125,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
         eventCombatService = new EventCombatService(this);
         eventTeamAccessService = new EventTeamAccessService(this, eventFactionService);
         PredefinedKitService predefinedKitService = new PredefinedKitService(eventKitStore);
-        ClickableMessageService clickableMessageService = new ClickableMessageService(configManager);
-        this.clickableMessageService = clickableMessageService;
+        clickableMessageService = new ClickableMessageService(configManager);
         QueueManager queueManager = new QueueManager(this, clickableMessageService);
         VoteManager voteManager = new VoteManager(this);
         guiService = new RaidRiotGuiService(this);

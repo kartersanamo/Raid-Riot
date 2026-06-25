@@ -1,19 +1,19 @@
 package com.kartersanamo.raidriot.world;
 
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+
 public final class WorldResetService {
 
-    private final Map<Long, ChunkSnapshot> initialSnapshots = new HashMap<Long, ChunkSnapshot>();
-    private final Map<BlockKey, BlockStateSnapshot> blockDeltas = new HashMap<BlockKey, BlockStateSnapshot>();
+    private final Map<Long, ChunkSnapshot> initialSnapshots = new HashMap<>();
+    private final Map<BlockKey, BlockStateSnapshot> blockDeltas = new HashMap<>();
     private String activeWorld;
 
     private List<Map.Entry<BlockKey, BlockStateSnapshot>> pendingDeltas;
@@ -91,8 +91,8 @@ public final class WorldResetService {
     }
 
     public void prepareRestore() {
-        pendingDeltas = new ArrayList<Map.Entry<BlockKey, BlockStateSnapshot>>(blockDeltas.entrySet());
-        pendingChunks = new ArrayList<ChunkSnapshot>(initialSnapshots.values());
+        pendingDeltas = new ArrayList<>(blockDeltas.entrySet());
+        pendingChunks = new ArrayList<>(initialSnapshots.values());
         for (ChunkSnapshot snapshot : pendingChunks) {
             snapshot.resetRestoreProgress();
         }

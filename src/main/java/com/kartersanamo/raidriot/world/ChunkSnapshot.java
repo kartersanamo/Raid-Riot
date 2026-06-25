@@ -1,21 +1,21 @@
 package com.kartersanamo.raidriot.world;
 
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 
 public final class ChunkSnapshot {
 
     private final String worldName;
     private final int chunkX;
     private final int chunkZ;
-    private final Map<Integer, Material> blocks = new HashMap<Integer, Material>();
-    private final Map<Integer, Byte> data = new HashMap<Integer, Byte>();
+    private final Map<Integer, Material> blocks = new HashMap<>();
+    private final Map<Integer, Byte> data = new HashMap<>();
     private int restoreIndex;
 
     private ChunkSnapshot(String worldName, int chunkX, int chunkZ) {
@@ -52,7 +52,7 @@ public final class ChunkSnapshot {
         }
         int baseX = chunkX << 4;
         int baseZ = chunkZ << 4;
-        List<Map.Entry<Integer, Material>> entries = new ArrayList<Map.Entry<Integer, Material>>(blocks.entrySet());
+        List<Map.Entry<Integer, Material>> entries = new ArrayList<>(blocks.entrySet());
         int restored = 0;
         while (restoreIndex < entries.size() && restored < maxBlocks) {
             Map.Entry<Integer, Material> entry = entries.get(restoreIndex++);
