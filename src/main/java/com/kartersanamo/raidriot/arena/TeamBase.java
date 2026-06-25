@@ -1,6 +1,10 @@
 package com.kartersanamo.raidriot.arena;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+
+import java.util.Set;
 
 /**
  * Runtime base bounds for an active match team.
@@ -130,29 +134,81 @@ public final class TeamBase {
         }
         int coord;
         int wallCoord;
-        int farCoord;
+        int interiorCoord;
         switch (depthAxis) {
             case 0:
                 coord = loc.getBlockX();
                 wallCoord = depthOrigin;
-                farCoord = bounds.getMaxX() == wallRegion.getMaxX() || bounds.getMinX() == wallRegion.getMinX()
-                        ? (wallCoord == bounds.getMinX() ? bounds.getMaxX() : bounds.getMinX())
-                        : (coord >= wallCoord ? bounds.getMaxX() : bounds.getMinX());
+                interiorCoord = wallRegion.getMinX() == bounds.getMinX() ? bounds.getMaxX() : bounds.getMinX();
                 break;
             case 2:
                 coord = loc.getBlockZ();
                 wallCoord = depthOrigin;
-                farCoord = bounds.getMaxZ() == wallRegion.getMaxZ() || bounds.getMinZ() == wallRegion.getMinZ()
-                        ? (wallCoord == bounds.getMinZ() ? bounds.getMaxZ() : bounds.getMinZ())
-                        : (coord >= wallCoord ? bounds.getMaxZ() : bounds.getMinZ());
+                interiorCoord = wallRegion.getMinZ() == bounds.getMinZ() ? bounds.getMaxZ() : bounds.getMinZ();
                 break;
             default:
                 return 0;
         }
-        if (farCoord > wallCoord) {
-            return Math.max(0, coord - wallCoord);
+        if (interiorCoord > wallCoord) {
+            if (coord <= wallCoord) {
+                return 0;
+            }
+            return coord - wallCoord;
         }
-        return Math.max(0, wallCoord - coord);
+        if (interiorCoord < wallCoord) {
+            if (coord >= wallCoord) {
+                return 0;
+            }
+            return wallCoord - coord;
+        }
+        return 0;
+    }
+
+    /**
+     * True when the obsidian wall has a non-breach-material gap at the player's column/row
+     * (e.g. air or water from cannoning), allowing entry from outside.
+     */
+    public boolean isWallOpenAt(Location loc, Set<Material> breachMaterials) {
+        if (wallRegion == null || loc.getWorld() == null
+                || !wallRegion.getWorldName().equals(loc.getWorld().getName())) {
+            return false;
+        }
+        World world = loc.getWorld();
+        int feetY = loc.getBlockY();
+        int minY = Math.max(wallRegion.getMinY(), feetY - 1);
+        int maxY = Math.min(wallRegion.getMaxY(), feetY + 1);
+
+        for (int y = minY; y <= maxY; y++) {
+            if (depthAxis == 2) {
+                int z = loc.getBlockZ();
+                for (int x = wallRegion.getMinX(); x <= wallRegion.getMaxX(); x++) {
+                    if (!wallRegion.contains(x, y, z, world.getName())) {
+                        continue;
+                    }
+                    if (!breachMaterials.contains(world.getBlockAt(x, y, z).getType())) {
+                        return true;
+                    }
+                }
+            } else if (depthAxis == 0) {
+                int x = loc.getBlockX();
+                for (int z = wallRegion.getMinZ(); z <= wallRegion.getMaxZ(); z++) {
+                    if (!wallRegion.contains(x, y, z, world.getName())) {
+                        continue;
+                    }
+                    if (!breachMaterials.contains(world.getBlockAt(x, y, z).getType())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean isWallBreachBlock(Location loc, Set<Material> breachMaterials) {
+        if (wallRegion == null || loc == null || loc.getWorld() == null || !wallRegion.contains(loc)) {
+            return false;
+        }
+        return breachMaterials.contains(loc.getWorld().getBlockAt(loc).getType());
     }
 
     private void inferDepthAxis() {

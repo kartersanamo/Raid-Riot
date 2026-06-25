@@ -68,6 +68,7 @@ public final class ConfigManager {
     private int[] countdownAnnounceSeconds = {5, 3, 2, 1};
     private int respawnDelaySeconds = 10;
     private int depthSampleIntervalTicks = 20;
+    private int breachMinInteriorDepth = 2;
     private boolean drawOnEqualDepth = true;
     private long lockNotifyCooldownMs = 2000L;
     private boolean addWorldEditOffset = true;
@@ -178,6 +179,7 @@ public final class ConfigManager {
         countdownAnnounceSeconds = loadCountdownAnnounceSeconds();
         respawnDelaySeconds = config.getInt("respawn-delay-seconds", 10);
         depthSampleIntervalTicks = config.getInt("depth-sample-interval-ticks", 20);
+        breachMinInteriorDepth = config.getInt("breach-min-interior-depth", 2);
         drawOnEqualDepth = config.getBoolean("draw-on-equal-depth", true);
         lockNotifyCooldownMs = config.getLong("lock-notify-cooldown-ms", 2000L);
         addWorldEditOffset = config.getBoolean("worldedit-paste-offset.add-worldedit-offset", true);
@@ -544,6 +546,10 @@ public final class ConfigManager {
         return side == TeamSide.A ? teamADisplayName : teamBDisplayName;
     }
 
+    public String getTeamChatColor(TeamSide side) {
+        return side == TeamSide.A ? "&e" : "&c";
+    }
+
     public int getMaxFactionQueuePlayers() {
         return maxFactionQueuePlayers;
     }
@@ -662,6 +668,10 @@ public final class ConfigManager {
 
     public Set<Material> getBreachMaterials() {
         return breachMaterials;
+    }
+
+    public int getBreachMinInteriorDepth() {
+        return Math.max(1, breachMinInteriorDepth);
     }
 
     public int getWorldBorderPaddingBlocks() {

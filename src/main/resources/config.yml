@@ -64,6 +64,8 @@ countdown-announce-seconds:
   - 1
 respawn-delay-seconds: 10
 depth-sample-interval-ticks: 20
+# Blocks past the obsidian wall (interior side only) required before a position counts as a breach.
+breach-min-interior-depth: 2
 
 breach-materials:
   - OBSIDIAN
