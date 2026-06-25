@@ -6,6 +6,7 @@ import com.kartersanamo.raidriot.breach.BreachService;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -49,9 +50,12 @@ public final class ExplosionBreachListener implements Listener {
         } catch (Exception ignored) {
         }
         breachService.tryBreachFromExplosion(match, event.blockList(), event.getLocation(), actor, attacker);
+        if (!(event.getEntity() instanceof TNTPrimed)) {
+            return;
+        }
         TeamSide depthTeam = attacker != null ? attacker : (actor != null ? match.getTeamFor(actor) : null);
         if (depthTeam != null) {
-            match.getDepthTracker().recordLocation(match, event.getLocation(), depthTeam);
+            match.getDepthTracker().recordExplosion(match, event.getLocation(), event.blockList(), depthTeam);
         }
     }
 }

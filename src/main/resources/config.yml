@@ -65,6 +65,7 @@ countdown-announce-seconds:
 respawn-delay-seconds: 5
 respawn-invulnerability-seconds: 3
 depth-sample-interval-ticks: 20
+# Depth is measured only from TNT explosions inside the enemy schematic (blocks inward from the nearest exterior face).
 # Blocks past the obsidian wall (interior side only) required before a position counts as a breach.
 breach-min-interior-depth: 2
 

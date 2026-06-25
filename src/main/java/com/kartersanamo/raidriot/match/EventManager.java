@@ -890,7 +890,6 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             for (UUID id : match.getParticipants()) {
                 Player player = Bukkit.getPlayer(id);
                 if (player != null) {
-                    match.getDepthTracker().recordPlayer(match, player);
                     plugin.getBreachService().tryPenetrationFromPlayer(match, player);
                 }
             }

@@ -125,43 +125,22 @@ public final class TeamBase {
         return cannonRegion != null && cannonRegion.contains(loc);
     }
 
+    /**
+     * Blocks inward from the nearest exterior face of the schematic bounds (horizontal).
+     * Works regardless of which side the raid approaches from.
+     */
     public int measureDepthIntoBase(Location loc) {
-        if (wallRegion == null || bounds == null || loc.getWorld() == null) {
+        if (bounds == null || loc.getWorld() == null) {
             return 0;
         }
-        if (!bounds.getWorldName().equals(loc.getWorld().getName())) {
+        if (!bounds.getWorldName().equals(loc.getWorld().getName()) || !bounds.contains(loc)) {
             return 0;
         }
-        int coord;
-        int wallCoord;
-        int interiorCoord;
-        switch (depthAxis) {
-            case 0:
-                coord = loc.getBlockX();
-                wallCoord = depthOrigin;
-                interiorCoord = wallRegion.getMinX() == bounds.getMinX() ? bounds.getMaxX() : bounds.getMinX();
-                break;
-            case 2:
-                coord = loc.getBlockZ();
-                wallCoord = depthOrigin;
-                interiorCoord = wallRegion.getMinZ() == bounds.getMinZ() ? bounds.getMaxZ() : bounds.getMinZ();
-                break;
-            default:
-                return 0;
-        }
-        if (interiorCoord > wallCoord) {
-            if (coord <= wallCoord) {
-                return 0;
-            }
-            return coord - wallCoord;
-        }
-        if (interiorCoord < wallCoord) {
-            if (coord >= wallCoord) {
-                return 0;
-            }
-            return wallCoord - coord;
-        }
-        return 0;
+        int x = loc.getBlockX();
+        int z = loc.getBlockZ();
+        int depthX = Math.min(x - bounds.getMinX(), bounds.getMaxX() - x);
+        int depthZ = Math.min(z - bounds.getMinZ(), bounds.getMaxZ() - z);
+        return Math.min(depthX, depthZ);
     }
 
     /**

@@ -4,9 +4,10 @@ import com.kartersanamo.raidriot.arena.TeamBase;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
+import org.bukkit.block.Block;
 
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 
 public final class DepthTracker {
@@ -18,32 +19,29 @@ public final class DepthTracker {
         maxDepth.put(TeamSide.B, 0);
     }
 
-    public void recordLocation(RaidMatch match, Location loc, TeamSide attacker) {
-        if (match == null || !match.isActive() || loc == null) {
+    public void recordExplosion(RaidMatch match, Location epicenter, List<Block> affectedBlocks, TeamSide attacker) {
+        if (match == null || !match.isActive() || attacker == null) {
             return;
         }
-        TeamBase enemy = match.getTeamBase(attacker.opposite());
-        if (enemy.getBounds() == null || !enemy.getBounds().contains(loc)) {
-            return;
+        TeamBase enemyBase = match.getTeamBase(attacker.opposite());
+        int depth = 0;
+        if (epicenter != null) {
+            depth = Math.max(depth, enemyBase.measureDepthIntoBase(epicenter));
         }
-        int depth = enemy.measureDepthIntoBase(loc);
+        if (affectedBlocks != null) {
+            for (Block block : affectedBlocks) {
+                if (block == null) {
+                    continue;
+                }
+                depth = Math.max(depth, enemyBase.measureDepthIntoBase(block.getLocation()));
+            }
+        }
         bump(attacker, depth);
     }
 
-    public void recordPlayer(RaidMatch match, Player player) {
-        if (player == null || match == null) {
-            return;
-        }
-        TeamSide side = match.getTeamFor(player);
-        if (side == null) {
-            return;
-        }
-        recordLocation(match, player.getLocation(), side);
-    }
-
     public int getDepth(TeamSide side) {
-        Integer v = maxDepth.get(side);
-        return v == null ? 0 : v;
+        Integer value = maxDepth.get(side);
+        return value == null ? 0 : value;
     }
 
     public TeamSide winnerByDepth() {
@@ -59,6 +57,9 @@ public final class DepthTracker {
     }
 
     private void bump(TeamSide side, int depth) {
+        if (depth <= 0) {
+            return;
+        }
         int current = getDepth(side);
         if (depth > current) {
             maxDepth.put(side, depth);

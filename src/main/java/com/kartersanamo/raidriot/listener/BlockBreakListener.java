@@ -48,9 +48,6 @@ public final class BlockBreakListener implements Listener {
         }
         plugin.getWorldResetService().snapshotBeforeChange(event.getBlock().getLocation());
         breachService.tryBreachBlock(match, event.getBlock(), event.getPlayer());
-        if (match.isParticipant(event.getPlayer())) {
-            match.getDepthTracker().recordLocation(match, event.getBlock().getLocation(), match.getTeamFor(event.getPlayer()));
-        }
     }
 
     private boolean shouldLockNonParticipant(RaidMatch match, org.bukkit.entity.Player player) {
