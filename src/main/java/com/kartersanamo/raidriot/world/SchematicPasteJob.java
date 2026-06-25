@@ -57,8 +57,8 @@ public final class SchematicPasteJob {
                 Material material = Material.getMaterial(block.getId());
                 if (material != null) {
                     Block worldBlock = world.getBlockAt(originX + indexX, originY + indexY, originZ + indexZ);
-                    worldBlock.setType(material);
-                    worldBlock.setData((byte) block.getData());
+                    worldBlock.setType(material, false);
+                    worldBlock.setData((byte) block.getData(), false);
                     pasted++;
                 }
             }

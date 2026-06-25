@@ -627,12 +627,13 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         vars.put("base", baseWinner.displayName());
         vars.put("kit", kitWinner.displayName());
         ConfigManager.get().broadcast("vote.winner", vars);
+        ConfigManager.get().broadcast("match.preparing", new HashMap<>());
 
         guiService.closeAllOpen();
         stopGuiRefreshTask();
 
         final RaidMatch preparingMatch = activeMatch;
-        scheduleCountdownAfterPrepDelay(preparingMatch);
+        beginCountdown(preparingMatch);
         BasePlacementPipeline pipeline = basePlacementService.createPipeline(
                 preparingMatch, baseWinner, new BasePlacementPipeline.CompletionListener() {
             @Override
@@ -643,9 +644,6 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                     }
                     preparingMatch.setBasesReady(true);
                     loadParticipantSpawnChunks(preparingMatch);
-                    if (preparingMatch.getState() == MatchState.COUNTDOWN) {
-                        tryActivateMatch(preparingMatch);
-                    }
                 });
             }
 
@@ -660,16 +658,6 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             }
         });
         matchPreparer.start(pipeline);
-    }
-
-    private void scheduleCountdownAfterPrepDelay(final RaidMatch match) {
-        cancelCountdownTasks();
-        countdownTasks.add(Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (shuttingDown || activeMatch != match || match.getState() != MatchState.PREPARING) {
-                return;
-            }
-            beginCountdown(match);
-        }, ConfigManager.get().getArenaPrepCountdownDelayTicks()));
     }
 
     private void beginCountdown(final RaidMatch match) {

@@ -17,9 +17,8 @@ world-restore:
   scan-columns-per-tick: 32
 
 arena-prep:
-  countdown-delay-ticks: 40
-  # Keep modest on 1.8.8 — very high values can crash the server during world tick
-  blocks-per-tick: 4096
+  # One team per tick; keep low on 1.8.8 to avoid world-tick crashes
+  blocks-per-tick: 2048
   chunk-snapshots-per-tick: 4
   scan-columns-per-tick: 64
   snapshot-y-padding: 2
@@ -97,7 +96,7 @@ messages:
     faction-not-qualified: "{prefix}&cYour faction is not eligible for this event."
     not-qualified: "{prefix}&cYou did not qualify for this event."
     cancelled: "{prefix}&cEvent cancelled: &7{reason}"
-    locked: "{prefix}&7Queue locked! Preparing the arena..."
+    locked: "{prefix}&7Queue locked!"
     countdown: "{prefix}&7The queue closes in &f{seconds} &7seconds..."
     cancel-factions-not-ready: "{prefix}&cTwo factions did not reach the required size."
     cancel-not-enough-players: "{prefix}&cNot enough players joined ({count}/{max})."
@@ -107,9 +106,10 @@ messages:
     event-world-not-loaded: "{prefix}&cEvent world not loaded: {world}"
 
   vote:
-    winner: "{prefix}&7Selected base: &e{base}&7 | Kit: &e{kit}&7. Preparing arena..."
+    winner: "{prefix}&7Selected base: &e{base}&7 | Kit: &e{kit}&7."
 
   match:
+    preparing: "{prefix}&7Preparing arena..."
     countdown: "{prefix}&7The event is starting in &f{seconds} &7seconds..."
     waiting-for-arena: "{prefix}&eWaiting for base generation..."
     started: "{prefix}&7Raid Riot has begun! &7{teamA} &fvs &7{teamB}"

@@ -79,63 +79,62 @@ public final class BasePlacementService {
         }
 
         boolean tick(TerrainBudget budget) throws Exception {
-            while (true) {
-                switch (phase) {
-                    case PREP:
-                        prepare();
-                        phase = TeamJobPhase.SNAPSHOT;
-                        break;
-                    case SNAPSHOT:
-                        if (snapshotJob == null) {
-                            return true;
-                        }
-                        int snapBudget = Math.max(0, budget.blocks);
-                        int snapUsed = snapshotJob.snapshotBatch(Math.max(0, budget.chunks), snapBudget);
-                        budget.blocks -= snapUsed;
-                        if (!snapshotJob.isComplete()) {
+            switch (phase) {
+                case PREP:
+                    prepare();
+                    phase = TeamJobPhase.SNAPSHOT;
+                    return false;
+                case SNAPSHOT:
+                    if (snapshotJob == null) {
+                        return true;
+                    }
+                    int snapUsed = snapshotJob.snapshotBatch(Math.max(0, budget.chunks), Math.max(0, budget.blocks));
+                    budget.blocks -= snapUsed;
+                    if (!snapshotJob.isComplete()) {
+                        return false;
+                    }
+                    phase = TeamJobPhase.TERRAIN;
+                    return false;
+                case TERRAIN:
+                    if (pasteJob != null) {
+                        int pasted = pasteJob.pasteBatch(Math.max(0, budget.blocks));
+                        budget.blocks -= pasted;
+                        if (!pasteJob.isComplete()) {
                             return false;
                         }
-                        phase = TeamJobPhase.TERRAIN;
-                        break;
-                    case TERRAIN:
-                        if (pasteJob != null) {
-                            int pasted = pasteJob.pasteBatch(Math.max(0, budget.blocks));
-                            budget.blocks -= pasted;
-                            if (!pasteJob.isComplete()) {
-                                return false;
-                            }
-                            finalizeSchematic();
-                            phase = TeamJobPhase.DONE;
-                        } else if (copyJob != null) {
-                            int copied = copyJob.copyBatch(Math.max(0, budget.blocks));
-                            budget.blocks -= copied;
-                            if (!copyJob.isComplete()) {
-                                return false;
-                            }
-                            scanJob = new SolidRegionScanJob(eventWorld, targetMinX, scanMaxX, targetMinZ, scanMaxZ);
-                            phase = TeamJobPhase.SCAN;
-                        } else {
-                            phase = TeamJobPhase.DONE;
-                        }
-                        break;
-                    case SCAN:
-                        if (scanJob == null) {
-                            phase = TeamJobPhase.DONE;
-                            break;
-                        }
-                        int scanned = scanJob.scanBatch(Math.max(0, budget.columns));
-                        budget.columns -= scanned;
-                        if (!scanJob.isComplete()) {
-                            return false;
-                        }
-                        finalizeFactionScan(scanJob.result());
+                        finalizeSchematic();
                         phase = TeamJobPhase.DONE;
-                        break;
-                    case DONE:
                         return true;
-                    default:
+                    }
+                    if (copyJob != null) {
+                        int copied = copyJob.copyBatch(Math.max(0, budget.blocks));
+                        budget.blocks -= copied;
+                        if (!copyJob.isComplete()) {
+                            return false;
+                        }
+                        scanJob = new SolidRegionScanJob(eventWorld, targetMinX, scanMaxX, targetMinZ, scanMaxZ);
+                        phase = TeamJobPhase.SCAN;
+                        return false;
+                    }
+                    phase = TeamJobPhase.DONE;
+                    return true;
+                case SCAN:
+                    if (scanJob == null) {
+                        phase = TeamJobPhase.DONE;
                         return true;
-                }
+                    }
+                    int scanned = scanJob.scanBatch(Math.max(0, budget.columns));
+                    budget.columns -= scanned;
+                    if (!scanJob.isComplete()) {
+                        return false;
+                    }
+                    finalizeFactionScan(scanJob.result());
+                    phase = TeamJobPhase.DONE;
+                    return true;
+                case DONE:
+                    return true;
+                default:
+                    return true;
             }
         }
 

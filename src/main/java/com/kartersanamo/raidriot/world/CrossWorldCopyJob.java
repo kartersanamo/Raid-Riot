@@ -58,11 +58,11 @@ public final class CrossWorldCopyJob {
             Block src = source.getBlockAt(srcX, y, srcZ);
             Block dst = target.getBlockAt(dstX, y, dstZ);
             if (src.getType() == Material.WOOL) {
-                dst.setType(Material.WOOL);
-                dst.setData(teamWoolData);
+                dst.setType(Material.WOOL, false);
+                dst.setData(teamWoolData, false);
             } else {
-                dst.setType(src.getType());
-                dst.setData(src.getData());
+                dst.setType(src.getType(), false);
+                dst.setData(src.getData(), false);
             }
             copied++;
             advance();
