@@ -18,12 +18,9 @@ import org.bukkit.inventory.meta.SkullMeta;
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
-import com.kartersanamo.raidriot.combat.VirtualDeathService;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.faction.FactionsBridge;
-import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
-import com.kartersanamo.raidriot.match.WinReason;
 import com.kartersanamo.raidriot.queue.QueueSession;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import com.kartersanamo.raidriot.vote.KitVoteOption;
@@ -37,15 +34,12 @@ public final class RaidRiotGui {
     private static final int QUEUE_SLOTS_PER_TEAM_PER_ROW = 4;
     private static final int QUEUE_SLOTS_PER_ROW_RANDOM = 8;
     private static final byte GRAY_PANE = 7;
-    public static final int SLOT_STATUS_A = 2;
-    public static final int SLOT_STATUS_B = 6;
     public static final int SLOT_VOTE_EASY = 2;
     public static final int SLOT_VOTE_MEDIUM = 4;
     public static final int SLOT_VOTE_HARD = 6;
     public static final int SLOT_VOTE_FACTION = 8;
     public static final int SLOT_KIT_PREDEFINED = 11;
     public static final int SLOT_KIT_OWN = 15;
-    public static final int SLOT_LEAVE_SPECTATE = 4;
     public static final int PLAYER_HEADS_START = 27;
 
     private static final int[] TEAM_A_HEAD_SLOTS = {27, 28, 29, 30, 36, 37, 38, 39, 45, 46, 47, 48};
@@ -192,199 +186,6 @@ public final class RaidRiotGui {
         return inv;
     }
 
-    public static Inventory createStatusGui(RaidRiotPlugin plugin, RaidMatch match) {
-        Inventory inv = Bukkit.createInventory(null, 54, getTitle());
-        fillTopBorder(inv);
-
-        MatchState state = match.getState();
-        List<String> infoLore = new ArrayList<>();
-        Map<String, String> phaseVars = new HashMap<>();
-        phaseVars.put("phase", formatPhase(state));
-        infoLore.add(g("status.phase", phaseVars));
-        appendStatusDetails(match, infoLore);
-        inv.setItem(0, infoItem(g("status.info-title"), infoLore.toArray(new String[0])));
-
-        inv.setItem(SLOT_STATUS_A, matchTeamItem(match, TeamSide.A));
-        inv.setItem(SLOT_STATUS_B, matchTeamItem(match, TeamSide.B));
-        inv.setItem(SLOT_JOIN_QUEUE, matchSummaryItem(match));
-
-        placeMatchPlayerHeads(inv, match, plugin, false, null);
-        fillEmptySlots(inv);
-        return inv;
-    }
-
-    public static Inventory createSpectatorGui(RaidRiotPlugin plugin, RaidMatch match) {
-        Inventory inv = Bukkit.createInventory(null, 54, getTitle());
-        fillTopBorder(inv);
-
-        List<String> infoLore = new ArrayList<>();
-        infoLore.add(g("spectator.phase-active"));
-        appendStatusDetails(match, infoLore);
-        infoLore.add(g("spectator.view-only"));
-        infoLore.add(g("spectator.leave-hint"));
-        inv.setItem(0, infoItem(g("spectator.info-title"), infoLore.toArray(new String[0])));
-
-        inv.setItem(SLOT_STATUS_A, matchTeamItem(match, TeamSide.A));
-        inv.setItem(SLOT_LEAVE_SPECTATE, leaveSpectateItem());
-        inv.setItem(SLOT_STATUS_B, matchTeamItem(match, TeamSide.B));
-
-        placeMatchPlayerHeads(inv, match, plugin, false, null);
-        fillEmptySlots(inv);
-        return inv;
-    }
-
-    private static void appendStatusDetails(RaidMatch match, List<String> lore) {
-        MatchState state = match.getState();
-        if (state == MatchState.COUNTDOWN) {
-            Map<String, String> vars = new HashMap<>();
-            vars.put("seconds", String.valueOf(match.getCountdownRemainingSeconds()));
-            lore.add(g("status.starts-in", vars));
-        } else if (state == MatchState.ACTIVE) {
-            Map<String, String> vars = new HashMap<>();
-            vars.put("time", TimeFormat.format(match.getRemainingSeconds()));
-            lore.add(g("status.time-left", vars));
-            appendTeamDepthLines(match, lore);
-        } else if (state == MatchState.ENDING) {
-            appendTeamDepthLines(match, lore);
-        }
-        if (match.getSelectedBaseVote() != null) {
-            Map<String, String> vars = new HashMap<>();
-            vars.put("base", match.getSelectedBaseVote().displayName());
-            lore.add(g("status.base", vars));
-        }
-        if (match.getSelectedKitVote() != null) {
-            Map<String, String> vars = new HashMap<>();
-            vars.put("kit", match.getSelectedKitVote().displayName());
-            lore.add(g("status.kit", vars));
-        }
-        if (state == MatchState.ENDING && match.getWinner() != null) {
-            Map<String, String> vars = new HashMap<>();
-            vars.put("winner", match.getFactionTag(match.getWinner()));
-            lore.add(g("status.winner", vars));
-        } else if (state == MatchState.ENDING && match.getWinReason() == WinReason.DRAW) {
-            lore.add(g("status.draw"));
-        }
-    }
-
-    private static void appendTeamDepthLines(RaidMatch match, List<String> lore) {
-        for (TeamSide side : new TeamSide[]{TeamSide.A, TeamSide.B}) {
-            Map<String, String> depthVars = new HashMap<>();
-            depthVars.put("teamColor", side == TeamSide.A ? "&e" : "&c");
-            depthVars.put("team", match.getFactionTag(side));
-            depthVars.put("depth", String.valueOf(match.getDepthTracker().getDepth(side)));
-            lore.add(g("match-info.depth", depthVars));
-        }
-    }
-
-    private static String formatPhase(MatchState state) {
-        switch (state) {
-            case QUEUE_LOCKED:
-                return ConfigManager.get("gui.phase.teams-locked");
-            case PREPARING:
-                return ConfigManager.get("gui.phase.preparing");
-            case COUNTDOWN:
-                return ConfigManager.get("gui.phase.starting");
-            case ACTIVE:
-                return ConfigManager.get("gui.phase.in-progress");
-            case ENDING:
-                return ConfigManager.get("gui.phase.ended");
-            default:
-                return state.name();
-        }
-    }
-
-    private static ItemStack matchTeamItem(RaidMatch match, TeamSide side) {
-        String name = match.getFactionTag(side);
-        String color = side == TeamSide.A ? "&e" : "&c";
-        byte wool = side == TeamSide.A ? (byte) 4 : (byte) 14;
-        int players = match.countOnTeam(side);
-        ItemStack stack = new ItemStack(Material.WOOL, 1, wool);
-        ItemMeta meta = stack.getItemMeta();
-        Map<String, String> titleVars = new HashMap<>();
-        titleVars.put("color", color);
-        titleVars.put("name", name);
-        titleVars.put("players", String.valueOf(players));
-        meta.setDisplayName(g("team.display", titleVars));
-        List<String> lore = new ArrayList<>();
-        Map<String, String> playerVars = new HashMap<>();
-        playerVars.put("players", String.valueOf(players));
-        lore.add(g("team.players", playerVars));
-        if (match.isActive() || match.getState() == MatchState.ENDING) {
-            Map<String, String> depthVars = new HashMap<>();
-            depthVars.put("depth", String.valueOf(match.getDepthTracker().getDepth(side)));
-            lore.add(g("team.wall-depth", depthVars));
-        }
-        meta.setLore(lore);
-        stack.setItemMeta(meta);
-        return stack;
-    }
-
-    private static ItemStack matchSummaryItem(RaidMatch match) {
-        Material material = match.getState() == MatchState.ACTIVE ? Material.NETHER_STAR
-                : match.getState() == MatchState.ENDING ? Material.BARRIER : Material.PAPER;
-        ItemStack stack = new ItemStack(material, 1);
-        ItemMeta meta = stack.getItemMeta();
-        meta.setDisplayName(g("match-info.title"));
-        List<String> lore = new ArrayList<>();
-        Map<String, String> modeVars = new HashMap<>();
-        modeVars.put("mode", match.getAssignmentMode().name().toLowerCase());
-        lore.add(g("match-info.mode", modeVars));
-        Map<String, String> worldVars = new HashMap<>();
-        worldVars.put("world", match.getEventWorld());
-        lore.add(g("match-info.world", worldVars));
-        if (match.isActive()) {
-            Map<String, String> depthA = new HashMap<>();
-            depthA.put("teamColor", "&e");
-            depthA.put("team", match.getFactionTag(TeamSide.A));
-            depthA.put("depth", String.valueOf(match.getDepthTracker().getDepth(TeamSide.A)));
-            lore.add(g("match-info.depth", depthA));
-            Map<String, String> depthB = new HashMap<>();
-            depthB.put("teamColor", "&c");
-            depthB.put("team", match.getFactionTag(TeamSide.B));
-            depthB.put("depth", String.valueOf(match.getDepthTracker().getDepth(TeamSide.B)));
-            lore.add(g("match-info.depth", depthB));
-        }
-        meta.setLore(lore);
-        stack.setItemMeta(meta);
-        return stack;
-    }
-
-    private static void placeMatchPlayerHeads(Inventory inv, RaidMatch match, RaidRiotPlugin plugin,
-            boolean clickable, Map<Integer, UUID> slotTargets) {
-        VirtualDeathService virtualDeath = plugin.getVirtualDeathService();
-        List<UUID> teamA = new ArrayList<>();
-        List<UUID> teamB = new ArrayList<>();
-        for (UUID id : match.getParticipants()) {
-            if (clickable && virtualDeath.isVirtualDead(id)) {
-                continue;
-            }
-            TeamSide team = match.getTeamFor(id);
-            if (team == TeamSide.A) {
-                teamA.add(id);
-            } else if (team == TeamSide.B) {
-                teamB.add(id);
-            }
-        }
-        fillTeamHeadSlots(inv, TEAM_A_HEAD_SLOTS, teamA, clickable, slotTargets, matchHeadLore(match, TeamSide.A, clickable));
-        fillTeamHeadSlots(inv, TEAM_B_HEAD_SLOTS, teamB, clickable, slotTargets, matchHeadLore(match, TeamSide.B, clickable));
-    }
-
-    private static HeadLoreBuilder matchHeadLore(final RaidMatch match, final TeamSide side, final boolean clickable) {
-        return (UUID id, String name, Player online) -> {
-            List<String> lore = new ArrayList<>();
-            Map<String, String> teamVars = new HashMap<>();
-            teamVars.put("team", match.getFactionTag(side));
-            lore.add(g("team.team-label", teamVars));
-            if (online == null) {
-                lore.add(g("team.offline"));
-            }
-            if (clickable) {
-                lore.add(g("team.click-teleport"));
-            }
-            return lore;
-        };
-    }
-
     private static void placeQueuePlayerHeads(Inventory inv, QueueSession session, RaidRiotPlugin plugin,
             QueueHeadLayout layout) {
         if (session.getFactionARef() != null && session.getFactionBRef() != null) {
@@ -513,15 +314,6 @@ public final class RaidRiotGui {
         }
     }
 
-    private static ItemStack leaveSpectateItem() {
-        ItemStack stack = new ItemStack(Material.BED, 1);
-        ItemMeta meta = stack.getItemMeta();
-        meta.setDisplayName(g("leave-spectate.title"));
-        meta.setLore(Arrays.asList(g("leave-spectate.return"), g("leave-spectate.click")));
-        stack.setItemMeta(meta);
-        return stack;
-    }
-
     private static ItemStack queueActionItem(QueueSession session, UUID viewerId) {
         int maxDisplay = session.getMode() == TeamAssignmentMode.FACTION
                 ? ConfigManager.get().getMaxFactionQueuePlayers()
@@ -612,9 +404,8 @@ public final class RaidRiotGui {
 
     private static void fillTopBorder(Inventory inv) {
         for (int i = 1; i < 9; i++) {
-            if (i == SLOT_JOIN_QUEUE || i == SLOT_STATUS_A || i == SLOT_STATUS_B
-                    || i == SLOT_VOTE_EASY || i == SLOT_VOTE_MEDIUM || i == SLOT_VOTE_HARD
-                    || i == SLOT_VOTE_FACTION || i == SLOT_LEAVE_SPECTATE) {
+            if (i == SLOT_VOTE_EASY || i == SLOT_VOTE_MEDIUM || i == SLOT_VOTE_HARD
+                    || i == SLOT_VOTE_FACTION) {
                 continue;
             }
             inv.setItem(i, pane(Material.STAINED_GLASS_PANE, (byte) 15));

@@ -3,11 +3,9 @@ package com.kartersanamo.raidriot.ui;
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
-import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.QueueManager;
 import com.kartersanamo.raidriot.queue.QueueSession;
-import com.kartersanamo.raidriot.spectator.SpectatorService;
 import com.kartersanamo.raidriot.vote.KitVoteOption;
 import com.kartersanamo.raidriot.vote.VoteManager;
 import org.bukkit.entity.Player;
@@ -69,7 +67,7 @@ public final class RaidRiotGuiListener implements Listener {
 
         RaidMatch match = plugin.getEventManager().getActiveMatch();
         VoteManager voteManager = plugin.getEventManager().getVoteManager();
-        if (match != null && match.getState() == MatchState.VOTING && voteManager.isVoting()) {
+        if (match != null && voteManager.isVoting()) {
             BaseVoteOption baseOption = RaidRiotGui.baseVoteFromSlot(slot);
             if (baseOption != null) {
                 voteManager.castBaseVote(player, baseOption);
@@ -80,15 +78,6 @@ public final class RaidRiotGuiListener implements Listener {
             if (kitOption != null) {
                 voteManager.castKitVote(player, kitOption);
                 guiService.refreshOpenInventories();
-            }
-            return;
-        }
-
-        if (match != null && match.isActive()) {
-            SpectatorService spectatorService = plugin.getSpectatorService();
-            if (spectatorService.isSpectating(player.getUniqueId()) && slot == RaidRiotGui.SLOT_LEAVE_SPECTATE) {
-                spectatorService.leave(player);
-                player.closeInventory();
             }
         }
     }
@@ -103,17 +92,49 @@ public final class RaidRiotGuiListener implements Listener {
         if (slot != RaidRiotInfoGui.SLOT_ENTER || slot < 0 || slot >= top.getSize()) {
             return;
         }
-        EventPortalStatus status = guiService.resolvePortalStatus();
-        if (!guiService.isPortalClickable(status)) {
-            if (status == EventPortalStatus.IN_PROGRESS && !ConfigManager.get().isSpectatorsEnabled()) {
+
+        InfoPortalContext context = guiService.resolvePortalContext(player);
+        if (!context.isClickable()) {
+            if (context.getStatus() == EventPortalStatus.IN_PROGRESS
+                    && context.getAction() == InfoPortalAction.NONE
+                    && !ConfigManager.get().isSpectatorsEnabled()) {
                 ConfigManager.get().send(player, "spectator.disabled");
-            } else {
+            } else if (context.getStatus() == EventPortalStatus.CLOSED) {
                 ConfigManager.get().send(player, "portal.not-open");
             }
             return;
         }
-        if (!guiService.openFor(player)) {
-            ConfigManager.get().send(player, "join.no-match");
+
+        switch (context.getAction()) {
+            case OPEN_QUEUE_GUI:
+                if (!guiService.openPrematchGui(player)) {
+                    ConfigManager.get().send(player, "join.no-match");
+                }
+                break;
+            case OPEN_VOTE_GUI:
+                if (!guiService.openPrematchGui(player)) {
+                    ConfigManager.get().send(player, "join.no-match");
+                }
+                break;
+            case SPECTATE:
+                RaidMatch match = plugin.getEventManager().getActiveMatch();
+                if (match == null) {
+                    ConfigManager.get().send(player, "join.no-match");
+                    return;
+                }
+                plugin.getSpectatorService().enterIfNeeded(player, match);
+                player.closeInventory();
+                break;
+            case REJOIN:
+                plugin.getEventManager().rejoinMatch(player);
+                player.closeInventory();
+                break;
+            case LEAVE_SPECTATE:
+                plugin.getSpectatorService().leave(player);
+                player.closeInventory();
+                break;
+            default:
+                break;
         }
     }
 
