@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.ui;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.QueueSession;
@@ -32,7 +33,7 @@ public final class RaidRiotGuiService {
         }
 
         VoteManager voteManager = plugin.getEventManager().getVoteManager();
-        if (!plugin.getRaidRiotConfig().isFixedMatchSettingsEnabled()
+        if (!ConfigManager.get().isFixedMatchSettingsEnabled()
                 && match.getState() == MatchState.VOTING && voteManager.isVoting()) {
             player.openInventory(RaidRiotGui.createVoteGui(plugin, voteManager));
             return true;
@@ -73,7 +74,7 @@ public final class RaidRiotGuiService {
         }
 
         VoteManager voteManager = plugin.getEventManager().getVoteManager();
-        if (!plugin.getRaidRiotConfig().isFixedMatchSettingsEnabled()
+        if (!ConfigManager.get().isFixedMatchSettingsEnabled()
                 && match.getState() == MatchState.VOTING && voteManager.isVoting()) {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (RaidRiotGui.isRaidRiotInventory(player.getOpenInventory().getTopInventory())) {
@@ -120,7 +121,7 @@ public final class RaidRiotGuiService {
         if (match == null || match.getState() == MatchState.IDLE) {
             return false;
         }
-        if (!plugin.getRaidRiotConfig().isFixedMatchSettingsEnabled()
+        if (!ConfigManager.get().isFixedMatchSettingsEnabled()
                 && match.getState() == MatchState.VOTING && plugin.getEventManager().getVoteManager().isVoting()) {
             return true;
         }

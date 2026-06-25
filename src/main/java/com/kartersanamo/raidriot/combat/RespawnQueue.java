@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.combat;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import org.bukkit.Bukkit;
@@ -22,10 +23,10 @@ public final class RespawnQueue {
 
     public void queueRespawn(RaidMatch match, Player player) {
         cancel(player.getUniqueId());
-        int delay = plugin.getRaidRiotConfig().getRespawnDelaySeconds();
+        int delay = ConfigManager.get().getRespawnDelaySeconds();
         Map<String, String> vars = new HashMap<String, String>();
         vars.put("seconds", String.valueOf(delay));
-        plugin.getMessages().send(player, "death.respawn-wait", vars);
+        ConfigManager.get().send(player, "death.respawn-wait", vars);
 
         BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
             @Override

@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.listener;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.combat.NakedPatchEnforcer;
 import com.kartersanamo.raidriot.faction.EventTeamAccessService;
 import com.kartersanamo.raidriot.match.RaidMatch;
@@ -46,7 +47,7 @@ public final class BlockPlaceListener implements Listener {
         plugin.getWorldResetService().snapshotBeforeChange(event.getBlock().getLocation());
         if (nakedPatchEnforcer.mustCancelPatch(event.getPlayer(), match)) {
             event.setCancelled(true);
-            plugin.getMessages().send(event.getPlayer(), "patch.must-be-naked");
+            ConfigManager.get().send(event.getPlayer(), "patch.must-be-naked");
         }
     }
 }

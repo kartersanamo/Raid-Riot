@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.base;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.arena.CuboidRegion;
 import com.kartersanamo.raidriot.arena.TeamBase;
 import com.kartersanamo.raidriot.arena.TeamSide;
@@ -23,6 +24,7 @@ import org.bukkit.World;
 
 import java.io.File;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -56,13 +58,15 @@ public final class BasePlacementService {
     public void placeBases(RaidMatch match, BaseVoteOption voteWinner) throws Exception {
         World eventWorld = Bukkit.getWorld(match.getEventWorld());
         if (eventWorld == null) {
-            throw new IllegalStateException("Event world not loaded: " + match.getEventWorld());
+            Map<String, String> vars = new HashMap<String, String>();
+            vars.put("world", match.getEventWorld());
+            throw new IllegalStateException(ConfigManager.get().formatMessage("queue.event-world-not-loaded", vars));
         }
         Map<TeamSide, BaseVoteOption> resolved = resolvePerTeam(match, voteWinner);
 
-        int anchorX = plugin.getRaidRiotConfig().getPasteAnchorX();
-        int anchorZ = plugin.getRaidRiotConfig().getPasteAnchorZ();
-        int separation = plugin.getRaidRiotConfig().getBaseSeparationBlocks();
+        int anchorX = ConfigManager.get().getPasteAnchorX();
+        int anchorZ = ConfigManager.get().getPasteAnchorZ();
+        int separation = ConfigManager.get().getBaseSeparationBlocks();
 
         for (TeamSide side : new TeamSide[]{TeamSide.A, TeamSide.B}) {
             BaseVoteOption option = resolved.get(side);
@@ -100,12 +104,12 @@ public final class BasePlacementService {
         int cz = base.getSolidCenterX() != 0 || base.getSolidCenterZ() != 0
                 ? base.getSolidCenterZ()
                 : (base.getBounds().getMinZ() + base.getBounds().getMaxZ()) / 2;
-        base.setSpawn(new Location(world, cx + 0.5, plugin.getRaidRiotConfig().getSpawnY(), cz + 0.5));
+        base.setSpawn(new Location(world, cx + 0.5, ConfigManager.get().getSpawnY(), cz + 0.5));
     }
 
     private Map<TeamSide, BaseVoteOption> resolvePerTeam(RaidMatch match, BaseVoteOption voteWinner) throws Exception {
         Map<TeamSide, BaseVoteOption> out = new EnumMap<TeamSide, BaseVoteOption>(TeamSide.class);
-        List<String> sourceWorlds = plugin.getRaidRiotConfig().getFactionsSourceWorlds();
+        List<String> sourceWorlds = ConfigManager.get().getFactionsSourceWorlds();
         for (TeamSide side : new TeamSide[]{TeamSide.A, TeamSide.B}) {
             if (voteWinner != BaseVoteOption.FACTION) {
                 out.put(side, voteWinner);
@@ -127,11 +131,15 @@ public final class BasePlacementService {
             throws Exception {
         String fileName = baseDifficultyStore.getSchematic(option);
         if (fileName == null || fileName.isEmpty()) {
-            throw new IllegalStateException("No schematic configured for " + option.name());
+            Map<String, String> vars = new HashMap<String, String>();
+            vars.put("option", option.name());
+            throw new IllegalStateException(ConfigManager.get().formatMessage("errors.no-schematic", vars));
         }
         File schem = new File(plugin.getDataFolder(), "schematics/" + fileName);
         if (!schem.exists()) {
-            throw new IllegalStateException("Schematic not found: " + schem.getPath());
+            Map<String, String> vars = new HashMap<String, String>();
+            vars.put("path", schem.getPath());
+            throw new IllegalStateException(ConfigManager.get().formatMessage("errors.schematic-not-found", vars));
         }
 
         CuboidClipboard clipboard = schematicService.loadClipboard(schem);
@@ -156,7 +164,7 @@ public final class BasePlacementService {
         int[] localCenter = analysis.solidFootprintCenter();
         base.setSolidCenter(originX + localCenter[0], originZ + localCenter[1]);
 
-        int[] anchorOffset = plugin.getRaidRiotConfig().getSchematicCenterOffset(option);
+        int[] anchorOffset = ConfigManager.get().getSchematicCenterOffset(option);
         Set<ChunkKey> claimChunks = new HashSet<ChunkKey>();
         analysis.collectClaimChunks(anchor.getWorld().getName(), originX, originZ, claimChunks);
         analysis.ensureAnchorChunkClaimed(anchor.getWorld().getName(), originX, originZ,
@@ -166,7 +174,7 @@ public final class BasePlacementService {
 
     private void placeFactionBase(RaidMatch match, TeamSide side, Location anchor) throws Exception {
         Object faction = match.getFactionRef(side);
-        List<String> sourceWorldNames = plugin.getRaidRiotConfig().getFactionsSourceWorlds();
+        List<String> sourceWorldNames = ConfigManager.get().getFactionsSourceWorlds();
         String sourceWorldName = null;
         List<FactionBaseClaimProvider.ChunkCoordinate> chunks = null;
         for (String worldName : sourceWorldNames) {
@@ -179,14 +187,18 @@ public final class BasePlacementService {
             }
         }
         if (sourceWorldName == null || chunks == null || chunks.isEmpty()) {
-            throw new IllegalStateException("No baseclaims for faction " + match.getFactionTag(side)
-                    + " in configured source worlds: " + sourceWorldNames);
+            Map<String, String> vars = new HashMap<String, String>();
+            vars.put("faction", match.getFactionTag(side));
+            vars.put("world", String.valueOf(sourceWorldNames));
+            throw new IllegalStateException(ConfigManager.get().formatMessage("errors.no-baseclaims", vars));
         }
 
         World sourceWorld = Bukkit.getWorld(sourceWorldName);
         World eventWorld = anchor.getWorld();
         if (sourceWorld == null) {
-            throw new IllegalStateException("Factions source world not loaded: " + sourceWorldName);
+            Map<String, String> vars = new HashMap<String, String>();
+            vars.put("world", sourceWorldName);
+            throw new IllegalStateException(ConfigManager.get().formatMessage("errors.factions-source-not-loaded", vars));
         }
 
         CuboidRegion sourceBounds = factionBaseClaimProvider.computeBounds(chunks, sourceWorldName);

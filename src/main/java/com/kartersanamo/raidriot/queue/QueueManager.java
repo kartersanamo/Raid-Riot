@@ -1,12 +1,14 @@
 package com.kartersanamo.raidriot.queue;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.chat.ClickableMessageService;
 import com.kartersanamo.raidriot.faction.FactionsBridge;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -43,16 +45,18 @@ public final class QueueManager {
 
     public synchronized void openQueue(TeamAssignmentMode mode) {
         if (session != null) {
-            throw new IllegalStateException("Queue already open.");
+            throw new IllegalStateException(ConfigManager.get("messages.queue.already-open"));
         }
-        String world = plugin.getRaidRiotConfig().getEventWorld();
+        String world = ConfigManager.get().getEventWorld();
         if (world == null || world.isEmpty()) {
-            throw new IllegalStateException("Event world not configured. Use /raidriot admin setup world <world>");
+            throw new IllegalStateException(ConfigManager.get("messages.queue.event-world-not-configured"));
         }
         if (Bukkit.getWorld(world) == null) {
-            throw new IllegalStateException("Event world not loaded: " + world);
+            Map<String, String> vars = new HashMap<String, String>();
+            vars.put("world", world);
+            throw new IllegalStateException(ConfigManager.get().formatMessage("queue.event-world-not-loaded", vars));
         }
-        long endMs = System.currentTimeMillis() + plugin.getRaidRiotConfig().getQueueCountdownSeconds() * 1000L;
+        long endMs = System.currentTimeMillis() + ConfigManager.get().getQueueCountdownSeconds() * 1000L;
         session = new QueueSession(mode, endMs);
         startTickTask();
         clickableMessages.broadcastQueueOpened(session.getRemainingSeconds(), mode);
@@ -95,7 +99,7 @@ public final class QueueManager {
                 }
                 session.add(id, faction);
                 FactionQueueResolver.assignQualifyingFactions(session, bridge,
-                        plugin.getRaidRiotConfig().getPlayersPerTeam());
+                        ConfigManager.get().getPlayersPerTeam());
                 checkFactionLock(bridge);
                 snapshotOnJoin(player);
                 return JoinResult.SUCCESS;
@@ -126,9 +130,9 @@ public final class QueueManager {
 
     private int maxQueueSize() {
         if (session.getMode() == TeamAssignmentMode.FACTION) {
-            return plugin.getRaidRiotConfig().getMaxFactionQueuePlayers();
+            return ConfigManager.get().getMaxFactionQueuePlayers();
         }
-        return plugin.getRaidRiotConfig().getMaxPlayers();
+        return ConfigManager.get().getMaxPlayers();
     }
 
     private void snapshotOnJoin(Player player) {
@@ -173,25 +177,27 @@ public final class QueueManager {
         if (session == null) {
             return;
         }
-        if (session.getMode() == TeamAssignmentMode.RANDOM && session.size() >= plugin.getRaidRiotConfig().getMaxPlayers()) {
+        if (session.getMode() == TeamAssignmentMode.RANDOM && session.size() >= ConfigManager.get().getMaxPlayers()) {
             lockQueue();
             return;
         }
         if (System.currentTimeMillis() >= session.getEndMs()) {
             if (session.getMode() == TeamAssignmentMode.FACTION) {
-                int perTeam = plugin.getRaidRiotConfig().getPlayersPerTeam();
+                int perTeam = ConfigManager.get().getPlayersPerTeam();
                 if (session.getFactionARef() != null && session.getFactionBRef() != null
                         && countOnFaction(session.getFactionARef()) >= perTeam
                         && countOnFaction(session.getFactionBRef()) >= perTeam) {
                     lockQueue();
                 } else {
-                    cancelQueue("Two factions did not reach the required size.");
+                    cancelQueue(ConfigManager.get("messages.queue.cancel-factions-not-ready"));
                 }
-            } else if (session.size() >= plugin.getRaidRiotConfig().getMaxPlayers()) {
+            } else if (session.size() >= ConfigManager.get().getMaxPlayers()) {
                 lockQueue();
             } else {
-                cancelQueue("Not enough players joined (" + session.size() + "/"
-                        + plugin.getRaidRiotConfig().getMaxPlayers() + ").");
+                Map<String, String> vars = new HashMap<String, String>();
+                vars.put("count", String.valueOf(session.size()));
+                vars.put("max", String.valueOf(ConfigManager.get().getMaxPlayers()));
+                cancelQueue(ConfigManager.get().formatMessage("queue.cancel-not-enough-players", vars));
             }
             return;
         }
@@ -202,13 +208,13 @@ public final class QueueManager {
 
     private void checkImmediateLock() {
         if (session != null && session.getMode() == TeamAssignmentMode.RANDOM
-                && session.size() >= plugin.getRaidRiotConfig().getMaxPlayers()) {
+                && session.size() >= ConfigManager.get().getMaxPlayers()) {
             lockQueue();
         }
     }
 
     private void checkFactionLock(FactionsBridge bridge) throws Exception {
-        int perTeam = plugin.getRaidRiotConfig().getPlayersPerTeam();
+        int perTeam = ConfigManager.get().getPlayersPerTeam();
         if (session.getFactionARef() != null && session.getFactionBRef() != null
                 && countOnFaction(session.getFactionARef()) >= perTeam
                 && countOnFaction(session.getFactionBRef()) >= perTeam) {

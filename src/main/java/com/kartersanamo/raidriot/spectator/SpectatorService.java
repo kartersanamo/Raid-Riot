@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.spectator;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.combat.PlayerStateSnapshot;
 import com.kartersanamo.raidriot.combat.VirtualDeathService;
@@ -41,7 +42,7 @@ public final class SpectatorService {
         if (target != null) {
             player.teleport(target);
         }
-        plugin.getMessages().send(player, "spectator.entered");
+        ConfigManager.get().send(player, "spectator.entered");
     }
 
     public void leave(Player player) {
@@ -50,7 +51,7 @@ public final class SpectatorService {
             return;
         }
         snapshot.apply(player);
-        plugin.getMessages().send(player, "spectator.left");
+        ConfigManager.get().send(player, "spectator.left");
     }
 
     public void teleportToTarget(Player spectator, UUID targetId, RaidMatch match) {
@@ -61,13 +62,13 @@ public final class SpectatorService {
         VirtualDeathService virtualDeath = plugin.getVirtualDeathService();
         if (target == null || !target.isOnline() || !match.isParticipant(target)
                 || virtualDeath.isVirtualDead(targetId)) {
-            plugin.getMessages().send(spectator, "spectator.no-target");
+            ConfigManager.get().send(spectator, "spectator.no-target");
             return;
         }
         spectator.teleport(target.getLocation());
         Map<String, String> vars = new HashMap<String, String>();
         vars.put("target", target.getName());
-        plugin.getMessages().send(spectator, "spectator.teleported", vars);
+        ConfigManager.get().send(spectator, "spectator.teleported", vars);
     }
 
     public void setGuiTargets(Map<Integer, UUID> targets) {

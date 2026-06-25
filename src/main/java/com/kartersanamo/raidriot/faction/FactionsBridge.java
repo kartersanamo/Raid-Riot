@@ -13,7 +13,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Talks to SaberFactions via reflection so Raid Riot compiles without the SaberFactions Maven artifact.
+ * Talks to SaberFactions via reflection so Raid Riot compiles without the
+ * SaberFactions Maven artifact.
  */
 public final class FactionsBridge {
 
@@ -120,8 +121,9 @@ public final class FactionsBridge {
     }
 
     /**
-     * Returns an existing reusable system faction, or creates a memberless permanent faction.
-     * If {@code preferredTag} is taken by another faction, tries {@code preferredTag0}, {@code preferredTag1}, …
+     * Returns an existing reusable system faction, or creates a memberless
+     * permanent faction. If {@code preferredTag} is taken by another faction,
+     * tries {@code preferredTag0}, {@code preferredTag1}, …
      */
     public Object getOrCreateSystemFaction(String preferredTag) throws Exception {
         if (preferredTag == null || preferredTag.trim().isEmpty()) {
@@ -210,7 +212,8 @@ public final class FactionsBridge {
     }
 
     /**
-     * Removes every board claim in {@code worldName} owned by any of the given factions.
+     * Removes every board claim in {@code worldName} owned by any of the given
+     * factions.
      */
     public int unclaimAllFactionsInWorld(String worldName, Collection<Object> factions) throws Exception {
         if (worldName == null || worldName.isEmpty() || factions == null || factions.isEmpty()) {

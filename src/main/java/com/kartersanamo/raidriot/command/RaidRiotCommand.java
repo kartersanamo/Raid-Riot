@@ -4,12 +4,12 @@ import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BaseDifficultyStore;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import com.kartersanamo.raidriot.ui.TimeFormat;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -63,7 +63,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
 
     private boolean join(CommandSender sender) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "Players only.");
+            ConfigManager.get().send(sender, "command.players-only");
             return true;
         }
         openGui((Player) sender);
@@ -72,13 +72,13 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
 
     private void openGui(Player player) {
         if (!plugin.getGuiService().openFor(player)) {
-            plugin.getMessages().send(player, "join.no-match");
+            ConfigManager.get().send(player, "join.no-match");
         }
     }
 
     private boolean leave(CommandSender sender) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "Players only.");
+            ConfigManager.get().send(sender, "command.players-only");
             return true;
         }
         Player player = (Player) sender;
@@ -89,37 +89,37 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         if (plugin.getEventManager().getQueueManager().isOpen()) {
             plugin.getEventManager().getQueueManager().leave(player);
             plugin.getGuiService().refreshOpenInventories();
-            plugin.getMessages().send(player, "leave.success");
+            ConfigManager.get().send(player, "leave.success");
             return true;
         }
         RaidMatch match = plugin.getEventManager().getActiveMatch();
         if (match != null && match.isParticipant(player) && match.getState() == MatchState.QUEUE_OPEN) {
             match.leave(player);
-            plugin.getMessages().send(player, "leave.success");
+            ConfigManager.get().send(player, "leave.success");
             return true;
         }
-        plugin.getMessages().send(player, "leave.not-in");
+        ConfigManager.get().send(player, "leave.not-in");
         return true;
     }
 
     private boolean status(CommandSender sender) {
         RaidMatch match = plugin.getEventManager().getActiveMatch();
         if (match == null || match.getState() == MatchState.IDLE) {
-            plugin.getMessages().send(sender, "status.none");
+            ConfigManager.get().send(sender, "status.none");
             return true;
         }
         Map<String, String> vars = new HashMap<String, String>();
         vars.put("phase", match.getState().name());
         if (plugin.getEventManager().getQueueManager().isOpen()) {
             vars.put("count", String.valueOf(plugin.getEventManager().getQueueManager().getSession().size()));
-            vars.put("max", String.valueOf(plugin.getRaidRiotConfig().getMaxPlayers()));
+            vars.put("max", String.valueOf(ConfigManager.get().getMaxPlayers()));
             vars.put("time", String.valueOf(plugin.getEventManager().getQueueManager().getSession().getRemainingSeconds()));
-            plugin.getMessages().send(sender, "status.queue", vars);
+            ConfigManager.get().send(sender, "status.queue", vars);
             return true;
         }
         if (match.getState() == MatchState.VOTING) {
             vars.put("time", String.valueOf(plugin.getEventManager().getVoteManager().getRemainingSeconds()));
-            plugin.getMessages().send(sender, "status.voting", vars);
+            ConfigManager.get().send(sender, "status.voting", vars);
             return true;
         }
         if (match.isActive()) {
@@ -128,16 +128,16 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             vars.put("time", TimeFormat.format(match.getRemainingSeconds()));
             vars.put("depthA", String.valueOf(match.getDepthTracker().getDepth(TeamSide.A)));
             vars.put("depthB", String.valueOf(match.getDepthTracker().getDepth(TeamSide.B)));
-            plugin.getMessages().send(sender, "status.active", vars);
+            ConfigManager.get().send(sender, "status.active", vars);
             return true;
         }
-        plugin.getMessages().send(sender, "status.none");
+        ConfigManager.get().send(sender, "status.none");
         return true;
     }
 
     private boolean admin(CommandSender sender, String[] args) {
         if (!sender.hasPermission("raidriot.admin")) {
-            sender.sendMessage(ChatColor.RED + "No permission.");
+            ConfigManager.get().send(sender, "command.no-permission");
             return true;
         }
         if (args.length < 2) {
@@ -157,11 +157,10 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             case "kit":
                 return adminKit(sender, args);
             case "reload":
-                plugin.getRaidRiotConfig().reload();
+                ConfigManager.get().reload();
                 baseDifficultyStore.load();
                 plugin.getEventKitStore().load();
-                plugin.getMessages().reload();
-                plugin.getMessages().send(sender, "admin.reload");
+                ConfigManager.get().send(sender, "admin.reload");
                 return true;
             default:
                 sendAdminHelp(sender);
@@ -171,28 +170,30 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
 
     private boolean adminSetup(CommandSender sender, String[] args) {
         if (args.length < 4 || !"world".equalsIgnoreCase(args[2])) {
-            sender.sendMessage(ChatColor.RED + "Usage: /raidriot admin setup world <world>");
+            ConfigManager.get().send(sender, "command.usage-setup-world");
             return true;
         }
         World world = Bukkit.getWorld(args[3]);
         if (world == null) {
-            sender.sendMessage(ChatColor.RED + "World not loaded: " + args[3]);
+            Map<String, String> vars = new HashMap<String, String>();
+            vars.put("world", args[3]);
+            ConfigManager.get().send(sender, "command.world-not-loaded", vars);
             return true;
         }
-        plugin.getRaidRiotConfig().setEventWorld(world.getName());
+        ConfigManager.get().setEventWorld(world.getName());
         Map<String, String> vars = new HashMap<String, String>();
         vars.put("world", world.getName());
-        plugin.getMessages().send(sender, "admin.world-set", vars);
+        ConfigManager.get().send(sender, "admin.world-set", vars);
         return true;
     }
 
     private boolean adminStart(CommandSender sender, String[] args) {
         if (!sender.hasPermission("raidriot.admin.start")) {
-            sender.sendMessage(ChatColor.RED + "No permission.");
+            ConfigManager.get().send(sender, "command.no-permission");
             return true;
         }
         if (args.length < 3) {
-            sender.sendMessage(ChatColor.RED + "Usage: /raidriot admin start random|faction");
+            ConfigManager.get().send(sender, "command.usage-start");
             return true;
         }
         TeamAssignmentMode mode;
@@ -201,87 +202,100 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         } else if ("faction".equalsIgnoreCase(args[2])) {
             mode = TeamAssignmentMode.FACTION;
         } else {
-            sender.sendMessage(ChatColor.RED + "Mode must be random or faction.");
+            ConfigManager.get().send(sender, "command.invalid-mode");
             return true;
         }
         try {
             plugin.getEventManager().startQueue(mode);
-            sender.sendMessage(ChatColor.GREEN + "Raid Riot queue opened (" + mode.name().toLowerCase(Locale.ROOT) + ").");
+            Map<String, String> vars = new HashMap<String, String>();
+            vars.put("mode", mode.name().toLowerCase(Locale.ROOT));
+            ConfigManager.get().send(sender, "admin.queue-opened", vars);
         } catch (Exception ex) {
-            sender.sendMessage(ChatColor.RED + ex.getMessage());
+            sender.sendMessage(ConfigManager.colorize("&c" + ex.getMessage()));
         }
         return true;
     }
 
     private boolean adminStop(CommandSender sender, String[] args) {
         if (!sender.hasPermission("raidriot.admin.stop")) {
-            sender.sendMessage(ChatColor.RED + "No permission.");
+            ConfigManager.get().send(sender, "command.no-permission");
             return true;
         }
-        String reason = args.length >= 3 ? joinArgs(args, 2) : "Stopped by admin.";
+        String reason = args.length >= 3 ? joinArgs(args, 2) : ConfigManager.get("messages.match.default-stop-reason");
         plugin.getEventManager().stopMatch(reason);
-        sender.sendMessage(ChatColor.GREEN + "Raid Riot session stopped.");
+        ConfigManager.get().send(sender, "admin.session-stopped");
         return true;
     }
 
     private boolean adminBase(CommandSender sender, String[] args) {
         if (!sender.hasPermission("raidriot.admin.arena")) {
-            sender.sendMessage(ChatColor.RED + "No permission.");
+            ConfigManager.get().send(sender, "command.no-permission");
             return true;
         }
         if (args.length < 3) {
-            sender.sendMessage(ChatColor.RED + "Usage: /raidriot admin base list|set|clear ...");
+            ConfigManager.get().send(sender, "command.usage-base");
             return true;
         }
         String action = args[2].toLowerCase(Locale.ROOT);
         try {
             if ("list".equals(action)) {
-                sender.sendMessage(ChatColor.GOLD + "Base schematics:");
+                ConfigManager.get().send(sender, "admin.base-list-header");
                 for (BaseVoteOption option : new BaseVoteOption[]{BaseVoteOption.EASY, BaseVoteOption.MEDIUM, BaseVoteOption.HARD}) {
                     String file = baseDifficultyStore.getSchematic(option);
-                    sender.sendMessage(ChatColor.YELLOW + option.displayName() + ": "
-                            + ChatColor.WHITE + (file == null ? "(not set)" : file));
+                    Map<String, String> vars = new HashMap<String, String>();
+                    vars.put("option", option.displayName());
+                    vars.put("file", file == null
+                            ? ConfigManager.get("messages.admin.base-list-not-set")
+                            : file);
+                    sender.sendMessage(ConfigManager.get().formatMessage("admin.base-list-entry", vars));
                 }
                 return true;
             }
             if ("set".equals(action) && args.length >= 5) {
                 BaseVoteOption option = BaseVoteOption.parse(args[3]);
                 baseDifficultyStore.setSchematic(option, args[4]);
-                sender.sendMessage(ChatColor.GREEN + "Set " + option.displayName() + " to " + args[4]);
+                Map<String, String> vars = new HashMap<String, String>();
+                vars.put("option", option.displayName());
+                vars.put("file", args[4]);
+                ConfigManager.get().send(sender, "admin.base-set", vars);
                 return true;
             }
             if ("clear".equals(action) && args.length >= 4) {
                 BaseVoteOption option = BaseVoteOption.parse(args[3]);
                 baseDifficultyStore.clear(option);
-                sender.sendMessage(ChatColor.GREEN + "Cleared " + option.displayName() + ".");
+                Map<String, String> vars = new HashMap<String, String>();
+                vars.put("option", option.displayName());
+                ConfigManager.get().send(sender, "admin.base-cleared", vars);
                 return true;
             }
         } catch (Exception ex) {
-            sender.sendMessage(ChatColor.RED + ex.getMessage());
+            sender.sendMessage(ConfigManager.colorize("&c" + ex.getMessage()));
             return true;
         }
-        sender.sendMessage(ChatColor.RED + "Usage: /raidriot admin base list|set <easy|medium|hard> <file>|clear <easy|medium|hard>");
+        ConfigManager.get().send(sender, "command.usage-base-full");
         return true;
     }
 
     private boolean adminKit(CommandSender sender, String[] args) {
         if (!sender.hasPermission("raidriot.admin")) {
-            sender.sendMessage(ChatColor.RED + "No permission.");
+            ConfigManager.get().send(sender, "command.no-permission");
             return true;
         }
         if (args.length < 3 || !"set".equalsIgnoreCase(args[2])) {
-            sender.sendMessage(ChatColor.RED + "Usage: /raidriot admin kit set");
+            ConfigManager.get().send(sender, "command.usage-kit-set");
             return true;
         }
         if (!(sender instanceof Player)) {
-            plugin.getMessages().send(sender, "admin.kit-players-only");
+            ConfigManager.get().send(sender, "admin.kit-players-only");
             return true;
         }
         try {
             plugin.getEventKitStore().saveFrom((Player) sender);
-            plugin.getMessages().send(sender, "admin.kit-set");
+            ConfigManager.get().send(sender, "admin.kit-set");
         } catch (Exception ex) {
-            sender.sendMessage(ChatColor.RED + "Could not save kit: " + ex.getMessage());
+            Map<String, String> vars = new HashMap<String, String>();
+            vars.put("error", ex.getMessage());
+            ConfigManager.get().send(sender, "admin.kit-save-failed", vars);
         }
         return true;
     }
@@ -298,22 +312,19 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendHelp(CommandSender sender) {
-        sender.sendMessage(ChatColor.GOLD + "Raid Riot:");
-        sender.sendMessage(ChatColor.YELLOW + "/raidriot" + ChatColor.GRAY + " - Open queue/vote GUI");
-        sender.sendMessage(ChatColor.YELLOW + "/raidriot join");
-        sender.sendMessage(ChatColor.YELLOW + "/raidriot leave");
-        sender.sendMessage(ChatColor.YELLOW + "/raidriot status");
+        ConfigManager.get().send(sender, "command.help-header");
+        ConfigManager.get().send(sender, "command.help-join");
+        ConfigManager.get().send(sender, "command.help-leave");
+        ConfigManager.get().send(sender, "command.help-status");
     }
 
     private void sendAdminHelp(CommandSender sender) {
-        sender.sendMessage(ChatColor.GOLD + "Admin:");
-        sender.sendMessage(ChatColor.YELLOW + "/raidriot admin setup world <world>");
-        sender.sendMessage(ChatColor.YELLOW + "/raidriot admin start random|faction");
-        sender.sendMessage(ChatColor.YELLOW + "/raidriot admin stop [reason]");
-        sender.sendMessage(ChatColor.YELLOW + "/raidriot admin base list|set|clear ...");
-        // Don't show kit set command to players for privacy
-        // sender.sendMessage(ChatColor.YELLOW + "/raidriot admin kit set");
-        sender.sendMessage(ChatColor.YELLOW + "/raidriot admin reload");
+        ConfigManager.get().send(sender, "command.admin-help-header");
+        ConfigManager.get().send(sender, "command.admin-help-setup");
+        ConfigManager.get().send(sender, "command.admin-help-start");
+        ConfigManager.get().send(sender, "command.admin-help-stop");
+        ConfigManager.get().send(sender, "command.admin-help-base");
+        ConfigManager.get().send(sender, "command.admin-help-reload");
     }
 
     @Override

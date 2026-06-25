@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.ui;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
@@ -94,19 +95,19 @@ public final class RaidRiotGuiListener implements Listener {
             case SUCCESS:
                 vars.put("count", String.valueOf(plugin.getEventManager().getQueueManager().getSession().size()));
                 vars.put("max", String.valueOf(maxQueueDisplay()));
-                plugin.getMessages().send(player, "queue.joined", vars);
+                ConfigManager.get().send(player, "queue.joined", vars);
                 break;
             case ALREADY_IN:
-                plugin.getMessages().send(player, "join.already-in");
+                ConfigManager.get().send(player, "join.already-in");
                 break;
             case FULL:
-                plugin.getMessages().send(player, "queue.full");
+                ConfigManager.get().send(player, "queue.full");
                 break;
             case NEED_FACTION:
-                plugin.getMessages().send(player, "queue.need-faction");
+                ConfigManager.get().send(player, "queue.need-faction");
                 break;
             default:
-                plugin.getMessages().send(player, "join.no-match");
+                ConfigManager.get().send(player, "join.no-match");
                 break;
         }
     }
@@ -114,8 +115,8 @@ public final class RaidRiotGuiListener implements Listener {
     private int maxQueueDisplay() {
         if (plugin.getEventManager().getQueueManager().getSession().getMode()
                 == com.kartersanamo.raidriot.queue.TeamAssignmentMode.FACTION) {
-            return plugin.getRaidRiotConfig().getMaxFactionQueuePlayers();
+            return ConfigManager.get().getMaxFactionQueuePlayers();
         }
-        return plugin.getRaidRiotConfig().getMaxPlayers();
+        return ConfigManager.get().getMaxPlayers();
     }
 }

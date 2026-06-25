@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.faction;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.arena.CuboidRegion;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -38,7 +39,7 @@ public final class FactionBaseClaimProvider {
             claimGetX = fLocationClass.getMethod("getX");
             claimGetZ = fLocationClass.getMethod("getZ");
             claimGetWorldName = fLocationClass.getMethod("getWorldName");
-            String methodName = plugin.getRaidRiotConfig().getBaseClaimMethod();
+            String methodName = ConfigManager.get().getBaseClaimMethod();
             try {
                 baseClaimCheck = fLocationClass.getMethod(methodName);
             } catch (NoSuchMethodException ex) {

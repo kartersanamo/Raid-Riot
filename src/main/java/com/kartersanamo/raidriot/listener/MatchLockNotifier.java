@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.listener;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
@@ -18,10 +19,10 @@ public final class MatchLockNotifier {
     public void notifyLocked(Player player, String key) {
         long now = System.currentTimeMillis();
         Long prev = notifyCooldownMs.get(player.getUniqueId());
-        if (prev != null && now - prev < plugin.getRaidRiotConfig().getLockNotifyCooldownMs()) {
+        if (prev != null && now - prev < ConfigManager.get().getLockNotifyCooldownMs()) {
             return;
         }
         notifyCooldownMs.put(player.getUniqueId(), now);
-        plugin.getMessages().send(player, key);
+        ConfigManager.get().send(player, key);
     }
 }

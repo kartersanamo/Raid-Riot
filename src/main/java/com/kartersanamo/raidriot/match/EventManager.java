@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.match;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BasePlacementService;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
@@ -151,11 +152,11 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                 if (broadcast && reason != null && !reason.isEmpty()) {
                     Map<String, String> vars = new HashMap<String, String>();
                     vars.put("reason", reason);
-                    plugin.getMessages().broadcast("match.ended-admin", vars);
+                    ConfigManager.get().broadcast("match.ended-admin", vars);
                 }
             } else {
                 worldBorderService.reset();
-                eventFactionService.unclaimEventWorld(plugin.getRaidRiotConfig().getEventWorld());
+                eventFactionService.unclaimEventWorld(ConfigManager.get().getEventWorld());
             }
             scheduleWorldRestore(syncWorldRestore);
         } finally {
@@ -203,16 +204,16 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     public synchronized void startQueue(TeamAssignmentMode mode) {
         if (asyncWorldRestorer.isRestoring()) {
-            throw new IllegalStateException("Previous event terrain is still restoring.");
+            throw new IllegalStateException(ConfigManager.get("messages.match.terrain-restoring"));
         }
         if (hasActiveSession() || queueManager.isOpen()) {
-            throw new IllegalStateException("A Raid Riot session is already active.");
+            throw new IllegalStateException(ConfigManager.get("messages.match.already-active"));
         }
         activeMatch = new RaidMatch(
-                plugin.getRaidRiotConfig().getEventWorld(),
+                ConfigManager.get().getEventWorld(),
                 mode,
-                plugin.getRaidRiotConfig().getTeamDisplayName(TeamSide.A),
-                plugin.getRaidRiotConfig().getTeamDisplayName(TeamSide.B),
+                ConfigManager.get().getTeamDisplayName(TeamSide.A),
+                ConfigManager.get().getTeamDisplayName(TeamSide.B),
                 null, null);
         activeMatch.setState(MatchState.QUEUE_OPEN);
         queueManager.openQueue(mode);
@@ -221,18 +222,15 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     private void startGuiRefreshTask() {
         stopGuiRefreshTask();
-        guiRefreshTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
-            @Override
-            public void run() {
-                if (shuttingDown || asyncWorldRestorer.isRestoring()) {
-                    stopGuiRefreshTask();
-                    return;
-                }
-                if (guiService.shouldAutoRefresh()) {
-                    guiService.refreshOpenInventories();
-                } else {
-                    stopGuiRefreshTask();
-                }
+        guiRefreshTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (shuttingDown || asyncWorldRestorer.isRestoring()) {
+                stopGuiRefreshTask();
+                return;
+            }
+            if (guiService.shouldAutoRefresh()) {
+                guiService.refreshOpenInventories();
+            } else {
+                stopGuiRefreshTask();
             }
         }, 20L, 20L);
     }
@@ -255,7 +253,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         }
         Map<String, String> vars = new HashMap<String, String>();
         vars.put("reason", reason);
-        plugin.getMessages().broadcast("queue.cancelled", vars);
+        ConfigManager.get().broadcast("queue.cancelled", vars);
         activeMatch = null;
     }
 
@@ -272,10 +270,10 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             stopMatch("Team assignment failed.");
             return;
         }
-        plugin.getMessages().broadcast("queue.locked", new HashMap<String, String>());
-        if (plugin.getRaidRiotConfig().isFixedMatchSettingsEnabled()) {
-            onVoteComplete(activeMatch, plugin.getRaidRiotConfig().getFixedBase(),
-                    plugin.getRaidRiotConfig().getFixedKit());
+        ConfigManager.get().broadcast("queue.locked", new HashMap<String, String>());
+        if (ConfigManager.get().isFixedMatchSettingsEnabled()) {
+            onVoteComplete(activeMatch, ConfigManager.get().getFixedBase(),
+                    ConfigManager.get().getFixedKit());
         } else {
             voteManager.startVote(activeMatch);
             startGuiRefreshTask();
@@ -284,7 +282,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     private void assignTeams(QueueSession session, RaidMatch match) throws Exception {
         FactionsBridge bridge = plugin.getFactionsBridge();
-        int perTeam = plugin.getRaidRiotConfig().getPlayersPerTeam();
+        int perTeam = ConfigManager.get().getPlayersPerTeam();
 
         if (session.getMode() == TeamAssignmentMode.RANDOM) {
             List<UUID> ids = new ArrayList<UUID>(session.getQueued());
@@ -349,7 +347,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             if (!selected.contains(id)) {
                 Player player = Bukkit.getPlayer(id);
                 if (player != null) {
-                    plugin.getMessages().send(player, "queue.not-qualified");
+                    ConfigManager.get().send(player, "queue.not-qualified");
                 }
                 restorePreEventState(player, preservedSnapshots.get(id));
             }
@@ -379,7 +377,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         Map<String, String> vars = new HashMap<String, String>();
         vars.put("base", baseWinner.displayName());
         vars.put("kit", kitWinner.displayName());
-        plugin.getMessages().broadcast("vote.winner", vars);
+        ConfigManager.get().broadcast("vote.winner", vars);
 
         worldResetService.beginSession(activeMatch.getEventWorld());
         try {
@@ -395,7 +393,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private void beginCountdown(final RaidMatch match) {
         cancelCountdownTasks();
         match.setState(MatchState.COUNTDOWN);
-        final int countdown = plugin.getRaidRiotConfig().getCountdownSeconds();
+        final int countdown = ConfigManager.get().getCountdownSeconds();
         match.setCountdownEndMs(System.currentTimeMillis() + countdown * 1000L);
         startGuiRefreshTask();
         for (int i = countdown; i >= 1; i--) {
@@ -408,7 +406,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                     }
                     Map<String, String> vars = new HashMap<String, String>();
                     vars.put("seconds", String.valueOf(sec));
-                    plugin.getMessages().broadcast("match.countdown", vars);
+                    ConfigManager.get().broadcast("match.countdown", vars);
                 }
             }, (countdown - sec) * 20L));
         }
@@ -429,7 +427,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         }
         match.setState(MatchState.ACTIVE);
         match.setActiveStartMs(System.currentTimeMillis());
-        long durationMs = plugin.getRaidRiotConfig().getMatchDurationSeconds() * 1000L;
+        long durationMs = ConfigManager.get().getMatchDurationSeconds() * 1000L;
         match.setActiveEndMs(System.currentTimeMillis() + durationMs);
 
         for (UUID id : match.getParticipants()) {
@@ -470,7 +468,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                     Map<String, String> vars = new HashMap<String, String>();
                     vars.put("minutes", String.valueOf(remaining / 60));
                     vars.put("seconds", String.format("%02d", remaining % 60));
-                    plugin.getMessages().broadcast("match.timer-warning", vars);
+                    ConfigManager.get().broadcast("match.timer-warning", vars);
                 }
             }
         }, 20L, 20L);
@@ -489,8 +487,8 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                     }
                 }
             }
-        }, plugin.getRaidRiotConfig().getDepthSampleIntervalTicks(),
-                plugin.getRaidRiotConfig().getDepthSampleIntervalTicks());
+        }, ConfigManager.get().getDepthSampleIntervalTicks(),
+                ConfigManager.get().getDepthSampleIntervalTicks());
     }
 
     public synchronized void endMatch(TeamSide winner, WinReason reason) {
@@ -536,7 +534,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             return;
         }
         TeamSide winner = activeMatch.getDepthTracker().winnerByDepth();
-        if (winner == null && plugin.getRaidRiotConfig().isDrawOnEqualDepth()) {
+        if (winner == null && ConfigManager.get().isDrawOnEqualDepth()) {
             endMatch(null, WinReason.DRAW);
         } else if (winner == null) {
             endMatch(TeamSide.A, WinReason.DEPTH);

@@ -69,3 +69,216 @@ factions:
   event-faction-b-tag: Red
   # Max claim power = base chunk count + this buffer (e.g. 25 base chunks → 325 power)
   event-faction-power-buffer: 300
+
+messages:
+  prefix: "&c&lRaid Riot &8» &r&7"
+
+  queue:
+    joined: "{prefix}&aYou joined the queue! &7({count}/{max})"
+    full: "{prefix}&cThe queue is full."
+    team-full: "{prefix}&cThat team is full."
+    need-faction: "{prefix}&cYou must be in a faction to join this event."
+    faction-full: "{prefix}&cYour faction team is already full."
+    faction-not-qualified: "{prefix}&cYour faction is not eligible for this event."
+    not-qualified: "{prefix}&cYou did not qualify for this event."
+    cancelled: "{prefix}&cEvent cancelled: &7{reason}"
+    locked: "{prefix}&aQueue locked! Preparing the arena..."
+    cancel-factions-not-ready: "Two factions did not reach the required size."
+    cancel-not-enough-players: "Not enough players joined ({count}/{max})."
+    already-open: "Queue already open."
+    event-world-not-configured: "Event world not configured. Use /raidriot admin setup world <world>"
+    event-world-not-loaded: "Event world not loaded: {world}"
+
+  vote:
+    winner: "{prefix}&aSelected base: &e{base}&7 | Kit: &e{kit}&7. Preparing arena..."
+
+  match:
+    countdown: "{prefix}&7The event is starting in &f{seconds} &7seconds..."
+    started: "{prefix}&aRaid Riot has begun! &7{teamA} &fvs &7{teamB}"
+    ended-breach: "{prefix}&a{winner} &7breached &c{loser}&7 in &e{time}&7!"
+    ended-depth: "{prefix}&a{winner} &7won with depth &e{depth}&7 vs &c{otherDepth}&7!"
+    ended-draw: "{prefix}&eDraw! &7Both teams reached depth &e{depth}&7."
+    ended-admin: "{prefix}&cMatch stopped: &7{reason}"
+    timer-warning: "{prefix}&c{minutes}:{seconds} &7remaining!"
+    terrain-restoring: "Previous event terrain is still restoring."
+    already-active: "A Raid Riot session is already active."
+    default-stop-reason: "Stopped by admin."
+
+  join:
+    no-match: "{prefix}&cNo Raid Riot queue is open right now."
+    already-in: "{prefix}&cYou are already in the queue."
+
+  leave:
+    success: "{prefix}&7You left the queue."
+    spectator-success: "{prefix}&7You stopped spectating."
+    not-in: "{prefix}&cYou are not in the queue."
+
+  status:
+    none: "{prefix}&7No active Raid Riot session."
+    queue: "{prefix}&7Queue: &e{count}/{max} &8| &e{time}s &8| &7{phase}"
+    voting: "{prefix}&7Voting open &8| &e{time}s remaining"
+    active: "{prefix}&7{teamA} &fvs &7{teamB} &8| &e{time} &8| Depth: &a{depthA} &7/ &c{depthB}"
+
+  death:
+    title: "&c&lYOU DIED"
+    subtitle: ""
+    respawn-wait: "{prefix}&7Respawning in &c{seconds}&7 seconds..."
+    broadcast: "{prefix}&7{victim} &7({team}) was eliminated by &c{killer}&7!"
+    broadcast-no-killer: "{prefix}&7{victim} &7({team}) was eliminated!"
+
+  spectator:
+    entered: "{prefix}&aYou are now spectating the match."
+    left: "{prefix}&7You stopped spectating."
+    teleported: "{prefix}&7Teleported to &f{target}&7."
+    no-target: "{prefix}&cThat player is not available."
+
+  patch:
+    must-be-naked: "{prefix}&cYou must be naked to patch on your base/cannon."
+
+  raid:
+    locked-block-change: "{prefix}&cYou cannot modify blocks here during the event."
+
+  faction:
+    claim-success: "{prefix}&aClaimed this chunk for your team."
+    claim-failed: "{prefix}&cCould not claim this chunk."
+
+  admin:
+    world-set: "{prefix}&aEvent world set to &e{world}&7."
+    reload: "{prefix}&aReloaded config."
+    kit-set: "{prefix}&aSaved your inventory and armor as the event kit."
+    kit-players-only: "{prefix}&cOnly players can set the event kit."
+    queue-opened: "&aRaid Riot queue opened ({mode})."
+    session-stopped: "&aRaid Riot session stopped."
+    base-list-header: "&6Base schematics:"
+    base-list-entry: "&e{option}&7: &f{file}"
+    base-list-not-set: "(not set)"
+    base-set: "&aSet {option} to {file}"
+    base-cleared: "&aCleared {option}."
+    kit-save-failed: "&cCould not save kit: {error}"
+
+  command:
+    players-only: "&cPlayers only."
+    no-permission: "&cNo permission."
+    usage-setup-world: "&cUsage: /raidriot admin setup world <world>"
+    world-not-loaded: "&cWorld not loaded: {world}"
+    usage-start: "&cUsage: /raidriot admin start random|faction"
+    invalid-mode: "&cMode must be random or faction."
+    usage-base: "&cUsage: /raidriot admin base list|set|clear ..."
+    usage-base-full: "&cUsage: /raidriot admin base list|set <easy|medium|hard> <file>|clear <easy|medium|hard>"
+    usage-kit-set: "&cUsage: /raidriot admin kit set"
+    help-header: "&6Raid Riot:"
+    help-join: "&e/raidriot &7- Open queue/vote GUI"
+    help-leave: "&e/raidriot leave"
+    help-status: "&e/raidriot status"
+    admin-help-header: "&6Admin:"
+    admin-help-setup: "&e/raidriot admin setup world <world>"
+    admin-help-start: "&e/raidriot admin start random|faction"
+    admin-help-stop: "&e/raidriot admin stop [reason]"
+    admin-help-base: "&e/raidriot admin base list|set|clear ..."
+    admin-help-reload: "&e/raidriot admin reload"
+
+  centered:
+    header: "&c&lRAID RIOT"
+    queue-open-line1: "&7The queue for the &cRaid Riot Event &7has opened!"
+    queue-open-faction: "&7Run &c/raidriot &7to join the queue! The queue will close in &c{seconds} &7seconds."
+    queue-open-random-line1: "&7Run &c/raidriot &7to join! Teams are assigned randomly when the"
+    queue-open-random-line2: "&7event starts. The queue will close in &c{seconds} &7seconds."
+    queue-open-footer: "&7Be the first team to breach the other base!"
+    event-started-line1: "&7The event has started! Run &c/raidriot"
+    event-started-line2: "&7to spectate the event!"
+    event-ended-line1: "&fThe &cRaid Riot &fevent has ended!"
+    event-ended-winner: "&fWinner: &6{winner}"
+    event-ended-draw: "&fWinner: &eDraw"
+    event-ended-time: "&fTime: &c{time}"
+    winner-name-separator: "&7, "
+    winner-name-entry: "&6{name}"
+    countdown: "&cRaid Riot &8> &7The event is starting in &f{seconds} &7seconds..."
+    duration-one-second: "1 second"
+    duration-seconds: "{seconds} seconds"
+
+  errors:
+    no-schematic: "No schematic configured for {option}."
+    schematic-not-found: "Schematic not found: {path}"
+    no-baseclaims: "No baseclaims for faction {faction} in world {world}."
+    factions-source-not-loaded: "Factions source world not loaded: {world}"
+    factions-claim-unavailable: "Factions claim API unavailable."
+    unexpected-claims-type: "Unexpected claims type from Factions Board."
+    no-claims-for-faction: "No claims found for faction {faction}."
+    faction-tag-unavailable: "Could not find an available faction tag for base name '{base}'."
+
+gui:
+  title: "&fRaid Riot"
+  queue:
+    info-title: "&6Queue"
+    closes-in: "&7Closes in &f{seconds}&7 seconds"
+    players: "&7Players: &f{count}/{max}"
+    mode-random: "&7Teams are assigned randomly when the queue closes."
+    mode-faction: "&7First two factions to reach &f{perTeam} &7players become the teams."
+  vote:
+    info-title: "&6Vote"
+    time-left: "&7Time left: &f{seconds}s"
+    subtitle: "&7Vote for base type and kit mode"
+  status:
+    info-title: "&6Raid Riot Status"
+    phase: "&7Phase: &f{phase}"
+    starts-in: "&7Starts in: &f{seconds}s"
+    time-left: "&7Time left: &f{time}"
+    base: "&7Base: &f{base}"
+    kit: "&7Kit: &f{kit}"
+    winner: "&aWinner: &f{winner}"
+    draw: "&eResult: Draw"
+  spectator:
+    info-title: "&6Spectating"
+    phase-active: "&7Phase: &fIn Progress"
+    click-to-teleport: "&eClick a player head to teleport."
+  phase:
+    teams-locked: "Teams Locked"
+    preparing: "Preparing"
+    starting: "Starting"
+    in-progress: "In Progress"
+    ended: "Ended"
+  team:
+    display: "{color}{name}&7 ({players})"
+    players: "&7Players: &f{players}"
+    wall-depth: "&7Wall depth: &f{depth}"
+    team-label: "&7Team: &f{team}"
+    offline: "&cOffline"
+    click-teleport: "&eClick to teleport!"
+    in-queue: "&7In queue"
+    faction: "&7Faction: &f{faction}"
+  match-info:
+    title: "&bMatch Info"
+    mode: "&7Mode: &f{mode}"
+    world: "&7World: &f{world}"
+    depth: "&7Depth {teamColor}{team}&7: &f{depth}"
+  leave-spectate:
+    title: "&cLeave Spectating"
+    return: "&7Return to where you were."
+    click: "&eClick to leave!"
+  join-queue:
+    title: "&aJoin Queue"
+    description: "&7Join the Raid Riot queue."
+    players: "&7Players: &f{count}/{max}"
+    click: "&eClick to join!"
+  faction-status:
+    title: "&6{tag}&7 ({count}/{max})"
+    qualified: "&7Qualified faction team."
+    members: "&7First {max} members in join order play."
+  vote-option:
+    title: "&6{name}"
+    vote-for: "&7Vote for &f{name}"
+    votes: "&fVotes: {votes}"
+    click: "&eClick to vote!"
+  kit-option:
+    title: "&b{name}"
+    votes: "&fVotes: {votes}"
+    own-gear: "&7Keep your current inventory."
+    predefined: "&7Everyone receives the same kit."
+    click: "&eClick to vote!"
+  vote-player:
+    base: "&7Base: &f{base}"
+    kit: "&7Kit: &f{kit}"
+    none: "None"
+  player-head:
+    name: "&b{name}"
+    unknown: "Unknown"

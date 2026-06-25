@@ -1,6 +1,6 @@
 package com.kartersanamo.raidriot.combat;
 
-import com.kartersanamo.raidriot.config.RaidRiotConfig;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -11,11 +11,9 @@ import java.util.Locale;
 
 public final class PredefinedKitService {
 
-    private final RaidRiotConfig config;
     private final EventKitStore kitStore;
 
-    public PredefinedKitService(RaidRiotConfig config, EventKitStore kitStore) {
-        this.config = config;
+    public PredefinedKitService(EventKitStore kitStore) {
         this.kitStore = kitStore;
     }
 
@@ -28,6 +26,7 @@ public final class PredefinedKitService {
     }
 
     private void applyFromConfig(Player player) {
+        ConfigManager config = ConfigManager.get();
         PlayerInventory inv = player.getInventory();
         inv.clear();
         inv.setArmorContents(new ItemStack[]{

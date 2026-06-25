@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.faction;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.world.ChunkKey;
@@ -26,8 +27,8 @@ public final class EventFactionService {
     public boolean init() {
         try {
             FactionsBridge bridge = plugin.getFactionsBridge();
-            String tagA = plugin.getRaidRiotConfig().getEventFactionTagA();
-            String tagB = plugin.getRaidRiotConfig().getEventFactionTagB();
+            String tagA = ConfigManager.get().getEventFactionTagA();
+            String tagB = ConfigManager.get().getEventFactionTagB();
             eventFactionA = bridge.getOrCreateSystemFaction(tagA);
             eventFactionB = bridge.getOrCreateSystemFaction(tagB);
             if (eventFactionA == null || bridge.isWilderness(eventFactionA)) {
@@ -70,7 +71,7 @@ public final class EventFactionService {
     }
 
     private void updateMaxPowerForTeam(TeamSide side, int baseChunkCount) throws Exception {
-        int buffer = plugin.getRaidRiotConfig().getEventFactionPowerBuffer();
+        int buffer = ConfigManager.get().getEventFactionPowerBuffer();
         int maxPower = baseChunkCount + buffer;
         FactionsBridge bridge = plugin.getFactionsBridge();
         Object faction = getEventFaction(side);

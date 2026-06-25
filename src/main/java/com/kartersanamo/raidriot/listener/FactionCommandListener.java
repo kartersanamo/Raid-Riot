@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.listener;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.faction.EventFactionService;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import org.bukkit.entity.Player;
@@ -37,9 +38,9 @@ public final class FactionCommandListener implements Listener {
         event.setCancelled(true);
         try {
             eventFactionService.claimChunkForPlayerTeam(match, player);
-            plugin.getMessages().send(player, "faction.claim-success");
+            ConfigManager.get().send(player, "faction.claim-success");
         } catch (Exception ex) {
-            plugin.getMessages().send(player, "faction.claim-failed");
+            ConfigManager.get().send(player, "faction.claim-failed");
             plugin.getLogger().warning("Event claim failed for " + player.getName() + ": " + ex.getMessage());
         }
     }

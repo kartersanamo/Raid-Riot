@@ -1,10 +1,11 @@
 package com.kartersanamo.raidriot.combat;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -36,7 +37,9 @@ public final class VirtualDeathService {
             return;
         }
 
-        player.sendTitle(ChatColor.RED + "" + ChatColor.BOLD + "YOU DIED", "");
+        String title = ConfigManager.colorize(ConfigManager.get("messages.death.title"));
+        String subtitle = ConfigManager.colorize(ConfigManager.get("messages.death.subtitle", ""));
+        player.sendTitle(title, subtitle);
         announceDeath(match, player, killer);
 
         player.setHealth(player.getMaxHealth());
@@ -51,10 +54,10 @@ public final class VirtualDeathService {
             }
         }
 
-        int delay = plugin.getRaidRiotConfig().getRespawnDelaySeconds();
+        int delay = ConfigManager.get().getRespawnDelaySeconds();
         Map<String, String> vars = new HashMap<String, String>();
         vars.put("seconds", String.valueOf(delay));
-        plugin.getMessages().send(player, "death.respawn-wait", vars);
+        ConfigManager.get().send(player, "death.respawn-wait", vars);
 
         BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
             @Override
@@ -73,9 +76,9 @@ public final class VirtualDeathService {
         vars.put("team", team == null ? "" : match.getFactionTag(team));
         if (killer != null && killer != victim) {
             vars.put("killer", killer.getName());
-            plugin.getMessages().broadcast("death.broadcast", vars);
+            ConfigManager.get().broadcast("death.broadcast", vars);
         } else {
-            plugin.getMessages().broadcast("death.broadcast-no-killer", vars);
+            ConfigManager.get().broadcast("death.broadcast-no-killer", vars);
         }
     }
 

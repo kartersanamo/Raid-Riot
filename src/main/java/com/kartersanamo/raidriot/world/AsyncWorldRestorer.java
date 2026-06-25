@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.world;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import org.bukkit.scheduler.BukkitTask;
 
 public final class AsyncWorldRestorer {
@@ -29,8 +30,8 @@ public final class AsyncWorldRestorer {
             @Override
             public void run() {
                 worldResetService.restoreNextBatch(
-                        plugin.getRaidRiotConfig().getWorldRestoreBlocksPerTick(),
-                        plugin.getRaidRiotConfig().getWorldRestoreChunksPerTick());
+                        ConfigManager.get().getWorldRestoreBlocksPerTick(),
+                        ConfigManager.get().getWorldRestoreChunksPerTick());
                 if (worldResetService.isRestoreComplete()) {
                     finish();
                 }

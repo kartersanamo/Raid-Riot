@@ -12,7 +12,7 @@ import com.kartersanamo.raidriot.combat.RespawnQueue;
 import com.kartersanamo.raidriot.combat.VirtualDeathService;
 import com.kartersanamo.raidriot.spectator.SpectatorService;
 import com.kartersanamo.raidriot.command.RaidRiotCommand;
-import com.kartersanamo.raidriot.config.RaidRiotConfig;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.faction.ClaimBaseProvider;
 import com.kartersanamo.raidriot.faction.EventFactionService;
 import com.kartersanamo.raidriot.faction.EventTeamAccessService;
@@ -30,7 +30,6 @@ import com.kartersanamo.raidriot.listener.TntDispenseListener;
 import com.kartersanamo.raidriot.listener.TntSpawnListener;
 import com.kartersanamo.raidriot.listener.VirtualCombatListener;
 import com.kartersanamo.raidriot.match.EventManager;
-import com.kartersanamo.raidriot.message.MessageService;
 import com.kartersanamo.raidriot.queue.QueueManager;
 import com.kartersanamo.raidriot.ui.RaidRiotGuiListener;
 import com.kartersanamo.raidriot.ui.RaidRiotGuiService;
@@ -48,8 +47,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
     private static RaidRiotPlugin instance;
 
-    private RaidRiotConfig raidRiotConfig;
-    private MessageService messages;
+    private ConfigManager configManager;
     private FactionsBridge factionsBridge;
     private BaseDifficultyStore baseDifficultyStore;
     private EventKitStore eventKitStore;
@@ -84,13 +82,10 @@ public final class RaidRiotPlugin extends JavaPlugin {
         }
 
         saveDefaultConfig();
-        saveResource("messages.yml", false);
         saveResource("bases.yml", false);
 
-        raidRiotConfig = new RaidRiotConfig(this);
-        raidRiotConfig.reload();
-        messages = new MessageService(this);
-        messages.reload();
+        configManager = new ConfigManager(this);
+        configManager.reload();
 
         factionsBridge = new FactionsBridge(this);
         if (!factionsBridge.init()) {
@@ -128,8 +123,8 @@ public final class RaidRiotPlugin extends JavaPlugin {
         spectatorService = new SpectatorService(this);
         eventCombatService = new EventCombatService(this);
         eventTeamAccessService = new EventTeamAccessService(this, eventFactionService);
-        PredefinedKitService predefinedKitService = new PredefinedKitService(raidRiotConfig, eventKitStore);
-        ClickableMessageService clickableMessageService = new ClickableMessageService(this);
+        PredefinedKitService predefinedKitService = new PredefinedKitService(eventKitStore);
+        ClickableMessageService clickableMessageService = new ClickableMessageService(configManager);
         this.clickableMessageService = clickableMessageService;
         QueueManager queueManager = new QueueManager(this, clickableMessageService);
         VoteManager voteManager = new VoteManager(this);
@@ -182,12 +177,8 @@ public final class RaidRiotPlugin extends JavaPlugin {
         instance = null;
     }
 
-    public RaidRiotConfig getRaidRiotConfig() {
-        return raidRiotConfig;
-    }
-
-    public MessageService getMessages() {
-        return messages;
+    public ConfigManager getConfigManager() {
+        return configManager;
     }
 
     public FactionsBridge getFactionsBridge() {

@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.vote;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.ui.RaidRiotGui;
@@ -49,7 +50,7 @@ public final class VoteManager {
         this.match = match;
         this.baseVotes.clear();
         this.kitVotes.clear();
-        this.endMs = System.currentTimeMillis() + plugin.getRaidRiotConfig().getVoteDurationSeconds() * 1000L;
+        this.endMs = System.currentTimeMillis() + ConfigManager.get().getVoteDurationSeconds() * 1000L;
         match.setState(com.kartersanamo.raidriot.match.MatchState.VOTING);
 
         for (UUID id : match.getParticipants()) {
@@ -67,7 +68,7 @@ public final class VoteManager {
             public void run() {
                 finishVote();
             }
-        }, plugin.getRaidRiotConfig().getVoteDurationSeconds() * 20L);
+        }, ConfigManager.get().getVoteDurationSeconds() * 20L);
     }
 
     public void castBaseVote(Player player, BaseVoteOption option) {

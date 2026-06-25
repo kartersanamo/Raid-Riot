@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.world;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.arena.CuboidRegion;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.match.RaidMatch;
@@ -35,7 +36,7 @@ public final class EventWorldBorderService {
             return;
         }
 
-        int padding = plugin.getRaidRiotConfig().getWorldBorderPaddingBlocks();
+        int padding = ConfigManager.get().getWorldBorderPaddingBlocks();
         int minX = Math.min(boundsA.getMinX(), boundsB.getMinX()) - padding;
         int maxX = Math.max(boundsA.getMaxX(), boundsB.getMaxX()) + padding;
         int minZ = Math.min(boundsA.getMinZ(), boundsB.getMinZ()) - padding;
