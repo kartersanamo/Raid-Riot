@@ -92,7 +92,7 @@ public final class SpawnLocationResolver {
                             || z < bounds.getMinZ() || z > bounds.getMaxZ()) {
                         continue;
                     }
-                    int spawnY = findSafeSpawnY(world, x, z, minY, maxY);
+                    int spawnY = findSpawnYAboveBaseTop(world, x, z, minY, maxY);
                     if (spawnY >= 0) {
                         return new int[]{x, spawnY, z};
                     }
@@ -118,23 +118,22 @@ public final class SpawnLocationResolver {
         return (bounds.getMinZ() + bounds.getMaxZ()) / 2;
     }
 
-    private static int findSafeSpawnY(World world, int x, int z, int minY, int maxY) {
+    /** Feet Y one block above the highest solid block in this column within the base bounds. */
+    private static int findSpawnYAboveBaseTop(World world, int x, int z, int minY, int maxY) {
+        int topSolid = -1;
         for (int y = minY; y <= maxY; y++) {
-            if (hasStandingSpace(world, x, y, z)) {
-                return y;
+            if (isSolid(world.getBlockAt(x, y, z))) {
+                topSolid = y;
             }
         }
-        return -1;
-    }
-
-    private static boolean hasStandingSpace(World world, int x, int feetY, int z) {
-        if (feetY < 0 || feetY > 254) {
-            return false;
+        if (topSolid < 0 || topSolid >= 255) {
+            return -1;
         }
-        Block feet = world.getBlockAt(x, feetY, z);
-        Block head = world.getBlockAt(x, feetY + 1, z);
-        Block ground = world.getBlockAt(x, feetY - 1, z);
-        return !isSolid(feet) && !isSolid(head) && isSolid(ground);
+        int feetY = topSolid + 1;
+        if (isSolid(world.getBlockAt(x, feetY, z))) {
+            return -1;
+        }
+        return feetY;
     }
 
     private static boolean isSolid(Block block) {
