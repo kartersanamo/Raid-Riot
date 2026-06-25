@@ -42,18 +42,25 @@ public final class BasePlacementPipeline {
                 jobA = service.beginTeamPlacement(match, voteWinner, TeamSide.A);
                 jobB = service.beginTeamPlacement(match, voteWinner, TeamSide.B);
             }
+            TerrainBudget budgetA = budget.half();
+            TerrainBudget budgetB = budget.half();
+            boolean blocked = false;
             if (!jobAComplete) {
-                if (!jobA.tick(budget)) {
-                    return false;
+                if (!jobA.tick(budgetA)) {
+                    blocked = true;
+                } else {
+                    jobAComplete = true;
                 }
-                jobAComplete = true;
-                return false;
             }
             if (!jobBComplete) {
-                if (!jobB.tick(budget)) {
-                    return false;
+                if (!jobB.tick(budgetB)) {
+                    blocked = true;
+                } else {
+                    jobBComplete = true;
                 }
-                jobBComplete = true;
+            }
+            if (blocked) {
+                return false;
             }
             if (!postProcessed) {
                 service.finalizePlacement(match);

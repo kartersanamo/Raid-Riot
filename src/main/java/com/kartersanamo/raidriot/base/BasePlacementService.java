@@ -187,12 +187,16 @@ public final class BasePlacementService {
             originY = -analysis.lowestNonAirY;
 
             int padding = ConfigManager.get().getArenaPrepSnapshotYPadding();
-            int snapshotMinY = Math.max(0, originY - padding);
-            int snapshotMaxY = Math.min(255, originY + analysis.highestNonAirY + padding);
-            snapshotJob = new RegionChunkSnapshotJob(worldResetService, eventWorld,
-                    originX, originX + analysis.width,
-                    originZ, originZ + analysis.length,
-                    snapshotMinY, snapshotMaxY);
+            if (ConfigManager.get().isArenaPrepAssumeEmptyTerrain()) {
+                snapshotJob = null;
+            } else {
+                int snapshotMinY = Math.max(0, originY - padding);
+                int snapshotMaxY = Math.min(255, originY + analysis.highestNonAirY + padding);
+                snapshotJob = new RegionChunkSnapshotJob(worldResetService, eventWorld,
+                        originX, originX + analysis.width,
+                        originZ, originZ + analysis.length,
+                        snapshotMinY, snapshotMaxY);
+            }
             pasteJob = SchematicPasteJob.fromClipboard(eventWorld, clipboard, originX, originY, originZ);
         }
 
@@ -256,6 +260,9 @@ public final class BasePlacementService {
             analysis.ensureAnchorChunkClaimed(eventWorld.getName(), originX, originZ,
                     anchorOffset[0], anchorOffset[2], claimChunks);
             eventFactionService.claimBaseChunksForTeam(match, side, claimChunks);
+            if (ConfigManager.get().isArenaPrepAssumeEmptyTerrain()) {
+                worldResetService.registerClearOnRestore(base.getBounds());
+            }
         }
 
         private void finalizeFactionScan(SolidRegionScanner.Result solid) throws Exception {

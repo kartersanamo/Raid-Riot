@@ -112,7 +112,7 @@ public final class QueueManager {
         if (size < 2) {
             Map<String, String> vars = new HashMap<>();
             vars.put("count", String.valueOf(size));
-            cancelQueue(ConfigManager.get().formatMessage("queue.cancel-forcestart-not-enough", vars));
+            cancelQueue(ConfigManager.get().formatMessageBody("queue.cancel-forcestart-not-enough", vars));
             return ForceStartResult.CANCELLED;
         }
         session.setForceStart(true);
@@ -245,7 +245,7 @@ public final class QueueManager {
                         && countOnFaction(session.getFactionBRef()) >= perTeam) {
                     lockQueue();
                 } else {
-                    cancelQueue(ConfigManager.get("messages.queue.cancel-factions-not-ready"));
+                    cancelQueue(ConfigManager.get().formatMessageBody("queue.cancel-factions-not-ready", new HashMap<>()));
                 }
             } else if (session.size() >= ConfigManager.get().getMaxPlayers()) {
                 lockQueue();
@@ -253,7 +253,7 @@ public final class QueueManager {
                 Map<String, String> vars = new HashMap<>();
                 vars.put("count", String.valueOf(session.size()));
                 vars.put("max", String.valueOf(ConfigManager.get().getMaxPlayers()));
-                cancelQueue(ConfigManager.get().formatMessage("queue.cancel-not-enough-players", vars));
+                cancelQueue(ConfigManager.get().formatMessageBody("queue.cancel-not-enough-players", vars));
             }
             return;
         }

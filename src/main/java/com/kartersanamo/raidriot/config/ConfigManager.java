@@ -77,7 +77,8 @@ public final class ConfigManager {
     private int terrainScanColumnsPerTick = 32;
     private boolean spectatorsEnabled = true;
     private int arenaPrepCountdownDelayTicks = 40;
-    private int arenaPrepBlocksPerTick = 2048;
+    private boolean arenaPrepAssumeEmptyTerrain = true;
+    private int arenaPrepBlocksPerTick = 8192;
     private int arenaPrepChunkSnapshotsPerTick = 4;
     private int arenaPrepScanColumnsPerTick = 64;
     private int arenaPrepSnapshotYPadding = 2;
@@ -184,7 +185,8 @@ public final class ConfigManager {
         terrainScanColumnsPerTick = config.getInt("world-restore.scan-columns-per-tick", 32);
         spectatorsEnabled = config.getBoolean("spectators.enabled", true);
         arenaPrepCountdownDelayTicks = config.getInt("arena-prep.countdown-delay-ticks", 40);
-        arenaPrepBlocksPerTick = config.getInt("arena-prep.blocks-per-tick", 2048);
+        arenaPrepAssumeEmptyTerrain = config.getBoolean("arena-prep.assume-empty-terrain", true);
+        arenaPrepBlocksPerTick = config.getInt("arena-prep.blocks-per-tick", 8192);
         arenaPrepChunkSnapshotsPerTick = config.getInt("arena-prep.chunk-snapshots-per-tick", 4);
         arenaPrepScanColumnsPerTick = config.getInt("arena-prep.scan-columns-per-tick", 64);
         arenaPrepSnapshotYPadding = config.getInt("arena-prep.snapshot-y-padding", 2);
@@ -276,6 +278,20 @@ public final class ConfigManager {
         return formatRaw(resolveString(path, key), vars);
     }
 
+    /** Formats a message for embedding in {reason} or other nested fields (no prefix). */
+    public String formatMessageBody(String key, Map<String, String> vars) {
+        String path = messagePath(key);
+        String raw = resolveString(path, key);
+        if (raw == null) {
+            raw = key;
+        }
+        return formatRaw(raw.replace("{prefix}", ""), vars);
+    }
+
+    public String formatMessageBody(String key) {
+        return formatMessageBody(key, new HashMap<>());
+    }
+
     public String formatGui(String key, Map<String, String> vars) {
         return formatRaw(resolveString("gui." + key, key), vars);
     }
@@ -313,7 +329,32 @@ public final class ConfigManager {
         if (isBlank(message)) {
             return;
         }
-        sender.sendMessage(ensurePrefix(colorize("&c" + message)));
+        String resolved;
+        if (message.contains("{prefix}")) {
+            resolved = formatRaw(message, new HashMap<>());
+        } else if (message.contains("&")) {
+            resolved = colorize(message);
+        } else {
+            resolved = colorize("&c" + message);
+        }
+        sender.sendMessage(ensurePrefix(resolved));
+    }
+
+    public String stripMessagePrefix(String message) {
+        if (isBlank(message)) {
+            return "";
+        }
+        String resolved = message.contains("{prefix}")
+                ? formatRaw(message, new HashMap<>())
+                : colorize(message);
+        String prefix = colorize(resolveString("messages.prefix", ""));
+        if (isBlank(prefix) || resolved.length() < prefix.length()) {
+            return resolved;
+        }
+        if (ChatColor.stripColor(resolved).startsWith(ChatColor.stripColor(prefix))) {
+            return resolved.substring(prefix.length()).trim();
+        }
+        return resolved;
     }
 
     public void broadcast(String key, Map<String, String> vars) {
@@ -592,6 +633,10 @@ public final class ConfigManager {
 
     public int getArenaPrepCountdownDelayTicks() {
         return arenaPrepCountdownDelayTicks;
+    }
+
+    public boolean isArenaPrepAssumeEmptyTerrain() {
+        return arenaPrepAssumeEmptyTerrain;
     }
 
     public int getArenaPrepBlocksPerTick() {

@@ -67,7 +67,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private BukkitTask guiRefreshTask;
     private BukkitTask pendingRestoreTask;
     private BukkitTask waitingForArenaTask;
-    private long lastArenaWaitBroadcastMs;
+    private boolean arenaWaitMessageSent;
     private final List<BukkitTask> countdownTasks = new ArrayList<>();
     private final Map<UUID, Long> pendingLeaveConfirmMs = new ConcurrentHashMap<>();
     private static final long LEAVE_CONFIRM_WINDOW_MS = 30_000L;
@@ -284,7 +284,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             }
         }
         Map<String, String> vars = new HashMap<>();
-        vars.put("reason", reason);
+        vars.put("reason", ConfigManager.get().stripMessagePrefix(reason));
         ConfigManager.get().broadcast("queue.cancelled", vars);
         activeMatch = null;
     }
@@ -662,6 +662,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     private void beginCountdown(final RaidMatch match) {
         cancelCountdownTasks();
+        arenaWaitMessageSent = false;
         match.setState(MatchState.COUNTDOWN);
         final int countdown = ConfigManager.get().getCountdownSeconds();
         match.setCountdownEndMs(System.currentTimeMillis() + countdown * 1000L);
@@ -689,10 +690,9 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             return;
         }
         if (!match.areBasesReady() || matchPreparer.isRunning()) {
-            long now = System.currentTimeMillis();
-            if (lastArenaWaitBroadcastMs == 0L || now - lastArenaWaitBroadcastMs >= 3000L) {
+            if (!arenaWaitMessageSent) {
                 ConfigManager.get().broadcast("match.waiting-for-arena", new HashMap<>());
-                lastArenaWaitBroadcastMs = now;
+                arenaWaitMessageSent = true;
             }
             cancelWaitingForArenaTask();
             waitingForArenaTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -702,7 +702,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             return;
         }
         cancelWaitingForArenaTask();
-        lastArenaWaitBroadcastMs = 0L;
+        arenaWaitMessageSent = false;
         loadParticipantSpawnChunks(match);
         activateMatch(match);
     }
@@ -834,7 +834,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             throw new IllegalStateException(ConfigManager.get("messages.admin.no-queue-to-stop"));
         }
         queueManager.cancelQueue(reason == null || reason.isEmpty()
-                ? ConfigManager.get("messages.admin.default-queue-stop-reason")
+                ? ConfigManager.get().formatMessageBody("admin.default-queue-stop-reason")
                 : reason);
     }
 
@@ -860,7 +860,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     public synchronized void adminStopMatch(AdminStopChoice choice, String reason) {
         String stopReason = reason == null || reason.isEmpty()
-                ? ConfigManager.get("messages.match.default-stop-reason")
+                ? ConfigManager.get().formatMessageBody("match.default-stop-reason")
                 : reason;
         if (queueManager.isOpen() && activeMatch != null && activeMatch.getState() == MatchState.QUEUE_OPEN) {
             stopQueue(stopReason);

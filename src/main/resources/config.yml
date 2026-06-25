@@ -17,8 +17,9 @@ world-restore:
   scan-columns-per-tick: 32
 
 arena-prep:
-  # One team per tick; keep low on 1.8.8 to avoid world-tick crashes
-  blocks-per-tick: 2048
+  # Dedicated event world is flat/empty before each paste — skip slow chunk snapshots
+  assume-empty-terrain: true
+  blocks-per-tick: 8192
   chunk-snapshots-per-tick: 4
   scan-columns-per-tick: 64
   snapshot-y-padding: 2
@@ -111,7 +112,7 @@ messages:
   match:
     preparing: "{prefix}&7Preparing arena..."
     countdown: "{prefix}&7The event is starting in &f{seconds} &7seconds..."
-    waiting-for-arena: "{prefix}&eWaiting for base generation..."
+    waiting-for-arena: "{prefix}&7Waiting for base generation..."
     started: "{prefix}&7Raid Riot has begun! &7{teamA} &fvs &7{teamB}"
     ended-breach: "{prefix}&7{winner} &7breached &c{loser}&7 in &e{time}&7!"
     ended-depth: "{prefix}&7{winner} &7won with depth &e{depth}&7 vs &c{otherDepth}&7!"
@@ -120,8 +121,8 @@ messages:
     forfeit: "{prefix}&6{winner} &fwins — the entire opposing team has left."
     timer-warning: "{prefix}&c{minutes}:{seconds} &7remaining!"
     terrain-restoring: "{prefix}&cPrevious event terrain is still restoring."
-    already-active: "{prefix}&cA Raid Riot session is already active."
-    default-stop-reason: "{prefix}&7Stopped by admin."
+    already-active: "&cA Raid Riot session is already active."
+    default-stop-reason: "&7Stopped by admin."
 
   join:
     no-match: "{prefix}&cNo Raid Riot queue is open right now."
@@ -190,7 +191,7 @@ messages:
     base-set: "{prefix}&7Set &e{option} &7to &f{file}&7."
     base-cleared: "{prefix}&7Cleared &e{option}&7."
     kit-save-failed: "{prefix}&cCould not save kit: {error}"
-    default-queue-stop-reason: "{prefix}&7Queue cancelled by admin."
+    default-queue-stop-reason: "&7Queue cancelled by admin."
     queue-stopped: "{prefix}&7Queue cancelled."
     no-queue-to-stop: "{prefix}&cNo queue is open to cancel."
     no-session-to-stop: "{prefix}&cNo active Raid Riot session to stop."

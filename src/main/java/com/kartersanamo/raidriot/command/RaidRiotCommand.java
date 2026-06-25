@@ -275,7 +275,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             ConfigManager.get().send(sender, "command.no-permission");
             return true;
         }
-        String defaultReason = ConfigManager.get("messages.match.default-stop-reason");
+        String defaultReason = ConfigManager.get().formatMessageBody("match.default-stop-reason");
         if (args.length == 2) {
             if (sender instanceof Player && plugin.getEventManager().hasTeamsAssigned()) {
                 plugin.getAdminGuiService().openWinnerPicker((Player) sender);
@@ -299,7 +299,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         }
         String reason = args.length >= 3
                 ? joinArgs(args, 2)
-                : ConfigManager.get("messages.admin.default-queue-stop-reason");
+                : ConfigManager.get().formatMessageBody("admin.default-queue-stop-reason");
         try {
             plugin.getEventManager().stopQueue(reason);
             ConfigManager.get().send(sender, "admin.queue-stopped");

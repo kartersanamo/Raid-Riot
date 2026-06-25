@@ -7,13 +7,17 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+
+import com.kartersanamo.raidriot.arena.CuboidRegion;
 
 public final class WorldResetService {
 
     private final Map<Long, ChunkSnapshot> initialSnapshots = new HashMap<>();
     private final Map<BlockKey, BlockStateSnapshot> blockDeltas = new HashMap<>();
+    private final List<CuboidRegion> clearOnRestore = new ArrayList<>();
     private String activeWorld;
 
     private List<Map.Entry<BlockKey, BlockStateSnapshot>> pendingDeltas;
@@ -22,18 +26,32 @@ public final class WorldResetService {
     private Iterator<ChunkSnapshot> chunkIterator;
     private ChunkSnapshot currentChunk;
 
+    private Iterator<CuboidRegion> clearRegionIterator;
+    private CuboidRegion currentClearRegion;
+    private int clearX;
+    private int clearY;
+    private int clearZ;
+
     public void beginSession(String worldName) {
         activeWorld = worldName;
         initialSnapshots.clear();
         blockDeltas.clear();
+        clearOnRestore.clear();
         cancelRestore();
     }
 
     public void endSession() {
         initialSnapshots.clear();
         blockDeltas.clear();
+        clearOnRestore.clear();
         cancelRestore();
         activeWorld = null;
+    }
+
+    public void registerClearOnRestore(CuboidRegion region) {
+        if (region != null) {
+            clearOnRestore.add(region);
+        }
     }
 
     public void snapshotBeforeChange(Location loc) {
@@ -109,6 +127,8 @@ public final class WorldResetService {
         deltaIterator = pendingDeltas.iterator();
         chunkIterator = pendingChunks.iterator();
         currentChunk = null;
+        clearRegionIterator = clearOnRestore.isEmpty() ? null : clearOnRestore.iterator();
+        currentClearRegion = null;
     }
 
     public void restoreNextBatch(int blocksPerTick, int chunksPerTick) {
@@ -136,6 +156,8 @@ public final class WorldResetService {
                 break;
             }
         }
+
+        restoreClearBatch(blocksBudget);
     }
 
     public boolean isRestoreComplete() {
@@ -148,12 +170,19 @@ public final class WorldResetService {
         if (currentChunk != null && !currentChunk.isFullyRestored()) {
             return false;
         }
-        return chunkIterator == null || !chunkIterator.hasNext();
+        if (chunkIterator != null && chunkIterator.hasNext()) {
+            return false;
+        }
+        if (currentClearRegion != null) {
+            return false;
+        }
+        return clearRegionIterator == null || !clearRegionIterator.hasNext();
     }
 
     public void finishRestore() {
         initialSnapshots.clear();
         blockDeltas.clear();
+        clearOnRestore.clear();
         cancelRestore();
     }
 
@@ -163,10 +192,54 @@ public final class WorldResetService {
         deltaIterator = null;
         chunkIterator = null;
         currentChunk = null;
+        clearRegionIterator = null;
+        currentClearRegion = null;
     }
 
     public int getSnapshotCount() {
         return initialSnapshots.size() + blockDeltas.size();
+    }
+
+    private void restoreClearBatch(int blocksBudget) {
+        while (blocksBudget > 0) {
+            if (currentClearRegion == null) {
+                if (clearRegionIterator == null || !clearRegionIterator.hasNext()) {
+                    return;
+                }
+                currentClearRegion = clearRegionIterator.next();
+                clearX = currentClearRegion.getMinX();
+                clearY = currentClearRegion.getMinY();
+                clearZ = currentClearRegion.getMinZ();
+            }
+            World world = org.bukkit.Bukkit.getWorld(currentClearRegion.getWorldName());
+            if (world == null) {
+                currentClearRegion = null;
+                continue;
+            }
+            Block block = world.getBlockAt(clearX, clearY, clearZ);
+            if (block.getType() != Material.AIR) {
+                block.setType(Material.AIR, false);
+            }
+            blocksBudget--;
+            if (!advanceClearPosition()) {
+                currentClearRegion = null;
+            }
+        }
+    }
+
+    private boolean advanceClearPosition() {
+        clearZ++;
+        if (clearZ <= currentClearRegion.getMaxZ()) {
+            return true;
+        }
+        clearZ = currentClearRegion.getMinZ();
+        clearY++;
+        if (clearY <= currentClearRegion.getMaxY()) {
+            return true;
+        }
+        clearY = currentClearRegion.getMinY();
+        clearX++;
+        return clearX <= currentClearRegion.getMaxX();
     }
 
     private void restoreDelta(BlockKey key, BlockStateSnapshot state) {

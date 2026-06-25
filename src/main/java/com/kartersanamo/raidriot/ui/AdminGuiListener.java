@@ -206,7 +206,7 @@ public final class AdminGuiListener implements Listener {
             ConfigManager.get().send(player, "command.no-permission");
             return;
         }
-        String reason = ConfigManager.get("messages.match.default-stop-reason");
+        String reason = ConfigManager.get().formatMessageBody("match.default-stop-reason");
         switch (slot) {
             case RaidRiotAdminGui.SLOT_WINNER_A:
                 tryAdminStop(player, AdminStopChoice.TEAM_A, reason);
@@ -263,7 +263,7 @@ public final class AdminGuiListener implements Listener {
 
     private void tryStopQueue(Player player) {
         try {
-            plugin.getEventManager().stopQueue(ConfigManager.get("messages.admin.default-queue-stop-reason"));
+            plugin.getEventManager().stopQueue(ConfigManager.get().formatMessageBody("admin.default-queue-stop-reason"));
             ConfigManager.get().send(player, "admin.queue-stopped");
             adminGuiService.refreshOpenHubs();
         } catch (Exception ex) {

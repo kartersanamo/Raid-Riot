@@ -1,11 +1,14 @@
 package com.kartersanamo.raidriot.world;
 
 import com.sk89q.worldedit.CuboidClipboard;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.blocks.BaseBlock;
-import org.bukkit.Material;
+
 import org.bukkit.World;
-import org.bukkit.block.Block;
+
+import java.io.IOException;
 
 public final class SchematicPasteJob {
 
@@ -18,6 +21,7 @@ public final class SchematicPasteJob {
     private final int height;
     private final int length;
 
+    private EditSession session;
     private int indexX;
     private int indexY;
     private int indexZ;
@@ -39,9 +43,12 @@ public final class SchematicPasteJob {
         return new SchematicPasteJob(world, clipboard, originX, originY, originZ);
     }
 
-    public int pasteBatch(int maxBlocks) {
+    public int pasteBatch(int maxBlocks) throws IOException, MaxChangedBlocksException {
         if (maxBlocks <= 0) {
             return 0;
+        }
+        if (session == null) {
+            session = SchematicBlockPlacer.createSession(world);
         }
         started = true;
         int pasted = 0;
@@ -54,16 +61,12 @@ public final class SchematicPasteJob {
                 continue;
             }
             if (block != null && !block.isAir()) {
-                Material material = Material.getMaterial(block.getId());
-                if (material != null) {
-                    Block worldBlock = world.getBlockAt(originX + indexX, originY + indexY, originZ + indexZ);
-                    worldBlock.setType(material, false);
-                    worldBlock.setData((byte) block.getData(), false);
-                    pasted++;
-                }
+                session.setBlock(new Vector(originX + indexX, originY + indexY, originZ + indexZ), block);
+                pasted++;
             }
             advance();
         }
+        session.flushQueue();
         return pasted;
     }
 
