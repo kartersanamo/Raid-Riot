@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.listener;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.faction.EventTeamAccessService;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -17,9 +18,11 @@ import org.bukkit.event.player.PlayerPickupItemEvent;
 public final class SpectatorRestrictionListener implements Listener {
 
     private final RaidRiotPlugin plugin;
+    private final EventTeamAccessService teamAccessService;
 
-    public SpectatorRestrictionListener(RaidRiotPlugin plugin) {
+    public SpectatorRestrictionListener(RaidRiotPlugin plugin, EventTeamAccessService teamAccessService) {
         this.plugin = plugin;
+        this.teamAccessService = teamAccessService;
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
@@ -79,6 +82,9 @@ public final class SpectatorRestrictionListener implements Listener {
             return false;
         }
         RaidMatch match = plugin.getEventManager().getActiveMatch();
-        return match != null && match.isActive() && match.isInEventWorld(player.getLocation());
+        if (match == null || !match.isActive() || !match.isInEventWorld(player.getLocation())) {
+            return false;
+        }
+        return !teamAccessService.bypassesEventRestrictions(player, match);
     }
 }

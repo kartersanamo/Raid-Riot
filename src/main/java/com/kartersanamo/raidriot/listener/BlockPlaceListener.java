@@ -38,7 +38,8 @@ public final class BlockPlaceListener implements Listener {
         if (event.isCancelled()) {
             return;
         }
-        if (!match.isParticipant(event.getPlayer())) {
+        if (!match.isParticipant(event.getPlayer())
+                && !teamAccessService.bypassesEventRestrictions(event.getPlayer(), match)) {
             if (plugin.getSpectatorService().isSpectating(event.getPlayer().getUniqueId())
                     && match.isInEventWorld(event.getBlock().getLocation())) {
                 event.setCancelled(true);
@@ -51,8 +52,7 @@ public final class BlockPlaceListener implements Listener {
                 return;
             }
         }
-        if (match.isParticipant(event.getPlayer())
-                && teamAccessService.isEnemyClaim(match, event.getPlayer(), event.getBlock().getLocation())) {
+        if (teamAccessService.isEnemyClaim(match, event.getPlayer(), event.getBlock().getLocation())) {
             event.setCancelled(true);
             return;
         }
@@ -64,7 +64,7 @@ public final class BlockPlaceListener implements Listener {
     }
 
     private void restoreTeamBuildAccess(BlockPlaceEvent event, RaidMatch match, org.bukkit.Location location) {
-        if (!event.isCancelled() || !match.isParticipant(event.getPlayer())) {
+        if (!event.isCancelled()) {
             return;
         }
         if (teamAccessService.canModify(event.getPlayer(), match, location)) {

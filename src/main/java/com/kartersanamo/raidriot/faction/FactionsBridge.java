@@ -395,6 +395,17 @@ public final class FactionsBridge {
         return (Boolean) fPlayerIsAdminBypassing.invoke(fp);
     }
 
+    public boolean hasAdminBypass(Player player) {
+        if (!canControlBypass() || player == null) {
+            return false;
+        }
+        try {
+            return isAdminBypassing(player);
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
     public void setAdminBypassing(Player player, boolean bypassing) throws Exception {
         Object fp = getFPlayer(player);
         if (fp == null) {

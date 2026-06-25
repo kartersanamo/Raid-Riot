@@ -8,10 +8,16 @@ import com.kartersanamo.raidriot.match.RaidMatch;
 
 public final class NakedPatchEnforcer {
 
+    private final RaidRiotPlugin plugin;
+
     public NakedPatchEnforcer(RaidRiotPlugin plugin) {
+        this.plugin = plugin;
     }
 
     public boolean mustCancelPatch(Player player, RaidMatch match) {
+        if (plugin.getEventTeamAccessService().bypassesEventRestrictions(player, match)) {
+            return false;
+        }
         if (match == null || !match.isActive() || !match.isParticipant(player)) {
             return false;
         }

@@ -16,11 +16,31 @@ public final class EventTeamAccessService {
         this.eventFactionService = eventFactionService;
     }
 
+    public boolean hasFactionAdminBypass(Player player) {
+        return plugin.getFactionsBridge().hasAdminBypass(player);
+    }
+
+    public boolean bypassesEventRestrictions(Player player, RaidMatch match) {
+        if (player == null || match == null || !match.isActive()) {
+            return false;
+        }
+        if (player.getWorld() == null || !match.isInEventWorld(player.getLocation())) {
+            return false;
+        }
+        return hasFactionAdminBypass(player);
+    }
+
     public boolean canModify(Player player, RaidMatch match, Location location) {
-        if (match == null || !match.isParticipant(player) || location.getWorld() == null) {
+        if (match == null || location == null || location.getWorld() == null) {
             return false;
         }
         if (!match.isInEventWorld(location)) {
+            return false;
+        }
+        if (bypassesEventRestrictions(player, match)) {
+            return true;
+        }
+        if (!match.isParticipant(player)) {
             return false;
         }
         try {
@@ -39,7 +59,13 @@ public final class EventTeamAccessService {
     }
 
     public boolean isEnemyClaim(RaidMatch match, Player player, Location location) {
-        if (match == null || !match.isParticipant(player)) {
+        if (match == null || location == null) {
+            return false;
+        }
+        if (bypassesEventRestrictions(player, match)) {
+            return false;
+        }
+        if (!match.isParticipant(player)) {
             return false;
         }
         try {

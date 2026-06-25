@@ -42,8 +42,7 @@ public final class BlockBreakListener implements Listener {
             lockNotifier.notifyLocked(event.getPlayer(), "raid.locked-block-change");
             return;
         }
-        if (match.isParticipant(event.getPlayer())
-                && teamAccessService.isEnemyClaim(match, event.getPlayer(), event.getBlock().getLocation())) {
+        if (teamAccessService.isEnemyClaim(match, event.getPlayer(), event.getBlock().getLocation())) {
             event.setCancelled(true);
             return;
         }
@@ -55,6 +54,9 @@ public final class BlockBreakListener implements Listener {
     }
 
     private boolean shouldLockNonParticipant(RaidMatch match, org.bukkit.entity.Player player) {
+        if (teamAccessService.bypassesEventRestrictions(player, match)) {
+            return false;
+        }
         if (match.isParticipant(player)) {
             return false;
         }
@@ -65,7 +67,7 @@ public final class BlockBreakListener implements Listener {
     }
 
     private void restoreTeamBuildAccess(BlockBreakEvent event, RaidMatch match, org.bukkit.Location location) {
-        if (!event.isCancelled() || !match.isParticipant(event.getPlayer())) {
+        if (!event.isCancelled()) {
             return;
         }
         if (teamAccessService.canModify(event.getPlayer(), match, location)) {

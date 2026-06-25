@@ -4,6 +4,7 @@ import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.faction.EventFactionService;
+import com.kartersanamo.raidriot.faction.EventTeamAccessService;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.world.ChunkKey;
 import org.bukkit.Chunk;
@@ -22,15 +23,21 @@ public final class FactionCommandListener implements Listener {
 
     private final RaidRiotPlugin plugin;
     private final EventFactionService eventFactionService;
+    private final EventTeamAccessService teamAccessService;
 
-    public FactionCommandListener(RaidRiotPlugin plugin, EventFactionService eventFactionService) {
+    public FactionCommandListener(RaidRiotPlugin plugin, EventFactionService eventFactionService,
+            EventTeamAccessService teamAccessService) {
         this.plugin = plugin;
         this.eventFactionService = eventFactionService;
+        this.teamAccessService = teamAccessService;
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onCommand(PlayerCommandPreprocessEvent event) {
-        if (plugin.getSpectatorService().isSpectating(event.getPlayer().getUniqueId())) {
+        Player player = event.getPlayer();
+        RaidMatch match = plugin.getEventManager().getActiveMatch();
+        if (plugin.getSpectatorService().isSpectating(player.getUniqueId())
+                && !teamAccessService.bypassesEventRestrictions(player, match)) {
             event.setCancelled(true);
             return;
         }
@@ -47,10 +54,7 @@ public final class FactionCommandListener implements Listener {
     private void handleClaim(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
         RaidMatch match = plugin.getEventManager().getActiveMatch();
-        if (match == null || !match.isActive() || !match.isParticipant(player)) {
-            return;
-        }
-        if (!match.isInEventWorld(player.getLocation())) {
+        if (!canManageEventClaims(player, match)) {
             return;
         }
         event.setCancelled(true);
@@ -79,10 +83,7 @@ public final class FactionCommandListener implements Listener {
     private void handleUnclaim(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
         RaidMatch match = plugin.getEventManager().getActiveMatch();
-        if (match == null || !match.isActive() || !match.isParticipant(player)) {
-            return;
-        }
-        if (!match.isInEventWorld(player.getLocation())) {
+        if (!canManageEventClaims(player, match)) {
             return;
         }
         if (isUnclaimAllCommand(event.getMessage())) {
@@ -108,6 +109,16 @@ public final class FactionCommandListener implements Listener {
             ConfigManager.get().send(player, "faction.unclaim-failed");
             plugin.getLogger().warning("Event unclaim failed for " + player.getName() + ": " + ex.getMessage());
         }
+    }
+
+    private boolean canManageEventClaims(Player player, RaidMatch match) {
+        if (match == null || !match.isActive() || !match.isInEventWorld(player.getLocation())) {
+            return false;
+        }
+        if (teamAccessService.bypassesEventRestrictions(player, match)) {
+            return true;
+        }
+        return match.isParticipant(player);
     }
 
     private static Map<String, String> claimMessageVars(RaidMatch match, TeamSide side, Player player, Chunk chunk) {

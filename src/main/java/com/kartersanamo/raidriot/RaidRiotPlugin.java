@@ -165,9 +165,9 @@ public final class RaidRiotPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new DeathListener(this), this);
         Bukkit.getPluginManager().registerEvents(new VirtualCombatListener(this, virtualDeathService), this);
         Bukkit.getPluginManager().registerEvents(new EventFactionAccessListener(this, eventTeamAccessService), this);
-        Bukkit.getPluginManager().registerEvents(new FactionCommandListener(this, eventFactionService), this);
+        Bukkit.getPluginManager().registerEvents(new FactionCommandListener(this, eventFactionService, eventTeamAccessService), this);
         Bukkit.getPluginManager().registerEvents(new MatchParticipantListener(this), this);
-        Bukkit.getPluginManager().registerEvents(new SpectatorRestrictionListener(this), this);
+        Bukkit.getPluginManager().registerEvents(new SpectatorRestrictionListener(this, eventTeamAccessService), this);
         Bukkit.getPluginManager().registerEvents(new RaidRiotGuiListener(this, guiService), this);
         Bukkit.getPluginManager().registerEvents(new AdminGuiListener(this, adminGuiService), this);
         Bukkit.getPluginManager().registerEvents(new EventItemListener(this, eventItemService), this);
