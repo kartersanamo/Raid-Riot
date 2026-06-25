@@ -10,12 +10,12 @@ import java.util.logging.Logger;
 
 /**
  * Persists Raid Riot event-item metadata in NMS NBT (Spigot 1.8.x).
+ * Uses flat string tags on the item root compound: event UUID + allowed world.
  */
 final class EventItemNbt {
 
-    static final String COMPOUND_KEY = "RaidRiot";
-    private static final String ID_KEY = "id";
-    private static final String WORLD_KEY = "world";
+    private static final String ID_KEY = "RaidRiotEventId";
+    private static final String WORLD_KEY = "RaidRiotEventWorld";
 
     private static final boolean AVAILABLE;
     private static final Method AS_NMS_COPY;
@@ -24,9 +24,7 @@ final class EventItemNbt {
     private static final Method GET_TAG;
     private static final Method SET_TAG;
     private static final Method COMPOUND_HAS_KEY;
-    private static final Method COMPOUND_GET_COMPOUND;
     private static final Method COMPOUND_SET_STRING;
-    private static final Method COMPOUND_SET;
     private static final Method COMPOUND_REMOVE;
     private static final Method COMPOUND_GET_STRING;
     private static final Class<?> NBT_COMPOUND_CLASS;
@@ -38,9 +36,7 @@ final class EventItemNbt {
         Method getTag = null;
         Method setTag = null;
         Method compoundHasKey = null;
-        Method compoundGetCompound = null;
         Method compoundSetString = null;
-        Method compoundSet = null;
         Method compoundRemove = null;
         Method compoundGetString = null;
         Class<?> nbtCompoundClass = null;
@@ -60,9 +56,7 @@ final class EventItemNbt {
             getTag = nmsItemStack.getMethod("getTag");
             setTag = nmsItemStack.getMethod("setTag", nbtCompoundClass);
             compoundHasKey = nbtCompoundClass.getMethod("hasKey", String.class);
-            compoundGetCompound = nbtCompoundClass.getMethod("getCompound", String.class);
             compoundSetString = nbtCompoundClass.getMethod("setString", String.class, String.class);
-            compoundSet = nbtCompoundClass.getMethod("set", String.class, nbtCompoundClass);
             compoundRemove = nbtCompoundClass.getMethod("remove", String.class);
             compoundGetString = nbtCompoundClass.getMethod("getString", String.class);
             available = true;
@@ -77,9 +71,7 @@ final class EventItemNbt {
         GET_TAG = getTag;
         SET_TAG = setTag;
         COMPOUND_HAS_KEY = compoundHasKey;
-        COMPOUND_GET_COMPOUND = compoundGetCompound;
         COMPOUND_SET_STRING = compoundSetString;
-        COMPOUND_SET = compoundSet;
         COMPOUND_REMOVE = compoundRemove;
         COMPOUND_GET_STRING = compoundGetString;
         NBT_COMPOUND_CLASS = nbtCompoundClass;
@@ -100,16 +92,10 @@ final class EventItemNbt {
         try {
             Object nms = AS_NMS_COPY.invoke(null, stack);
             Object root = readOrCreateRoot(nms);
-            Object eventTag = NBT_COMPOUND_CLASS.newInstance();
-            COMPOUND_SET_STRING.invoke(eventTag, ID_KEY, itemId.toString());
-            COMPOUND_SET_STRING.invoke(eventTag, WORLD_KEY, worldName);
-            COMPOUND_SET.invoke(root, COMPOUND_KEY, eventTag);
+            COMPOUND_SET_STRING.invoke(root, ID_KEY, itemId.toString());
+            COMPOUND_SET_STRING.invoke(root, WORLD_KEY, worldName);
             SET_TAG.invoke(nms, root);
-            ItemStack updated = (ItemStack) AS_BUKKIT_COPY.invoke(null, nms);
-            stack.setType(updated.getType());
-            stack.setAmount(updated.getAmount());
-            stack.setDurability(updated.getDurability());
-            stack.setItemMeta(updated.getItemMeta());
+            copyBack(nms, stack);
         } catch (ReflectiveOperationException ex) {
             Logger.getLogger("RaidRiot").log(Level.WARNING, "Failed to mark event item NBT", ex);
         }
@@ -125,30 +111,54 @@ final class EventItemNbt {
                 return;
             }
             Object root = GET_TAG.invoke(nms);
-            if (!(Boolean) COMPOUND_HAS_KEY.invoke(root, COMPOUND_KEY)) {
+            boolean changed = false;
+            if ((Boolean) COMPOUND_HAS_KEY.invoke(root, ID_KEY)) {
+                COMPOUND_REMOVE.invoke(root, ID_KEY);
+                changed = true;
+            }
+            if ((Boolean) COMPOUND_HAS_KEY.invoke(root, WORLD_KEY)) {
+                COMPOUND_REMOVE.invoke(root, WORLD_KEY);
+                changed = true;
+            }
+            if (!changed) {
                 return;
             }
-            COMPOUND_REMOVE.invoke(root, COMPOUND_KEY);
-            if (root.toString().equals("{}") || isEmptyCompound(root)) {
+            if (isEmptyCompound(root)) {
                 SET_TAG.invoke(nms, null);
             } else {
                 SET_TAG.invoke(nms, root);
             }
-            ItemStack updated = (ItemStack) AS_BUKKIT_COPY.invoke(null, nms);
-            stack.setType(updated.getType());
-            stack.setAmount(updated.getAmount());
-            stack.setDurability(updated.getDurability());
-            stack.setItemMeta(updated.getItemMeta());
+            copyBack(nms, stack);
         } catch (ReflectiveOperationException ex) {
             Logger.getLogger("RaidRiot").log(Level.WARNING, "Failed to unmark event item NBT", ex);
         }
     }
 
     static boolean isEventItem(ItemStack stack) {
-        return getWorldName(stack) != null;
+        return getItemId(stack) != null && getWorldName(stack) != null;
+    }
+
+    static UUID getItemId(ItemStack stack) {
+        String raw = readString(stack, ID_KEY);
+        if (raw == null || raw.isEmpty()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(raw);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     static String getWorldName(ItemStack stack) {
+        String world = readString(stack, WORLD_KEY);
+        if (world == null || world.isEmpty()) {
+            return null;
+        }
+        return getItemId(stack) == null ? null : world;
+    }
+
+    private static String readString(ItemStack stack, String key) {
         if (!AVAILABLE || stack == null) {
             return null;
         }
@@ -158,22 +168,21 @@ final class EventItemNbt {
                 return null;
             }
             Object root = GET_TAG.invoke(nms);
-            if (!(Boolean) COMPOUND_HAS_KEY.invoke(root, COMPOUND_KEY)) {
+            if (!(Boolean) COMPOUND_HAS_KEY.invoke(root, key)) {
                 return null;
             }
-            Object eventTag = COMPOUND_GET_COMPOUND.invoke(root, COMPOUND_KEY);
-            String world = (String) COMPOUND_GET_STRING.invoke(eventTag, WORLD_KEY);
-            if (world == null || world.isEmpty()) {
-                return null;
-            }
-            String id = (String) COMPOUND_GET_STRING.invoke(eventTag, ID_KEY);
-            if (id == null || id.isEmpty()) {
-                return null;
-            }
-            return world;
+            return (String) COMPOUND_GET_STRING.invoke(root, key);
         } catch (ReflectiveOperationException ex) {
             return null;
         }
+    }
+
+    private static void copyBack(Object nms, ItemStack stack) throws ReflectiveOperationException {
+        ItemStack updated = (ItemStack) AS_BUKKIT_COPY.invoke(null, nms);
+        stack.setType(updated.getType());
+        stack.setAmount(updated.getAmount());
+        stack.setDurability(updated.getDurability());
+        stack.setItemMeta(updated.getItemMeta());
     }
 
     private static Object readOrCreateRoot(Object nms) throws ReflectiveOperationException {
