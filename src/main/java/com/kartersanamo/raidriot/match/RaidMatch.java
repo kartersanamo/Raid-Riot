@@ -32,6 +32,7 @@ public final class RaidMatch {
     private final Object factionRefB;
     private final Map<TeamSide, TeamBase> teamBases = new EnumMap<>(TeamSide.class);
     private final Set<UUID> participants = new HashSet<>();
+    private final Set<UUID> departedParticipants = new HashSet<>();
     private final Map<UUID, TeamSide> participantTeams = new HashMap<>();
     private final Map<UUID, KitSnapshot> kitSnapshots = new HashMap<>();
     private final Map<UUID, PlayerStateSnapshot> preEventSnapshots = new HashMap<>();
@@ -198,8 +199,29 @@ public final class RaidMatch {
             snapshot.apply(player);
         }
         participants.remove(id);
+        departedParticipants.remove(id);
         participantTeams.remove(id);
         kitSnapshots.remove(id);
+    }
+
+    public void markDeparted(UUID id) {
+        departedParticipants.add(id);
+    }
+
+    public void rejoinParticipant(UUID id) {
+        departedParticipants.remove(id);
+    }
+
+    public boolean isEnrolled(UUID id) {
+        return participants.contains(id);
+    }
+
+    public boolean isDeparted(UUID id) {
+        return departedParticipants.contains(id);
+    }
+
+    public boolean canRejoin(UUID id) {
+        return participants.contains(id) && departedParticipants.contains(id);
     }
 
     public void snapshotKit(Player player) {
@@ -273,12 +295,27 @@ public final class RaidMatch {
         protectedBaseChunks.clear();
     }
 
-    public Set<UUID> getParticipants() {
+    public Set<UUID> getEnrolledParticipants() {
         return Collections.unmodifiableSet(participants);
     }
 
+    public Set<UUID> getParticipants() {
+        Set<UUID> active = new HashSet<>();
+        for (UUID id : participants) {
+            if (!departedParticipants.contains(id)) {
+                active.add(id);
+            }
+        }
+        return Collections.unmodifiableSet(active);
+    }
+
     public boolean isParticipant(Player player) {
-        return participants.contains(player.getUniqueId());
+        UUID id = player.getUniqueId();
+        return participants.contains(id) && !departedParticipants.contains(id);
+    }
+
+    public boolean isParticipant(UUID id) {
+        return participants.contains(id) && !departedParticipants.contains(id);
     }
 
     public TeamSide getTeamFor(Player player) {
@@ -291,8 +328,8 @@ public final class RaidMatch {
 
     public int countOnTeam(TeamSide side) {
         int count = 0;
-        for (TeamSide team : participantTeams.values()) {
-            if (team == side) {
+        for (Map.Entry<UUID, TeamSide> entry : participantTeams.entrySet()) {
+            if (entry.getValue() == side && !departedParticipants.contains(entry.getKey())) {
                 count++;
             }
         }

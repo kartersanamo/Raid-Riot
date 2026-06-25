@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -68,6 +69,8 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private BukkitTask waitingForArenaTask;
     private long lastArenaWaitBroadcastMs;
     private final List<BukkitTask> countdownTasks = new ArrayList<>();
+    private final Map<UUID, Long> pendingLeaveConfirmMs = new ConcurrentHashMap<>();
+    private static final long LEAVE_CONFIRM_WINDOW_MS = 30_000L;
 
     public EventManager(RaidRiotPlugin plugin, QueueManager queueManager, VoteManager voteManager,
             BasePlacementService basePlacementService, WorldResetService worldResetService,
@@ -218,7 +221,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         respawnQueue.cancelAll();
         virtualDeathService.cancelAll();
 
-        for (UUID id : match.getParticipants()) {
+        for (UUID id : match.getEnrolledParticipants()) {
             Player player = Bukkit.getPlayer(id);
             restorePreEventState(player, match.getPreEventSnapshot(id));
         }
@@ -384,6 +387,133 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                 restorePreEventState(player, preservedSnapshots.get(id));
             }
         }
+    }
+
+    public boolean isInEventMatch(RaidMatch match) {
+        if (match == null) {
+            return false;
+        }
+        MatchState state = match.getState();
+        return state == MatchState.QUEUE_LOCKED
+                || state == MatchState.VOTING
+                || state == MatchState.PREPARING
+                || state == MatchState.COUNTDOWN
+                || state == MatchState.ACTIVE;
+    }
+
+    public boolean canRejoinDuringState(MatchState state) {
+        return state == MatchState.QUEUE_LOCKED
+                || state == MatchState.VOTING
+                || state == MatchState.PREPARING
+                || state == MatchState.COUNTDOWN
+                || state == MatchState.ACTIVE;
+    }
+
+    public synchronized boolean confirmLeaveMatch(Player player) {
+        long now = System.currentTimeMillis();
+        UUID id = player.getUniqueId();
+        Long pending = pendingLeaveConfirmMs.get(id);
+        if (pending != null && now - pending < LEAVE_CONFIRM_WINDOW_MS) {
+            pendingLeaveConfirmMs.remove(id);
+            return true;
+        }
+        pendingLeaveConfirmMs.put(id, now);
+        return false;
+    }
+
+    public synchronized void departFromMatch(Player player) {
+        RaidMatch match = activeMatch;
+        if (match == null || !match.isEnrolled(player.getUniqueId()) || match.isDeparted(player.getUniqueId())) {
+            return;
+        }
+        if (!isInEventMatch(match)) {
+            return;
+        }
+        UUID id = player.getUniqueId();
+        pendingLeaveConfirmMs.remove(id);
+        match.markDeparted(id);
+        respawnQueue.cancel(id);
+        virtualDeathService.cancel(id);
+        eventCombatService.disableForParticipant(player);
+        restorePreEventState(player, match.getPreEventSnapshot(id));
+        ejectPlayerFromEventWorld(player, match.getEventWorld());
+        notifyTeamMemberLeft(match, player);
+        guiService.refreshOpenInventories();
+    }
+
+    public synchronized void handleParticipantDisconnect(Player player) {
+        RaidMatch match = activeMatch;
+        if (match == null || !match.isEnrolled(player.getUniqueId()) || match.isDeparted(player.getUniqueId())) {
+            return;
+        }
+        if (!isInEventMatch(match)) {
+            return;
+        }
+        UUID id = player.getUniqueId();
+        pendingLeaveConfirmMs.remove(id);
+        match.markDeparted(id);
+        respawnQueue.cancel(id);
+        virtualDeathService.cancel(id);
+        notifyTeamMemberLeft(match, player);
+        guiService.refreshOpenInventories();
+    }
+
+    public synchronized void rejoinMatch(Player player) {
+        RaidMatch match = activeMatch;
+        if (match == null || !match.canRejoin(player.getUniqueId()) || !canRejoinDuringState(match.getState())) {
+            ConfigManager.get().send(player, "rejoin.not-eligible");
+            return;
+        }
+        match.rejoinParticipant(player.getUniqueId());
+        MatchState state = match.getState();
+        if (state == MatchState.ACTIVE) {
+            if (match.getSelectedKitVote() == KitVoteOption.PREDEFINED) {
+                predefinedKitService.apply(player);
+            }
+            match.snapshotKit(player);
+            eventCombatService.enableForParticipant(player);
+            teleportParticipantToSpawn(player, match);
+        } else if (match.areBasesReady()) {
+            teleportParticipantToSpawn(player, match);
+        }
+        ConfigManager.get().send(player, "rejoin.success");
+        guiService.refreshOpenInventories();
+    }
+
+    private void notifyTeamMemberLeft(RaidMatch match, Player departed) {
+        TeamSide side = match.getTeamFor(departed);
+        if (side == null) {
+            return;
+        }
+        Map<String, String> vars = new HashMap<>();
+        vars.put("player", departed.getName());
+        vars.put("team", match.getFactionTag(side));
+        for (UUID id : match.getEnrolledParticipants()) {
+            if (id.equals(departed.getUniqueId()) || match.isDeparted(id)) {
+                continue;
+            }
+            if (side != match.getTeamFor(id)) {
+                continue;
+            }
+            Player teammate = Bukkit.getPlayer(id);
+            if (teammate != null && teammate.isOnline()) {
+                ConfigManager.get().send(teammate, "leave.team-member-left", vars);
+            }
+        }
+    }
+
+    private void ejectPlayerFromEventWorld(Player player, String eventWorldName) {
+        Location exit = resolveDefaultExitLocation(eventWorldName);
+        if (exit == null || !matchIsInEventWorld(player, eventWorldName)) {
+            return;
+        }
+        player.teleport(exit);
+    }
+
+    private boolean matchIsInEventWorld(Player player, String eventWorldName) {
+        return player.getWorld() != null
+                && eventWorldName != null
+                && eventWorldName.equals(player.getWorld().getName());
     }
 
     public void restorePreEventState(Player player, PlayerStateSnapshot snapshot) {
@@ -750,6 +880,14 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         if (match.getState() == MatchState.ACTIVE) {
             teleportParticipantToSpawn(player, match);
         }
+    }
+
+    public void notifyRejoinHintIfEligible(Player player) {
+        RaidMatch match = activeMatch;
+        if (match == null || !match.canRejoin(player.getUniqueId()) || !canRejoinDuringState(match.getState())) {
+            return;
+        }
+        ConfigManager.get().send(player, "rejoin.hint");
     }
 
     private void teleportParticipantsToSpawns(RaidMatch match) {

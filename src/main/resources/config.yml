@@ -119,6 +119,14 @@ messages:
     success: "{prefix}&7You left the queue."
     spectator-success: "{prefix}&7You stopped spectating."
     not-in: "{prefix}&cYou are not in the queue."
+    confirm-prompt: "{prefix}&eAre you sure? Run &c/rr leave &eagain within 30 seconds to leave the event."
+    event-success: "{prefix}&7You left the Raid Riot event."
+    team-member-left: "{prefix}&c{player} &7left your team and is no longer in the event."
+
+  rejoin:
+    hint: "{prefix}&7You left the event. Run &c/rr rejoin &7to rejoin while the match is still running."
+    success: "{prefix}&7You rejoined the event!"
+    not-eligible: "{prefix}&cYou cannot rejoin this event right now."
 
   status:
     none: "{prefix}&7No active Raid Riot session."
@@ -188,6 +196,7 @@ messages:
     help-header: "{prefix}&6Raid Riot:"
     help-join: "{prefix}&e/raidriot &7- Open queue/vote GUI"
     help-leave: "{prefix}&e/raidriot leave"
+    help-rejoin: "{prefix}&e/raidriot rejoin &7- Rejoin an event you left"
     help-queue-leave: "{prefix}&e/raidriot queue leave"
     help-status: "{prefix}&e/raidriot status"
     usage-queue-leave: "{prefix}&cUsage: /raidriot queue leave"

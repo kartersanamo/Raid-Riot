@@ -7,7 +7,7 @@ softdepend: [WorldEdit]
 commands:
   raidriot:
     description: Raid Riot event commands
-    usage: /<command> [join|leave|status|admin ...]
+    usage: /<command> [join|leave|rejoin|status|admin ...]
     aliases: [rr]
 
 permissions:

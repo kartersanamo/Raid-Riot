@@ -36,7 +36,7 @@ public final class RespawnQueue {
                     return;
                 }
                 RaidMatch active = plugin.getEventManager().getActiveMatch();
-                if (active == null || active != match || !active.isActive()) {
+                if (active == null || active != match || !active.isActive() || !active.isParticipant(player)) {
                     return;
                 }
                 TeamSide side = active.getTeamFor(player);

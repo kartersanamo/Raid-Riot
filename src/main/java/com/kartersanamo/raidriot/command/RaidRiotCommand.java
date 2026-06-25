@@ -52,6 +52,8 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
                 return join(sender);
             case "leave":
                 return leave(sender);
+            case "rejoin":
+                return rejoin(sender);
             case "status":
                 return status(sender);
             case "queue":
@@ -102,12 +104,31 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         RaidMatch match = plugin.getEventManager().getActiveMatch();
+        if (match != null && match.isEnrolled(player.getUniqueId())
+                && plugin.getEventManager().isInEventMatch(match)) {
+            if (!plugin.getEventManager().confirmLeaveMatch(player)) {
+                ConfigManager.get().send(player, "leave.confirm-prompt");
+                return true;
+            }
+            plugin.getEventManager().departFromMatch(player);
+            ConfigManager.get().send(player, "leave.event-success");
+            return true;
+        }
         if (match != null && match.isParticipant(player) && match.getState() == MatchState.QUEUE_OPEN) {
             match.leave(player);
             ConfigManager.get().send(player, "leave.success");
             return true;
         }
         ConfigManager.get().send(player, "leave.not-in");
+        return true;
+    }
+
+    private boolean rejoin(CommandSender sender) {
+        if (!(sender instanceof Player)) {
+            ConfigManager.get().send(sender, "command.players-only");
+            return true;
+        }
+        plugin.getEventManager().rejoinMatch((Player) sender);
         return true;
     }
 
@@ -410,6 +431,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         ConfigManager.get().send(sender, "command.help-header");
         ConfigManager.get().send(sender, "command.help-join");
         ConfigManager.get().send(sender, "command.help-leave");
+        ConfigManager.get().send(sender, "command.help-rejoin");
         ConfigManager.get().send(sender, "command.help-queue-leave");
         ConfigManager.get().send(sender, "command.help-status");
     }
@@ -428,7 +450,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return filterPrefix(Arrays.asList("join", "leave", "queue", "status", "admin"), args[0]);
+            return filterPrefix(Arrays.asList("join", "leave", "rejoin", "queue", "status", "admin"), args[0]);
         }
         if (args.length == 2 && "queue".equalsIgnoreCase(args[0])) {
             return filterPrefix(Collections.singletonList("leave"), args[1]);
