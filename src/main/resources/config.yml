@@ -226,7 +226,7 @@ messages:
     faction-tag-unavailable: "Could not find an available faction tag for base name '{base}'."
 
 gui:
-  title: "7Raid Riot"
+  title: "&c&lRaid Riot"
   info:
     title: "&7Raid Riot"
     item-title: "&c&lRaid Riot"

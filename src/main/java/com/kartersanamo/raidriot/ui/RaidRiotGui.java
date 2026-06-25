@@ -703,6 +703,9 @@ public final class RaidRiotGui {
     }
 
     public static boolean isRaidRiotInventory(Inventory inv) {
-        return inv != null && inv.getTitle() != null && inv.getTitle().equals(getTitle());
+        return inv != null
+                && inv.getTitle() != null
+                && inv.getTitle().equals(getTitle())
+                && !RaidRiotInfoGui.isInfoInventory(inv);
     }
 }
