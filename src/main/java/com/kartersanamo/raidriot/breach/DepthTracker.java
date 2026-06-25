@@ -12,35 +12,40 @@ import java.util.Map;
 
 public final class DepthTracker {
 
-    private final Map<TeamSide, Integer> maxDepth = new EnumMap<>(TeamSide.class);
+    /** Peak depth per team; only increases for the lifetime of the match. */
+    private final Map<TeamSide, Integer> peakDepth = new EnumMap<>(TeamSide.class);
 
     public DepthTracker() {
-        maxDepth.put(TeamSide.A, 0);
-        maxDepth.put(TeamSide.B, 0);
+        peakDepth.put(TeamSide.A, 0);
+        peakDepth.put(TeamSide.B, 0);
     }
 
     public void recordExplosion(RaidMatch match, Location epicenter, List<Block> affectedBlocks, TeamSide attacker) {
         if (match == null || !match.isActive() || attacker == null) {
             return;
         }
+        int current = getDepth(attacker);
         TeamBase enemyBase = match.getTeamBase(attacker.opposite());
-        int depth = 0;
+        int measured = 0;
         if (epicenter != null) {
-            depth = Math.max(depth, enemyBase.measureDepthIntoBase(epicenter));
+            measured = Math.max(measured, enemyBase.measureDepthIntoBase(epicenter));
         }
         if (affectedBlocks != null) {
             for (Block block : affectedBlocks) {
                 if (block == null) {
                     continue;
                 }
-                depth = Math.max(depth, enemyBase.measureDepthIntoBase(block.getLocation()));
+                measured = Math.max(measured, enemyBase.measureDepthIntoBase(block.getLocation()));
             }
         }
-        bump(attacker, depth);
+        if (measured <= current) {
+            return;
+        }
+        peakDepth.put(attacker, measured);
     }
 
     public int getDepth(TeamSide side) {
-        Integer value = maxDepth.get(side);
+        Integer value = peakDepth.get(side);
         return value == null ? 0 : value;
     }
 
@@ -54,15 +59,5 @@ public final class DepthTracker {
             return TeamSide.B;
         }
         return null;
-    }
-
-    private void bump(TeamSide side, int depth) {
-        if (depth <= 0) {
-            return;
-        }
-        int current = getDepth(side);
-        if (depth > current) {
-            maxDepth.put(side, depth);
-        }
     }
 }

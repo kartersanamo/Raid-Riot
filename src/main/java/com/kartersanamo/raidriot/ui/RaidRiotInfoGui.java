@@ -1,16 +1,17 @@
 package com.kartersanamo.raidriot.ui;
 
-import com.kartersanamo.raidriot.config.ConfigManager;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.kartersanamo.raidriot.config.ConfigManager;
 
 public final class RaidRiotInfoGui {
 
@@ -47,11 +48,11 @@ public final class RaidRiotInfoGui {
         meta.setDisplayName(g("info.item-title"));
 
         List<String> lore = new ArrayList<>();
+        lore.addAll(formatLines("info.description", vars));
+        lore.add(" ");
         if (isLiveMatchView(vars)) {
             appendLiveMatchSection(lore, vars);
         } else {
-            lore.addAll(formatLines("info.description", vars));
-            lore.add(" ");
             lore.add(g("info.information-header"));
             lore.addAll(formatLines("info.information", vars));
             appendPrematchDetails(lore, status, vars);
