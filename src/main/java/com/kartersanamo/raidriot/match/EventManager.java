@@ -184,7 +184,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                 activeMatch = null;
                 if (broadcast && reason != null && !reason.isEmpty()) {
                     Map<String, String> vars = new HashMap<>();
-                    vars.put("reason", reason);
+                    vars.put("reason", ConfigManager.get().denestMessage(reason));
                     ConfigManager.get().broadcast("match.ended-admin", vars);
                 }
             } else {

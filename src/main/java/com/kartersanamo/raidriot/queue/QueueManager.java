@@ -74,7 +74,7 @@ public final class QueueManager {
         if (Bukkit.getWorld(world) == null) {
             Map<String, String> vars = new HashMap<>();
             vars.put("world", world);
-            throw new IllegalStateException(ConfigManager.get().formatMessage("queue.event-world-not-loaded", vars));
+            throw new IllegalStateException(ConfigManager.get().exceptionMessage("queue.event-world-not-loaded", vars));
         }
         long endMs = System.currentTimeMillis() + ConfigManager.get().getQueueCountdownSeconds() * 1000L;
         session = new QueueSession(mode, endMs);

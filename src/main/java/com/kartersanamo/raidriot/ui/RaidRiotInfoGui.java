@@ -51,7 +51,6 @@ public final class RaidRiotInfoGui {
         lore.add(" ");
         lore.add(g("info.information-header"));
         lore.addAll(formatLines("info.information", vars));
-        lore.add(" ");
         appendLiveDetails(lore, status, vars);
         lore.add(" ");
         lore.add(g("info.status-header"));

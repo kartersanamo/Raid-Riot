@@ -3,6 +3,7 @@ package com.kartersanamo.raidriot.config;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -28,6 +29,10 @@ import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.vote.KitVoteOption;
 
 public final class ConfigManager {
+
+    private static final Set<String> NESTED_MESSAGE_VAR_KEYS = new HashSet<>(Arrays.asList(
+            "reason", "error", "detail", "message", "cause"
+    ));
 
     private static ConfigManager instance;
 
@@ -340,6 +345,7 @@ public final class ConfigManager {
         if (isBlank(message)) {
             return;
         }
+        message = denestMessage(message);
         String resolved;
         if (message.contains("{prefix}")) {
             resolved = formatRaw(message, new HashMap<>());
@@ -351,21 +357,37 @@ public final class ConfigManager {
         sender.sendMessage(ensurePrefix(resolved));
     }
 
-    public String stripMessagePrefix(String message) {
+    /**
+     * Removes plugin prefix text from the start or middle of a string so it can be
+     * embedded in another prefixed message without duplication.
+     */
+    public String denestMessage(String message) {
         if (isBlank(message)) {
             return "";
         }
-        String resolved = message.contains("{prefix}")
-                ? formatRaw(message, new HashMap<>())
-                : colorize(message);
+        String resolved = message;
+        if (resolved.contains("{prefix}")) {
+            resolved = formatRaw(resolved.replace("{prefix}", ""), new HashMap<>());
+        } else if (resolved.contains("&")) {
+            resolved = colorize(resolved);
+        }
         String prefix = colorize(resolveString("messages.prefix", ""));
-        if (isBlank(prefix) || resolved.length() < prefix.length()) {
-            return resolved;
+        if (isBlank(prefix)) {
+            return resolved.trim();
         }
-        if (ChatColor.stripColor(resolved).startsWith(ChatColor.stripColor(prefix))) {
-            return resolved.substring(prefix.length()).trim();
+        for (int guard = 0; guard < 10; guard++) {
+            String before = resolved;
+            resolved = removeLeadingPrefix(resolved, prefix);
+            resolved = resolved.replace(prefix, "");
+            if (resolved.equals(before)) {
+                break;
+            }
         }
-        return resolved;
+        return resolved.trim();
+    }
+
+    public String stripMessagePrefix(String message) {
+        return denestMessage(message);
     }
 
     public void broadcast(String key, Map<String, String> vars) {
@@ -406,9 +428,22 @@ public final class ConfigManager {
         String result = raw;
         for (Map.Entry<String, String> entry : merged.entrySet()) {
             String value = entry.getValue() == null ? "" : entry.getValue();
+            if (NESTED_MESSAGE_VAR_KEYS.contains(entry.getKey())) {
+                value = denestMessage(value);
+            }
             result = result.replace("{" + entry.getKey() + "}", value);
         }
         return colorize(result);
+    }
+
+    private String removeLeadingPrefix(String message, String prefix) {
+        if (isBlank(prefix) || isBlank(message) || message.length() < prefix.length()) {
+            return message;
+        }
+        if (ChatColor.stripColor(message).startsWith(ChatColor.stripColor(prefix))) {
+            return message.substring(prefix.length()).trim();
+        }
+        return message;
     }
 
     public String ensurePrefix(String message) {

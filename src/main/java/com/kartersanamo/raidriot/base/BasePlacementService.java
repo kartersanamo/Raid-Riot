@@ -198,7 +198,7 @@ public final class BasePlacementService {
             if (eventWorld == null) {
                 Map<String, String> vars = new HashMap<>();
                 vars.put("world", match.getEventWorld());
-                throw new IllegalStateException(ConfigManager.get().formatMessage("queue.event-world-not-loaded", vars));
+                throw new IllegalStateException(ConfigManager.get().exceptionMessage("queue.event-world-not-loaded", vars));
             }
             int anchorX = ConfigManager.get().getPasteAnchorX();
             int anchorZ = ConfigManager.get().getPasteAnchorZ();
@@ -218,13 +218,13 @@ public final class BasePlacementService {
             if (fileName == null || fileName.isEmpty()) {
                 Map<String, String> vars = new HashMap<>();
                 vars.put("option", option.name());
-                throw new IllegalStateException(ConfigManager.get().formatMessage("errors.no-schematic", vars));
+                throw new IllegalStateException(ConfigManager.get().exceptionMessage("errors.no-schematic", vars));
             }
             File schem = new File(plugin.getDataFolder(), "schematics/" + fileName);
             if (!schem.exists()) {
                 Map<String, String> vars = new HashMap<>();
                 vars.put("path", schem.getPath());
-                throw new IllegalStateException(ConfigManager.get().formatMessage("errors.schematic-not-found", vars));
+                throw new IllegalStateException(ConfigManager.get().exceptionMessage("errors.schematic-not-found", vars));
             }
 
             CuboidClipboard clipboard = schematicService.loadClipboard(schem);
@@ -272,14 +272,14 @@ public final class BasePlacementService {
                 Map<String, String> vars = new HashMap<>();
                 vars.put("faction", match.getFactionTag(side));
                 vars.put("world", String.valueOf(sourceWorldNames));
-                throw new IllegalStateException(ConfigManager.get().formatMessage("errors.no-baseclaims", vars));
+                throw new IllegalStateException(ConfigManager.get().exceptionMessage("errors.no-baseclaims", vars));
             }
 
             World sourceWorld = Bukkit.getWorld(sourceWorldName);
             if (sourceWorld == null) {
                 Map<String, String> vars = new HashMap<>();
                 vars.put("world", sourceWorldName);
-                throw new IllegalStateException(ConfigManager.get().formatMessage("errors.factions-source-not-loaded", vars));
+                throw new IllegalStateException(ConfigManager.get().exceptionMessage("errors.factions-source-not-loaded", vars));
             }
 
             CuboidRegion sourceBounds = factionBaseClaimProvider.computeBounds(chunks, sourceWorldName);
