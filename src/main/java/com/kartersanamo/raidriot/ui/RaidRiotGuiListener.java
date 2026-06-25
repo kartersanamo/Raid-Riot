@@ -33,6 +33,10 @@ public final class RaidRiotGuiListener implements Listener {
     @EventHandler
     public void onClick(InventoryClickEvent event) {
         Inventory top = event.getInventory();
+        if (RaidRiotInfoGui.isInfoInventory(top)) {
+            handleInfoClick(event, top);
+            return;
+        }
         if (!RaidRiotGui.isRaidRiotInventory(top)) {
             return;
         }
@@ -94,6 +98,26 @@ public final class RaidRiotGuiListener implements Listener {
                     spectatorService.teleportToTarget(player, targetId, match);
                 }
             }
+        }
+    }
+
+    private void handleInfoClick(InventoryClickEvent event, Inventory top) {
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player)) {
+            return;
+        }
+        Player player = (Player) event.getWhoClicked();
+        int slot = event.getRawSlot();
+        if (slot != RaidRiotInfoGui.SLOT_ENTER || slot < 0 || slot >= top.getSize()) {
+            return;
+        }
+        EventPortalStatus status = guiService.resolvePortalStatus();
+        if (!status.isClickable()) {
+            ConfigManager.get().send(player, "portal.not-open");
+            return;
+        }
+        if (!guiService.openFor(player)) {
+            ConfigManager.get().send(player, "join.no-match");
         }
     }
 

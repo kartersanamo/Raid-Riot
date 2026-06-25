@@ -3,6 +3,7 @@ package com.kartersanamo.raidriot.base;
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.arena.CuboidRegion;
+import com.kartersanamo.raidriot.arena.SpawnLocationResolver;
 import com.kartersanamo.raidriot.arena.TeamBase;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.faction.ClaimBaseProvider;
@@ -308,16 +309,10 @@ public final class BasePlacementService {
     }
 
     private void applySpawn(TeamBase base, World world) {
-        if (base.getBounds() == null || world == null) {
-            return;
+        Location spawn = SpawnLocationResolver.resolveTeamSpawn(world, base);
+        if (spawn != null) {
+            base.setSpawn(spawn);
         }
-        int cx = base.getSolidCenterX() != 0 || base.getSolidCenterZ() != 0
-                ? base.getSolidCenterX()
-                : (base.getBounds().getMinX() + base.getBounds().getMaxX()) / 2;
-        int cz = base.getSolidCenterX() != 0 || base.getSolidCenterZ() != 0
-                ? base.getSolidCenterZ()
-                : (base.getBounds().getMinZ() + base.getBounds().getMaxZ()) / 2;
-        base.setSpawn(new Location(world, cx + 0.5, ConfigManager.get().getSpawnY(), cz + 0.5));
     }
 
     private Map<TeamSide, BaseVoteOption> resolvePerTeam(RaidMatch match, BaseVoteOption voteWinner)

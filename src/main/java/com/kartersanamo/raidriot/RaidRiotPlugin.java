@@ -28,6 +28,7 @@ import com.kartersanamo.raidriot.listener.DeathListener;
 import com.kartersanamo.raidriot.listener.EventFactionAccessListener;
 import com.kartersanamo.raidriot.listener.ExplosionBreachListener;
 import com.kartersanamo.raidriot.listener.FactionCommandListener;
+import com.kartersanamo.raidriot.listener.MatchParticipantListener;
 import com.kartersanamo.raidriot.listener.MatchLockNotifier;
 import com.kartersanamo.raidriot.listener.TntAttributionTracker;
 import com.kartersanamo.raidriot.listener.TntDispenseListener;
@@ -157,6 +158,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new VirtualCombatListener(this, virtualDeathService), this);
         Bukkit.getPluginManager().registerEvents(new EventFactionAccessListener(this, eventTeamAccessService), this);
         Bukkit.getPluginManager().registerEvents(new FactionCommandListener(this, eventFactionService), this);
+        Bukkit.getPluginManager().registerEvents(new MatchParticipantListener(this), this);
         Bukkit.getPluginManager().registerEvents(new RaidRiotGuiListener(this, guiService), this);
         Bukkit.getPluginManager().registerEvents(new AdminGuiListener(this, adminGuiService), this);
 

@@ -74,9 +74,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
     }
 
     private void openGui(Player player) {
-        if (!plugin.getGuiService().openFor(player)) {
-            ConfigManager.get().send(player, "join.no-match");
-        }
+        plugin.getGuiService().openInfoPortal(player);
     }
 
     private boolean queue(CommandSender sender, String[] args) {

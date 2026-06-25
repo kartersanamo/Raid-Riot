@@ -267,6 +267,18 @@ public final class ConfigManager {
         return formatGui(key, new HashMap<String, String>());
     }
 
+    public List<String> formatGuiList(String listKey, Map<String, String> vars) {
+        List<String> lines = config.getStringList("gui." + listKey);
+        List<String> out = new ArrayList<String>();
+        if (lines == null) {
+            return out;
+        }
+        for (String line : lines) {
+            out.add(formatRaw(line, vars));
+        }
+        return out;
+    }
+
     public void send(CommandSender sender, String key) {
         send(sender, key, new HashMap<String, String>());
     }

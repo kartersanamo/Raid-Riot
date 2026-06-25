@@ -18,6 +18,7 @@ world-restore:
 
 base-separation-blocks: 200
 spawn-y: 255
+# Fallback Y when no safe standing spot is found at the team spawn column.
 paste-anchor-x: 0
 paste-anchor-z: 0
 # Deprecated for schematics; paste normalization places lowest solid row at world Y=0
@@ -109,6 +110,9 @@ messages:
   join:
     no-match: "{prefix}&cNo Raid Riot queue is open right now."
     already-in: "{prefix}&cYou are already in the queue."
+
+  portal:
+    not-open: "{prefix}&cThe Raid Riot queue is not open."
 
   leave:
     success: "{prefix}&7You left the queue."
@@ -223,6 +227,31 @@ messages:
 
 gui:
   title: "&fRaid Riot"
+  info:
+    title: "&fRaid Riot"
+    item-title: "&c&lRaid Riot"
+    description:
+      - "&fA competitive head-to-head raid between two teams."
+      - "&fBreach the enemy base while defending your own."
+      - "&fFirst team to penetrate wins, or deepest breach when time runs out."
+    information-header: "&6Information:"
+    information:
+      - "&f- &7{playersPerTeam} players per team"
+      - "&f- &7Teams: &e{teamA} &7vs &c{teamB}"
+      - "&f- &7Event world: &f{world}"
+      - "&f- &7Queue window: &f{queueSeconds}s"
+      - "&f- &7Match length: &f{matchMinutes} minutes"
+      - "&f- &7Terrain resets after each event"
+    status-header: "&6Status:"
+    status:
+      closed: "&7- &cCLOSED"
+      open: "&7- &aOPEN &7(Click to enter!)"
+      voting: "&7- &eVOTING"
+      preparing: "&7- &ePREPARING"
+      starting: "&7- &eSTARTING"
+      in-progress: "&7- &cIN PROGRESS"
+      restoring: "&7- &7RESTORING"
+    not-open-hint: "&8The queue is not open right now."
   queue:
     info-title: "&6Queue"
     closes-in: "&7Closes in &f{seconds}&7 seconds"

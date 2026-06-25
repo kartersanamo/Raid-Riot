@@ -5,6 +5,7 @@ import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.match.WinReason;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
+import com.kartersanamo.raidriot.ui.TimeFormat;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -118,12 +119,7 @@ public final class ClickableMessageService {
     }
 
     private String formatDuration(int seconds) {
-        Map<String, String> vars = new HashMap<String, String>();
-        vars.put("seconds", String.valueOf(seconds));
-        if (seconds == 1) {
-            return config.format("messages.centered.duration-one-second", vars);
-        }
-        return config.format("messages.centered.duration-seconds", vars);
+        return TimeFormat.formatDuration(seconds);
     }
 
     public void broadcastQueueCountdown(int secondsLeft) {

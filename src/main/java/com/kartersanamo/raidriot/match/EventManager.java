@@ -2,6 +2,7 @@ package com.kartersanamo.raidriot.match;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.config.ConfigManager;
+import com.kartersanamo.raidriot.arena.SpawnLocationResolver;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BasePlacementService;
 import com.kartersanamo.raidriot.base.BasePlacementPipeline;
@@ -25,6 +26,9 @@ import com.kartersanamo.raidriot.world.AsyncWorldRestorer;
 import com.kartersanamo.raidriot.world.EventWorldBorderService;
 import com.kartersanamo.raidriot.world.WorldResetService;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -146,16 +150,13 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             queueManager.shutdown();
             voteManager.cancel();
             respawnQueue.cancelAll();
-            virtualDeathService.shutdown();
-            plugin.getSpectatorService().shutdown();
             guiService.closeAllOpen();
             plugin.getAdminGuiService().closeAllOpen();
 
             RaidMatch match = activeMatch;
             if (match != null) {
                 match.setState(MatchState.RESTORING);
-                eventCombatService.disableForMatch(match);
-                restoreAllPreEventStates(match);
+                releasePlayersFromMatch(match);
                 eventFactionService.unclaimAll(match);
                 worldBorderService.reset();
                 activeMatch = null;
@@ -185,8 +186,10 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             worldResetService.endSession();
             return;
         }
-        if (syncWorldRestore) {
+        if (asyncWorldRestorer.isRestoring()) {
             asyncWorldRestorer.cancel();
+        }
+        if (syncWorldRestore) {
             worldResetService.prepareRestore();
             while (!worldResetService.isRestoreComplete()) {
                 worldResetService.restoreNextBatch(Integer.MAX_VALUE, Integer.MAX_VALUE);
@@ -205,10 +208,24 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         });
     }
 
-    private void restoreAllPreEventStates(RaidMatch match) {
-        for (UUID id : match.getPreEventSnapshotPlayerIds()) {
+    private void releasePlayersFromMatch(RaidMatch match) {
+        if (match == null) {
+            return;
+        }
+        eventCombatService.disableForMatch(match);
+        respawnQueue.cancelAll();
+        virtualDeathService.cancelAll();
+
+        for (UUID id : match.getParticipants()) {
             Player player = Bukkit.getPlayer(id);
             restorePreEventState(player, match.getPreEventSnapshot(id));
+        }
+
+        plugin.getSpectatorService().shutdown();
+
+        Location exit = resolveDefaultExitLocation(match.getEventWorld());
+        if (exit != null) {
+            ejectPlayersStillInEventWorld(match.getEventWorld(), exit);
         }
     }
 
@@ -365,12 +382,16 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     }
 
     public void restorePreEventState(Player player, PlayerStateSnapshot snapshot) {
-        if (player == null || snapshot == null) {
+        if (player == null) {
             return;
         }
         eventCombatService.disableForParticipant(player);
         virtualDeathService.cancel(player.getUniqueId());
-        snapshot.apply(player);
+        if (snapshot != null) {
+            snapshot.apply(player);
+        } else {
+            player.setGameMode(GameMode.SURVIVAL);
+        }
     }
 
     private void notifyRejectedRandom(QueueSession session, Set<UUID> selected) {
@@ -390,9 +411,9 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         ConfigManager.get().broadcast("vote.winner", vars);
 
         worldResetService.beginSession(activeMatch.getEventWorld());
-        startGuiRefreshTask();
-
         final RaidMatch preparingMatch = activeMatch;
+        teleportParticipantsToPrepHolding(preparingMatch);
+        startGuiRefreshTask();
         BasePlacementPipeline pipeline = basePlacementService.createPipeline(
                 preparingMatch, baseWinner, new BasePlacementPipeline.CompletionListener() {
                     @Override
@@ -431,6 +452,15 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         final int countdown = ConfigManager.get().getCountdownSeconds();
         match.setCountdownEndMs(System.currentTimeMillis() + countdown * 1000L);
         startGuiRefreshTask();
+        Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+            @Override
+            public void run() {
+                if (shuttingDown || activeMatch != match || match.getState() != MatchState.COUNTDOWN) {
+                    return;
+                }
+                teleportParticipantsToSpawns(match);
+            }
+        }, 1L);
         for (int i = countdown; i >= 1; i--) {
             final int sec = i;
             countdownTasks.add(Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
@@ -474,11 +504,8 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                 predefinedKitService.apply(player);
             }
             match.snapshotKit(player);
-            TeamSide side = match.getTeamFor(player);
-            if (side != null && match.getTeamBase(side).getSpawn() != null) {
-                player.teleport(match.getTeamBase(side).getSpawn());
-            }
         }
+        teleportParticipantsToSpawns(match);
 
         plugin.getClickableMessageService().broadcastEventStarted();
         eventCombatService.enableForMatch(match);
@@ -537,14 +564,14 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         activeMatch.setWinReason(reason);
         cancelTasks();
         voteManager.cancel();
-        respawnQueue.cancelAll();
-        virtualDeathService.cancelAll();
         startGuiRefreshTask();
 
         plugin.getClickableMessageService().broadcastEventEnded(activeMatch);
 
-        cancelPendingRestoreTask();
         final RaidMatch endingMatch = activeMatch;
+        releasePlayersFromMatch(endingMatch);
+
+        cancelPendingRestoreTask();
         pendingRestoreTask = Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
             @Override
             public void run() {
@@ -633,13 +660,41 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         RaidMatch match = activeMatch;
         if (match != null) {
             match.setState(MatchState.RESTORING);
-            eventCombatService.disableForMatch(match);
-            restoreAllPreEventStates(match);
+            releasePlayersFromMatch(match);
             eventFactionService.unclaimAll(match);
             worldBorderService.reset();
             activeMatch = null;
         }
         scheduleWorldRestore();
+    }
+
+    private Location resolveDefaultExitLocation(String eventWorldName) {
+        World fallback = null;
+        for (World world : Bukkit.getWorlds()) {
+            if (eventWorldName != null && eventWorldName.equals(world.getName())) {
+                continue;
+            }
+            if ("world".equalsIgnoreCase(world.getName())) {
+                return world.getSpawnLocation().clone();
+            }
+            if (fallback == null) {
+                fallback = world;
+            }
+        }
+        return fallback == null ? null : fallback.getSpawnLocation().clone();
+    }
+
+    private void ejectPlayersStillInEventWorld(String eventWorldName, Location exit) {
+        if (eventWorldName == null || exit == null) {
+            return;
+        }
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld() == null || !eventWorldName.equals(player.getWorld().getName())) {
+                continue;
+            }
+            player.setGameMode(GameMode.SURVIVAL);
+            player.teleport(exit);
+        }
     }
 
     private void cancelTasks() {
@@ -664,6 +719,67 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         if (pendingRestoreTask != null) {
             pendingRestoreTask.cancel();
             pendingRestoreTask = null;
+        }
+    }
+
+    public void syncParticipantLocation(Player player) {
+        RaidMatch match = activeMatch;
+        if (match == null || !match.isParticipant(player)) {
+            return;
+        }
+        MatchState state = match.getState();
+        if (state == MatchState.PREPARING) {
+            teleportParticipantToPrepHolding(player, match);
+        } else if (state == MatchState.COUNTDOWN || state == MatchState.ACTIVE) {
+            teleportParticipantToSpawn(player, match);
+        }
+    }
+
+    private void teleportParticipantsToPrepHolding(RaidMatch match) {
+        World world = Bukkit.getWorld(match.getEventWorld());
+        if (world == null) {
+            return;
+        }
+        Location holding = SpawnLocationResolver.resolvePrepHolding(match, world);
+        if (holding == null) {
+            return;
+        }
+        for (UUID id : match.getParticipants()) {
+            Player player = Bukkit.getPlayer(id);
+            if (player != null && player.isOnline()) {
+                player.teleport(holding);
+            }
+        }
+    }
+
+    private void teleportParticipantToPrepHolding(Player player, RaidMatch match) {
+        World world = Bukkit.getWorld(match.getEventWorld());
+        if (world == null) {
+            return;
+        }
+        Location holding = SpawnLocationResolver.resolvePrepHolding(match, world);
+        if (holding != null) {
+            player.teleport(holding);
+        }
+    }
+
+    private void teleportParticipantsToSpawns(RaidMatch match) {
+        for (UUID id : match.getParticipants()) {
+            Player player = Bukkit.getPlayer(id);
+            if (player != null && player.isOnline()) {
+                teleportParticipantToSpawn(player, match);
+            }
+        }
+    }
+
+    private void teleportParticipantToSpawn(Player player, RaidMatch match) {
+        TeamSide side = match.getTeamFor(player);
+        if (side == null) {
+            return;
+        }
+        Location spawn = match.getTeamBase(side).getSpawn();
+        if (spawn != null) {
+            player.teleport(spawn.clone());
         }
     }
 }

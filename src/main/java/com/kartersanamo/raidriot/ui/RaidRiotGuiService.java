@@ -9,6 +9,7 @@ import com.kartersanamo.raidriot.spectator.SpectatorService;
 import com.kartersanamo.raidriot.vote.VoteManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 
 public final class RaidRiotGuiService {
 
@@ -16,6 +17,39 @@ public final class RaidRiotGuiService {
 
     public RaidRiotGuiService(RaidRiotPlugin plugin) {
         this.plugin = plugin;
+    }
+
+    public void openInfoPortal(Player player) {
+        EventPortalStatus status = resolvePortalStatus();
+        player.openInventory(RaidRiotInfoGui.create(status));
+    }
+
+    public EventPortalStatus resolvePortalStatus() {
+        if (plugin.getEventManager().isWorldRestoring() || plugin.getEventManager().isPreparingTerrain()) {
+            return EventPortalStatus.RESTORING;
+        }
+        if (plugin.getEventManager().getQueueManager().isOpen()) {
+            return EventPortalStatus.OPEN;
+        }
+        RaidMatch match = plugin.getEventManager().getActiveMatch();
+        if (match == null || match.getState() == MatchState.IDLE) {
+            return EventPortalStatus.CLOSED;
+        }
+        switch (match.getState()) {
+            case VOTING:
+                return EventPortalStatus.VOTING;
+            case PREPARING:
+                return EventPortalStatus.PREPARING;
+            case COUNTDOWN:
+                return EventPortalStatus.STARTING;
+            case ACTIVE:
+            case ENDING:
+                return EventPortalStatus.IN_PROGRESS;
+            case QUEUE_LOCKED:
+                return EventPortalStatus.PREPARING;
+            default:
+                return EventPortalStatus.CLOSED;
+        }
     }
 
     public boolean openFor(Player player) {
@@ -131,8 +165,11 @@ public final class RaidRiotGuiService {
 
     public void closeAllOpen() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.getOpenInventory() != null
-                    && RaidRiotGui.isRaidRiotInventory(player.getOpenInventory().getTopInventory())) {
+            if (player.getOpenInventory() == null) {
+                continue;
+            }
+            Inventory top = player.getOpenInventory().getTopInventory();
+            if (RaidRiotGui.isRaidRiotInventory(top) || RaidRiotInfoGui.isInfoInventory(top)) {
                 player.closeInventory();
             }
         }
