@@ -68,14 +68,10 @@ public final class ClickableMessageService {
             sendCentered(player, "header");
             sendCentered(player, "event-ended-line1");
             if (winner != null && match.getWinReason() == WinReason.FORFEIT) {
-                Map<String, String> winnerVars = new HashMap<>();
-                winnerVars.put("winner", match.getFactionTag(winner));
-                sendCentered(player, "event-ended-forfeit", winnerVars);
+                sendCentered(player, "event-ended-forfeit", winnerVars(match, winner));
                 sendWinnerNames(player, winnerNames);
             } else if (winner != null && match.getWinReason() != WinReason.DRAW) {
-                Map<String, String> winnerVars = new HashMap<>();
-                winnerVars.put("winner", match.getFactionTag(winner));
-                sendCentered(player, "event-ended-winner", winnerVars);
+                sendCentered(player, "event-ended-winner", winnerVars(match, winner));
                 sendWinnerNames(player, winnerNames);
             } else {
                 sendCentered(player, "event-ended-draw");
@@ -102,6 +98,13 @@ public final class ClickableMessageService {
     private void sendCentered(Player player, String key, Map<String, String> vars) {
         String msg = config.format("messages.centered." + key, vars);
         CenteredChat.send(player, msg);
+    }
+
+    private Map<String, String> winnerVars(RaidMatch match, TeamSide winner) {
+        Map<String, String> vars = new HashMap<>();
+        vars.put("winner", match.getFactionTag(winner));
+        vars.put("teamColor", config.getTeamChatColor(winner));
+        return vars;
     }
 
     private void sendWinnerNames(Player player, List<String> winnerNames) {
