@@ -16,7 +16,6 @@ import com.kartersanamo.raidriot.queue.QueueManager;
 import com.kartersanamo.raidriot.queue.QueueSession;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import com.kartersanamo.raidriot.ui.RaidRiotGuiService;
-import com.kartersanamo.raidriot.ui.TimeFormat;
 import com.kartersanamo.raidriot.vote.KitVoteOption;
 import com.kartersanamo.raidriot.vote.VoteManager;
 import com.kartersanamo.raidriot.world.AsyncWorldRestorer;
@@ -509,22 +508,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         virtualDeathService.cancelAll();
         startGuiRefreshTask();
 
-        TeamSide loser = winner == null ? null : winner.opposite();
-        Map<String, String> vars = new HashMap<String, String>();
-        if (reason == WinReason.BREACH && winner != null && loser != null) {
-            vars.put("winner", activeMatch.getFactionTag(winner));
-            vars.put("loser", activeMatch.getFactionTag(loser));
-            vars.put("time", TimeFormat.format(activeMatch.getElapsedActiveSeconds()));
-            plugin.getMessages().broadcast("match.ended-breach", vars);
-        } else if (reason == WinReason.DEPTH && winner != null) {
-            vars.put("winner", activeMatch.getFactionTag(winner));
-            vars.put("depth", String.valueOf(activeMatch.getDepthTracker().getDepth(winner)));
-            vars.put("otherDepth", String.valueOf(activeMatch.getDepthTracker().getDepth(winner.opposite())));
-            plugin.getMessages().broadcast("match.ended-depth", vars);
-        } else if (reason == WinReason.DRAW) {
-            vars.put("depth", String.valueOf(activeMatch.getDepthTracker().getDepth(TeamSide.A)));
-            plugin.getMessages().broadcast("match.ended-draw", vars);
-        }
+        plugin.getClickableMessageService().broadcastEventEnded(activeMatch);
 
         cancelPendingRestoreTask();
         final RaidMatch endingMatch = activeMatch;
