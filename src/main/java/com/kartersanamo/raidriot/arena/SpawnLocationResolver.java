@@ -1,12 +1,13 @@
 package com.kartersanamo.raidriot.arena;
 
-import com.kartersanamo.raidriot.config.ConfigManager;
-import com.kartersanamo.raidriot.match.RaidMatch;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+
+import com.kartersanamo.raidriot.config.ConfigManager;
+import com.kartersanamo.raidriot.match.RaidMatch;
 
 public final class SpawnLocationResolver {
 
@@ -118,7 +119,10 @@ public final class SpawnLocationResolver {
         return (bounds.getMinZ() + bounds.getMaxZ()) / 2;
     }
 
-    /** Feet Y one block above the highest solid block in this column within the base bounds. */
+    /**
+     * Feet Y two blocks above the highest solid block in this column within the
+     * base bounds.
+     */
     private static int findSpawnYAboveBaseTop(World world, int x, int z, int minY, int maxY) {
         int topSolid = -1;
         for (int y = minY; y <= maxY; y++) {
@@ -129,7 +133,7 @@ public final class SpawnLocationResolver {
         if (topSolid < 0 || topSolid >= 255) {
             return -1;
         }
-        int feetY = topSolid + 1;
+        int feetY = topSolid + 2;
         if (isSolid(world.getBlockAt(x, feetY, z))) {
             return -1;
         }
