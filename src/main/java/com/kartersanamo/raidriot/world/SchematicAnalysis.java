@@ -61,11 +61,29 @@ public final class SchematicAnalysis {
         return new SchematicAnalysis(w, h, len, minY, maxY, col);
     }
 
+    public static SchematicAnalysis fromCached(int width, int height, int length,
+            int lowestNonAirY, int highestNonAirY, int solidCenterX, int solidCenterZ) {
+        boolean[] col = new boolean[width * length];
+        for (int i = 0; i < col.length; i++) {
+            col[i] = true;
+        }
+        SchematicAnalysis analysis = new SchematicAnalysis(width, height, length, lowestNonAirY, highestNonAirY, col);
+        analysis.cachedSolidCenterX = solidCenterX;
+        analysis.cachedSolidCenterZ = solidCenterZ;
+        return analysis;
+    }
+
+    private int cachedSolidCenterX = -1;
+    private int cachedSolidCenterZ = -1;
+
     public boolean columnHasBlock(int sx, int sz) {
         return columnHasBlock[sx + sz * width];
     }
 
     public int[] solidFootprintCenter() {
+        if (cachedSolidCenterX >= 0) {
+            return new int[]{cachedSolidCenterX, cachedSolidCenterZ};
+        }
         int minX = width;
         int maxX = -1;
         int minZ = length;

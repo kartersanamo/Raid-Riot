@@ -16,6 +16,15 @@ world-restore:
   chunks-per-tick: 1
   scan-columns-per-tick: 32
 
+arena-prep:
+  countdown-delay-ticks: 40
+  blocks-per-tick: 32768
+  chunk-snapshots-per-tick: 4
+  scan-columns-per-tick: 64
+  snapshot-y-padding: 2
+  tps-throttle: true
+  min-tps: 18.0
+
 base-separation-blocks: 200
 spawn-y: 255
 # Fallback Y when no safe standing spot is found at the team spawn column.
@@ -107,6 +116,7 @@ messages:
     ended-depth: "{prefix}&7{winner} &7won with depth &e{depth}&7 vs &c{otherDepth}&7!"
     ended-draw: "{prefix}&eDraw! &7Both teams reached depth &e{depth}&7."
     ended-admin: "{prefix}&cMatch stopped: &7{reason}"
+    forfeit: "{prefix}&6{winner} &fwins — the entire opposing team has left."
     timer-warning: "{prefix}&c{minutes}:{seconds} &7remaining!"
     terrain-restoring: "{prefix}&cPrevious event terrain is still restoring."
     already-active: "{prefix}&cA Raid Riot session is already active."
@@ -128,7 +138,7 @@ messages:
     team-member-left: "{prefix}&c{player} &7left your team and is no longer in the event."
 
   rejoin:
-    hint: "{prefix}&7You left the event. Run &c/rr rejoin &7to rejoin while the match is still running."
+    hint: "{prefix}&7You were sent to spawn. Run &c/rr rejoin &7to return to your base while the match is still running."
     success: "{prefix}&7You rejoined the event!"
     not-eligible: "{prefix}&cYou cannot rejoin this event right now."
 
@@ -228,6 +238,7 @@ messages:
     event-started-line2: "&7to spectate the event!"
     event-ended-line1: "&fThe &cRaid Riot &fevent has ended!"
     event-ended-winner: "&fWinner: &6{winner}"
+    event-ended-forfeit: "&fWinner: &6{winner} &7(by forfeit)"
     event-ended-draw: "&fWinner: &eDraw"
     event-ended-time: "&fTime: &c{time}"
     winner-name-separator: "&7, "

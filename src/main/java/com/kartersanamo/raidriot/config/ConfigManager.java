@@ -76,6 +76,13 @@ public final class ConfigManager {
     private int worldRestoreChunksPerTick = 2;
     private int terrainScanColumnsPerTick = 32;
     private boolean spectatorsEnabled = true;
+    private int arenaPrepCountdownDelayTicks = 40;
+    private int arenaPrepBlocksPerTick = 32768;
+    private int arenaPrepChunkSnapshotsPerTick = 4;
+    private int arenaPrepScanColumnsPerTick = 64;
+    private int arenaPrepSnapshotYPadding = 2;
+    private boolean arenaPrepTpsThrottle = true;
+    private double arenaPrepMinTps = 18.0D;
 
     public ConfigManager(RaidRiotPlugin plugin) {
         this.plugin = plugin;
@@ -176,6 +183,13 @@ public final class ConfigManager {
         worldRestoreChunksPerTick = config.getInt("world-restore.chunks-per-tick", 1);
         terrainScanColumnsPerTick = config.getInt("world-restore.scan-columns-per-tick", 32);
         spectatorsEnabled = config.getBoolean("spectators.enabled", true);
+        arenaPrepCountdownDelayTicks = config.getInt("arena-prep.countdown-delay-ticks", 40);
+        arenaPrepBlocksPerTick = config.getInt("arena-prep.blocks-per-tick", 32768);
+        arenaPrepChunkSnapshotsPerTick = config.getInt("arena-prep.chunk-snapshots-per-tick", 4);
+        arenaPrepScanColumnsPerTick = config.getInt("arena-prep.scan-columns-per-tick", 64);
+        arenaPrepSnapshotYPadding = config.getInt("arena-prep.snapshot-y-padding", 2);
+        arenaPrepTpsThrottle = config.getBoolean("arena-prep.tps-throttle", true);
+        arenaPrepMinTps = config.getDouble("arena-prep.min-tps", 18.0D);
         breachMaterials.clear();
         List<String> mats = config.getStringList("breach-materials");
         if (mats.isEmpty()) {
@@ -574,6 +588,34 @@ public final class ConfigManager {
 
     public boolean isSpectatorsEnabled() {
         return spectatorsEnabled;
+    }
+
+    public int getArenaPrepCountdownDelayTicks() {
+        return arenaPrepCountdownDelayTicks;
+    }
+
+    public int getArenaPrepBlocksPerTick() {
+        return arenaPrepBlocksPerTick;
+    }
+
+    public int getArenaPrepChunkSnapshotsPerTick() {
+        return arenaPrepChunkSnapshotsPerTick;
+    }
+
+    public int getArenaPrepScanColumnsPerTick() {
+        return arenaPrepScanColumnsPerTick;
+    }
+
+    public int getArenaPrepSnapshotYPadding() {
+        return arenaPrepSnapshotYPadding;
+    }
+
+    public boolean isArenaPrepTpsThrottle() {
+        return arenaPrepTpsThrottle;
+    }
+
+    public double getArenaPrepMinTps() {
+        return arenaPrepMinTps;
     }
 
     public BaseVoteOption getFixedBase() {

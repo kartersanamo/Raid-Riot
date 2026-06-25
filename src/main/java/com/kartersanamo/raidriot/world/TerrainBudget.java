@@ -11,4 +11,8 @@ public final class TerrainBudget {
         this.chunks = chunks;
         this.columns = columns;
     }
+
+    public TerrainBudget half() {
+        return new TerrainBudget(Math.max(0, blocks / 2), Math.max(0, chunks / 2), Math.max(0, columns / 2));
+    }
 }

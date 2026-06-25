@@ -18,8 +18,10 @@ public final class BasePlacementPipeline {
     private final BaseVoteOption voteWinner;
     private final CompletionListener listener;
 
-    private TeamSide currentSide = TeamSide.A;
-    private BasePlacementService.TeamPlacementJob currentJob;
+    private BasePlacementService.TeamPlacementJob jobA;
+    private BasePlacementService.TeamPlacementJob jobB;
+    private boolean jobAComplete;
+    private boolean jobBComplete;
     private boolean postProcessed;
     private boolean finished;
 
@@ -36,15 +38,28 @@ public final class BasePlacementPipeline {
             return true;
         }
         try {
-            if (currentJob == null) {
-                currentJob = service.beginTeamPlacement(match, voteWinner, currentSide);
+            if (jobA == null) {
+                jobA = service.beginTeamPlacement(match, voteWinner, TeamSide.A);
+                jobB = service.beginTeamPlacement(match, voteWinner, TeamSide.B);
             }
-            if (!currentJob.tick(budget)) {
-                return false;
+            TerrainBudget budgetA = budget.half();
+            TerrainBudget budgetB = budget.half();
+            boolean blocked = false;
+            if (!jobAComplete) {
+                if (!jobA.tick(budgetA)) {
+                    blocked = true;
+                } else {
+                    jobAComplete = true;
+                }
             }
-            currentJob = null;
-            if (currentSide == TeamSide.A) {
-                currentSide = TeamSide.B;
+            if (!jobBComplete) {
+                if (!jobB.tick(budgetB)) {
+                    blocked = true;
+                } else {
+                    jobBComplete = true;
+                }
+            }
+            if (blocked) {
                 return false;
             }
             if (!postProcessed) {

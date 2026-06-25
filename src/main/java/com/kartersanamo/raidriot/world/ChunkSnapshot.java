@@ -35,7 +35,11 @@ public final class ChunkSnapshot {
     }
 
     public static ChunkSnapshot capture(World world, int chunkX, int chunkZ) {
-        ChunkSnapshotBuilder builder = new ChunkSnapshotBuilder(world, chunkX, chunkZ);
+        return capture(world, chunkX, chunkZ, 0, 255);
+    }
+
+    public static ChunkSnapshot capture(World world, int chunkX, int chunkZ, int minY, int maxY) {
+        ChunkSnapshotBuilder builder = new ChunkSnapshotBuilder(world, chunkX, chunkZ, minY, maxY);
         while (!builder.isComplete()) {
             builder.captureBatch(world, Integer.MAX_VALUE);
         }

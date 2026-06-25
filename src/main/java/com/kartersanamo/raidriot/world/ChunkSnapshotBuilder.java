@@ -8,6 +8,8 @@ public final class ChunkSnapshotBuilder {
 
     private final int chunkX;
     private final int chunkZ;
+    private final int minY;
+    private final int maxY;
     private final ChunkSnapshot snapshot;
     private int localX;
     private int localY;
@@ -15,10 +17,13 @@ public final class ChunkSnapshotBuilder {
     private boolean started;
     private boolean complete;
 
-    public ChunkSnapshotBuilder(World world, int chunkX, int chunkZ) {
+    public ChunkSnapshotBuilder(World world, int chunkX, int chunkZ, int minY, int maxY) {
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
+        this.minY = Math.max(0, minY);
+        this.maxY = Math.min(255, maxY);
         this.snapshot = ChunkSnapshot.createEmpty(world.getName(), chunkX, chunkZ);
+        this.localY = this.minY;
     }
 
     public int captureBatch(World world, int maxBlockReads) {
@@ -58,8 +63,8 @@ public final class ChunkSnapshotBuilder {
         if (localZ >= 16) {
             localZ = 0;
             localY++;
-            if (localY > 255) {
-                localY = 0;
+            if (localY > maxY) {
+                localY = minY;
                 localX++;
                 if (localX >= 16) {
                     complete = true;

@@ -496,6 +496,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         ejectPlayerFromEventWorld(player, match.getEventWorld());
         notifyTeamMemberLeft(match, player);
         guiService.refreshOpenInventories();
+        checkForTeamForfeit(match);
     }
 
     public synchronized void handleParticipantDisconnect(Player player) {
@@ -513,6 +514,30 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         virtualDeathService.cancel(id);
         notifyTeamMemberLeft(match, player);
         guiService.refreshOpenInventories();
+        checkForTeamForfeit(match);
+    }
+
+    private void checkForTeamForfeit(RaidMatch match) {
+        if (match == null || !match.isActive()) {
+            return;
+        }
+        int countA = match.countOnTeam(TeamSide.A);
+        int countB = match.countOnTeam(TeamSide.B);
+        if (countA == 0 && countB > 0) {
+            Map<String, String> vars = new HashMap<>();
+            vars.put("winner", match.getFactionTag(TeamSide.B));
+            vars.put("loser", match.getFactionTag(TeamSide.A));
+            ConfigManager.get().broadcast("match.forfeit", vars);
+            endMatch(TeamSide.B, WinReason.FORFEIT);
+        } else if (countB == 0 && countA > 0) {
+            Map<String, String> vars = new HashMap<>();
+            vars.put("winner", match.getFactionTag(TeamSide.A));
+            vars.put("loser", match.getFactionTag(TeamSide.B));
+            ConfigManager.get().broadcast("match.forfeit", vars);
+            endMatch(TeamSide.A, WinReason.FORFEIT);
+        } else if (countA == 0 && countB == 0) {
+            endMatch(null, WinReason.DRAW);
+        }
     }
 
     public synchronized void rejoinMatch(Player player) {
@@ -603,20 +628,24 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         vars.put("kit", kitWinner.displayName());
         ConfigManager.get().broadcast("vote.winner", vars);
 
+        guiService.closeAllOpen();
+        stopGuiRefreshTask();
+
         final RaidMatch preparingMatch = activeMatch;
-        startGuiRefreshTask();
+        scheduleCountdownAfterPrepDelay(preparingMatch);
         BasePlacementPipeline pipeline = basePlacementService.createPipeline(
                 preparingMatch, baseWinner, new BasePlacementPipeline.CompletionListener() {
             @Override
             public void onComplete() {
                 Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (shuttingDown || activeMatch != preparingMatch
-                            || preparingMatch.getState() != MatchState.PREPARING) {
+                    if (shuttingDown || activeMatch != preparingMatch) {
                         return;
                     }
                     preparingMatch.setBasesReady(true);
                     loadParticipantSpawnChunks(preparingMatch);
-                    beginCountdown(preparingMatch);
+                    if (preparingMatch.getState() == MatchState.COUNTDOWN) {
+                        tryActivateMatch(preparingMatch);
+                    }
                 });
             }
 
@@ -633,12 +662,21 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         matchPreparer.start(pipeline);
     }
 
+    private void scheduleCountdownAfterPrepDelay(final RaidMatch match) {
+        cancelCountdownTasks();
+        countdownTasks.add(Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (shuttingDown || activeMatch != match || match.getState() != MatchState.PREPARING) {
+                return;
+            }
+            beginCountdown(match);
+        }, ConfigManager.get().getArenaPrepCountdownDelayTicks()));
+    }
+
     private void beginCountdown(final RaidMatch match) {
         cancelCountdownTasks();
         match.setState(MatchState.COUNTDOWN);
         final int countdown = ConfigManager.get().getCountdownSeconds();
         match.setCountdownEndMs(System.currentTimeMillis() + countdown * 1000L);
-        startGuiRefreshTask();
         for (int i = countdown; i >= 1; i--) {
             final int sec = i;
             countdownTasks.add(Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -963,6 +1001,11 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         RaidMatch match = activeMatch;
         if (match == null || !match.canRejoin(player.getUniqueId()) || !canRejoinDuringState(match.getState())) {
             return;
+        }
+        restorePreEventState(player, match.getPreEventSnapshot(player.getUniqueId()));
+        Location exit = resolveDefaultExitLocation(match.getEventWorld());
+        if (exit != null) {
+            player.teleport(exit);
         }
         ConfigManager.get().send(player, "rejoin.hint");
     }

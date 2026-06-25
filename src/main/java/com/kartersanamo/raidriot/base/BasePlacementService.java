@@ -16,6 +16,7 @@ import com.kartersanamo.raidriot.world.CrossWorldCopyJob;
 import com.kartersanamo.raidriot.world.EventWorldBorderService;
 import com.kartersanamo.raidriot.world.RegionChunkSnapshotJob;
 import com.kartersanamo.raidriot.world.SchematicAnalysis;
+import com.kartersanamo.raidriot.world.SchematicClipboardPrep;
 import com.kartersanamo.raidriot.world.SchematicPasteJob;
 import com.kartersanamo.raidriot.world.SchematicService;
 import com.kartersanamo.raidriot.world.SolidRegionScanJob;
@@ -174,16 +175,26 @@ public final class BasePlacementService {
             }
 
             CuboidClipboard clipboard = schematicService.loadClipboard(schem);
-            analysis = SchematicAnalysis.analyze(clipboard);
+            SchematicMetadata cached = baseDifficultyStore.getCachedMetadata(schem);
+            if (cached != null) {
+                analysis = cached.toAnalysis();
+            } else {
+                analysis = SchematicAnalysis.analyze(clipboard);
+                baseDifficultyStore.cacheMetadata(schem, analysis);
+            }
+            SchematicClipboardPrep.applyTeamWool(clipboard, side.getWoolData());
             originX = anchor.getBlockX() - (analysis.width / 2);
             originZ = anchor.getBlockZ() - (analysis.length / 2);
             originY = -analysis.lowestNonAirY;
 
+            int padding = ConfigManager.get().getArenaPrepSnapshotYPadding();
+            int snapshotMinY = Math.max(0, originY - padding);
+            int snapshotMaxY = Math.min(255, originY + analysis.highestNonAirY + padding);
             snapshotJob = new RegionChunkSnapshotJob(worldResetService, eventWorld,
                     originX, originX + analysis.width,
-                    originZ, originZ + analysis.length);
-            pasteJob = SchematicPasteJob.fromClipboard(eventWorld, clipboard, originX, originY, originZ,
-                    side.getWoolData());
+                    originZ, originZ + analysis.length,
+                    snapshotMinY, snapshotMaxY);
+            pasteJob = SchematicPasteJob.fromClipboard(eventWorld, clipboard, originX, originY, originZ);
         }
 
         private void prepareFaction(World eventWorld, Location anchor) throws Exception {
@@ -223,8 +234,10 @@ public final class BasePlacementService {
             scanMaxX = targetMinX + (sourceBounds.getMaxX() - sourceBounds.getMinX());
             scanMaxZ = targetMinZ + (sourceBounds.getMaxZ() - sourceBounds.getMinZ());
 
+            int padding = ConfigManager.get().getArenaPrepSnapshotYPadding();
+            int snapshotMaxY = Math.min(255, sourceBounds.getMaxY() + padding);
             snapshotJob = new RegionChunkSnapshotJob(worldResetService, eventWorld,
-                    targetMinX, scanMaxX, targetMinZ, scanMaxZ);
+                    targetMinX, scanMaxX, targetMinZ, scanMaxZ, 0, snapshotMaxY);
             copyJob = new CrossWorldCopyJob(sourceWorld, eventWorld, chunks, targetMinX, targetMinZ, side.getWoolData());
         }
 

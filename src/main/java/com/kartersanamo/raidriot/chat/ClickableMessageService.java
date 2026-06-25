@@ -62,7 +62,12 @@ public final class ClickableMessageService {
         for (Player player : Bukkit.getOnlinePlayers()) {
             sendCentered(player, "header");
             sendCentered(player, "event-ended-line1");
-            if (winner != null && match.getWinReason() != WinReason.DRAW) {
+            if (winner != null && match.getWinReason() == WinReason.FORFEIT) {
+                Map<String, String> winnerVars = new HashMap<>();
+                winnerVars.put("winner", match.getFactionTag(winner));
+                sendCentered(player, "event-ended-forfeit", winnerVars);
+                sendWinnerNames(player, winnerNames);
+            } else if (winner != null && match.getWinReason() != WinReason.DRAW) {
                 Map<String, String> winnerVars = new HashMap<>();
                 winnerVars.put("winner", match.getFactionTag(winner));
                 sendCentered(player, "event-ended-winner", winnerVars);

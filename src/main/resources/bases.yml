@@ -5,3 +5,5 @@ medium: ""
 hard: ""
 
 # schematic-center-from-min offsets (dx, dy, dz from paste origin) are in config.yml per difficulty
+# Cached analysis per file is stored under schematics when a base is first prepared
+schematics: {}

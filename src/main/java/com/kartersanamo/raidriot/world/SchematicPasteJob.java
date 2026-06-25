@@ -1,11 +1,13 @@
 package com.kartersanamo.raidriot.world;
 
 import com.sk89q.worldedit.CuboidClipboard;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.blocks.BaseBlock;
-import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
+
+import java.io.IOException;
 
 public final class SchematicPasteJob {
 
@@ -17,34 +19,36 @@ public final class SchematicPasteJob {
     private final int width;
     private final int height;
     private final int length;
-    private final byte teamWoolData;
 
+    private EditSession session;
     private int indexX;
     private int indexY;
     private int indexZ;
     private boolean started;
+    private boolean flushed;
 
-    public SchematicPasteJob(World world, CuboidClipboard clipboard, int originX, int originY, int originZ,
-            byte teamWoolData) {
+    public SchematicPasteJob(World world, CuboidClipboard clipboard, int originX, int originY, int originZ) {
         this.world = world;
         this.clipboard = clipboard;
         this.originX = originX;
         this.originY = originY;
         this.originZ = originZ;
-        this.teamWoolData = teamWoolData;
         this.width = clipboard.getWidth();
         this.height = clipboard.getHeight();
         this.length = clipboard.getLength();
     }
 
     public static SchematicPasteJob fromClipboard(World world, CuboidClipboard clipboard,
-            int originX, int originY, int originZ, byte teamWoolData) {
-        return new SchematicPasteJob(world, clipboard, originX, originY, originZ, teamWoolData);
+            int originX, int originY, int originZ) {
+        return new SchematicPasteJob(world, clipboard, originX, originY, originZ);
     }
 
-    public int pasteBatch(int maxBlocks) {
+    public int pasteBatch(int maxBlocks) throws IOException, MaxChangedBlocksException {
         if (maxBlocks <= 0) {
             return 0;
+        }
+        if (session == null) {
+            session = SchematicBlockPlacer.createSession(world);
         }
         started = true;
         int pasted = 0;
@@ -57,19 +61,14 @@ public final class SchematicPasteJob {
                 continue;
             }
             if (block != null && !block.isAir()) {
-                Material material = Material.getMaterial(block.getId());
-                if (material != null && material != Material.AIR) {
-                    Block target = world.getBlockAt(originX + indexX, originY + indexY, originZ + indexZ);
-                    byte data = (byte) block.getData();
-                    if (material == Material.WOOL) {
-                        data = teamWoolData;
-                    }
-                    target.setType(material);
-                    target.setData(data);
-                    pasted++;
-                }
+                session.setBlock(new Vector(originX + indexX, originY + indexY, originZ + indexZ), block);
+                pasted++;
             }
             advance();
+        }
+        if (isComplete() && !flushed) {
+            session.flushQueue();
+            flushed = true;
         }
         return pasted;
     }

@@ -10,6 +10,8 @@ public final class RegionChunkSnapshotJob {
     private final int maxChunkX;
     private final int minChunkZ;
     private final int maxChunkZ;
+    private final int minY;
+    private final int maxY;
     private int chunkX;
     private int chunkZ;
     private ChunkSnapshotBuilder currentBuilder;
@@ -17,12 +19,19 @@ public final class RegionChunkSnapshotJob {
 
     public RegionChunkSnapshotJob(WorldResetService resetService, World world,
             int minX, int maxX, int minZ, int maxZ) {
+        this(resetService, world, minX, maxX, minZ, maxZ, 0, 255);
+    }
+
+    public RegionChunkSnapshotJob(WorldResetService resetService, World world,
+            int minX, int maxX, int minZ, int maxZ, int minY, int maxY) {
         this.resetService = resetService;
         this.world = world;
         this.minChunkX = minX >> 4;
         this.maxChunkX = maxX >> 4;
         this.minChunkZ = minZ >> 4;
         this.maxChunkZ = maxZ >> 4;
+        this.minY = minY;
+        this.maxY = maxY;
         this.chunkX = minChunkX;
         this.chunkZ = minChunkZ;
     }
@@ -38,7 +47,7 @@ public final class RegionChunkSnapshotJob {
 
         while (blockBudget > 0 && !isComplete()) {
             if (currentBuilder == null) {
-                currentBuilder = new ChunkSnapshotBuilder(world, chunkX, chunkZ);
+                currentBuilder = new ChunkSnapshotBuilder(world, chunkX, chunkZ, minY, maxY);
             }
             int used = currentBuilder.captureBatch(world, blockBudget);
             blockBudget -= used;

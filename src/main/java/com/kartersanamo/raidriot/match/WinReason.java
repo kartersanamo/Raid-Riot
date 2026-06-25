@@ -4,5 +4,6 @@ public enum WinReason {
     BREACH,
     DEPTH,
     DRAW,
+    FORFEIT,
     ADMIN_STOP
 }
