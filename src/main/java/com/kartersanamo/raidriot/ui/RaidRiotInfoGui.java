@@ -50,17 +50,25 @@ public final class RaidRiotInfoGui {
         List<String> lore = new ArrayList<>();
         lore.addAll(formatLines("info.description", vars));
         lore.add(" ");
+        lore.add(g("info.information-header"));
+        lore.addAll(formatLines("info.information", vars));
         if (isLiveMatchView(vars)) {
-            appendLiveMatchSection(lore, vars);
+            if (vars.containsKey("time")) {
+                lore.add(g("info.match-time", vars));
+            }
         } else {
-            lore.add(g("info.information-header"));
-            lore.addAll(formatLines("info.information", vars));
             appendPrematchDetails(lore, status, vars);
         }
         lore.add(" ");
         lore.add(g("info.status-header"));
         lore.add(g(statusLineKey(status, action, vars), vars));
         appendActionHint(lore, status, action, vars);
+        if (isLiveMatchView(vars)) {
+            lore.add(" ");
+            lore.add(g("info.teams-header"));
+            appendTeamLine(lore, vars, "teamA", "teamAColor", "teamAPlayers", "depthA");
+            appendTeamLine(lore, vars, "teamB", "teamBColor", "teamBPlayers", "depthB");
+        }
 
         meta.setLore(lore);
         stack.setItemMeta(meta);
@@ -71,38 +79,20 @@ public final class RaidRiotInfoGui {
         return "true".equals(vars.get("liveMatch"));
     }
 
-    private static void appendLiveMatchSection(List<String> lore, Map<String, String> vars) {
-        lore.add(g("info.match-header"));
-        if (vars.containsKey("time")) {
-            lore.add(g("info.match-time", vars));
-        }
-        appendTeamMatchLines(lore, vars, "teamA", "depthA", "teamAPlayers", "&e");
-        appendTeamMatchLines(lore, vars, "teamB", "depthB", "teamBPlayers", "&c");
-        if (vars.containsKey("base")) {
-            lore.add(g("info.match-base", vars));
-        }
-        if (vars.containsKey("kit")) {
-            lore.add(g("info.match-kit", vars));
-        }
-    }
-
-    private static void appendTeamMatchLines(List<String> lore, Map<String, String> vars,
-            String teamKey, String depthKey, String playersKey, String teamColor) {
+    private static void appendTeamLine(List<String> lore, Map<String, String> vars,
+            String teamKey, String colorKey, String playersKey, String depthKey) {
         if (!vars.containsKey(teamKey)) {
             return;
         }
         Map<String, String> teamVars = new HashMap<>(vars);
-        teamVars.put("teamColor", teamColor);
         teamVars.put("team", vars.get(teamKey));
+        teamVars.put("teamColor", vars.getOrDefault(colorKey, "&7"));
+        teamVars.put("players", vars.getOrDefault(playersKey, g("info.match-players-none")));
         if (vars.containsKey(depthKey)) {
             teamVars.put("depth", vars.get(depthKey));
-            lore.add(g("info.match-team", teamVars));
+            lore.add(g("info.teams-line", teamVars));
         } else {
-            lore.add(g("info.match-team-no-depth", teamVars));
-        }
-        if (vars.containsKey(playersKey)) {
-            teamVars.put("players", vars.get(playersKey));
-            lore.add(g("info.match-team-players", teamVars));
+            lore.add(g("info.teams-line-no-depth", teamVars));
         }
     }
 
@@ -149,13 +139,8 @@ public final class RaidRiotInfoGui {
                 lore.add(g("info.vote-hint"));
                 break;
             case SPECTATE:
-                lore.add(g("info.spectate-hint"));
-                break;
             case REJOIN:
-                lore.add(g("info.rejoin-hint"));
-                break;
             case LEAVE_SPECTATE:
-                lore.add(g("info.leave-spectate-hint"));
                 break;
             default:
                 if ("true".equals(vars.get("inMatch"))) {

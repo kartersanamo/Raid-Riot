@@ -244,8 +244,8 @@ public final class RaidRiotGuiService {
             }
             vars.put("depthA", String.valueOf(match.getDepthTracker().getDepth(TeamSide.A)));
             vars.put("depthB", String.valueOf(match.getDepthTracker().getDepth(TeamSide.B)));
-            vars.put("teamA", match.getFactionTag(TeamSide.A));
-            vars.put("teamB", match.getFactionTag(TeamSide.B));
+            vars.put("teamAColor", ConfigManager.get().getTeamChatColor(TeamSide.A));
+            vars.put("teamBColor", ConfigManager.get().getTeamChatColor(TeamSide.B));
             vars.put("teamAPlayers", formatTeamPlayerList(match, TeamSide.A));
             vars.put("teamBPlayers", formatTeamPlayerList(match, TeamSide.B));
         }
@@ -270,7 +270,7 @@ public final class RaidRiotGuiService {
                 name = offline.getName();
             }
             if (name != null && !name.isEmpty()) {
-                names.add("&8" + name);
+                names.add("&f" + name);
             }
         }
         Collections.sort(names);
