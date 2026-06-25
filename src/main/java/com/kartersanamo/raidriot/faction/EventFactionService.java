@@ -1,18 +1,20 @@
 package com.kartersanamo.raidriot.faction;
 
-import com.kartersanamo.raidriot.RaidRiotPlugin;
-import com.kartersanamo.raidriot.config.ConfigManager;
-import com.kartersanamo.raidriot.arena.TeamSide;
-import com.kartersanamo.raidriot.match.RaidMatch;
-import com.kartersanamo.raidriot.world.ChunkKey;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.entity.Player;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.entity.Player;
+
+import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.arena.TeamSide;
+import com.kartersanamo.raidriot.config.ConfigManager;
+import com.kartersanamo.raidriot.match.RaidMatch;
+import com.kartersanamo.raidriot.world.ChunkKey;
 
 public final class EventFactionService {
 
@@ -39,11 +41,10 @@ public final class EventFactionService {
                 plugin.getLogger().severe("Could not prepare event faction for team B.");
                 return false;
             }
-            plugin.getLogger().info("Event factions ready: "
-                    + bridge.getFactionTag(eventFactionA) + " / " + bridge.getFactionTag(eventFactionB));
+            plugin.getLogger().log(Level.INFO, "Event factions ready: {0} / {1}", new Object[]{bridge.getFactionTag(eventFactionA), bridge.getFactionTag(eventFactionB)});
             return true;
         } catch (Exception ex) {
-            plugin.getLogger().severe("Could not prepare event factions: " + ex.getMessage());
+            plugin.getLogger().log(Level.SEVERE, "Could not prepare event factions: {0}", ex.getMessage());
             return false;
         }
     }
@@ -76,8 +77,7 @@ public final class EventFactionService {
         FactionsBridge bridge = plugin.getFactionsBridge();
         Object faction = getEventFaction(side);
         bridge.setPermanentPower(faction, maxPower);
-        plugin.getLogger().info("Set event faction " + bridge.getFactionTag(faction)
-                + " max power to " + maxPower + " (" + baseChunkCount + " base + " + buffer + " buffer).");
+        plugin.getLogger().log(Level.INFO, "Set event faction {0} max power to {1} ({2} base + {3} buffer).", new Object[]{bridge.getFactionTag(faction), maxPower, baseChunkCount, buffer});
     }
 
     public void claimChunkForPlayerTeam(RaidMatch match, Player player) throws Exception {
@@ -104,7 +104,7 @@ public final class EventFactionService {
     }
 
     public void unclaimEventWorld(String worldName) {
-        List<Object> factions = new ArrayList<Object>();
+        List<Object> factions = new ArrayList<>();
         factions.add(eventFactionA);
         factions.add(eventFactionB);
         unclaimEventWorld(worldName, factions);
@@ -118,16 +118,16 @@ public final class EventFactionService {
         try {
             int removed = bridge.unclaimAllFactionsInWorld(worldName, factions);
             if (removed > 0) {
-                plugin.getLogger().info("Removed " + removed + " faction claims from " + worldName + " during cleanup.");
+                plugin.getLogger().log(Level.INFO, "Removed {0} faction claims from {1} during cleanup.", new Object[]{removed, worldName});
             }
         } catch (Exception ex) {
-            plugin.getLogger().warning("Failed to unclaim all claims in " + worldName + ": " + ex.getMessage());
+            plugin.getLogger().log(Level.WARNING, "Failed to unclaim all claims in {0}: {1}", new Object[]{worldName, ex.getMessage()});
             unclaimTrackedChunksFallback(bridge, factions, worldName);
         }
     }
 
     private List<Object> collectCleanupFactions(RaidMatch match) {
-        Set<Object> factions = new HashSet<Object>();
+        Set<Object> factions = new HashSet<>();
         factions.add(eventFactionA);
         factions.add(eventFactionB);
         Object refA = match.getFactionRef(TeamSide.A);
@@ -138,7 +138,7 @@ public final class EventFactionService {
         if (refB != null) {
             factions.add(refB);
         }
-        return new ArrayList<Object>(factions);
+        return new ArrayList<>(factions);
     }
 
     private void unclaimTrackedChunksFallback(FactionsBridge bridge, List<Object> factions, String worldName) {

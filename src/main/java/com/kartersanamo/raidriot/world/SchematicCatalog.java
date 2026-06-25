@@ -19,7 +19,7 @@ public final class SchematicCatalog {
         if (files == null) {
             return Collections.emptyList();
         }
-        List<String> names = new ArrayList<String>();
+        List<String> names = new ArrayList<>();
         for (File file : files) {
             if (file.isFile() && !file.getName().startsWith(".")) {
                 names.add(file.getName());

@@ -1,14 +1,15 @@
 package com.kartersanamo.raidriot.faction;
 
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
-
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
+
+import org.bukkit.Chunk;
+import org.bukkit.Location;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * Talks to SaberFactions via reflection so Raid Riot compiles without the
@@ -103,7 +104,7 @@ public final class FactionsBridge {
             ok = true;
             return true;
         } catch (Throwable t) {
-            plugin.getLogger().severe("Could not hook Factions API: " + t.getMessage());
+            plugin.getLogger().log(Level.SEVERE, "Could not hook Factions API: {0}", t.getMessage());
             return false;
         }
     }
@@ -178,8 +179,7 @@ public final class FactionsBridge {
         factionSetTag.invoke(created, tag);
         ensureSystemFactionSettings(created, tag);
         factionsForceSave.invoke(factionsInstance);
-        plugin.getLogger().info("Created Raid Riot system faction '" + tag
-                + "' (id=" + factionGetId.invoke(created) + ").");
+        plugin.getLogger().log(Level.INFO, "Created Raid Riot system faction ''{0}'' (id={1}).", new Object[]{tag, factionGetId.invoke(created)});
         return created;
     }
 
@@ -336,7 +336,7 @@ public final class FactionsBridge {
             return (Collection<?>) claimsObj;
         }
         if (claimsObj instanceof Iterable) {
-            List<Object> claims = new ArrayList<Object>();
+            List<Object> claims = new ArrayList<>();
             for (Object claim : (Iterable<?>) claimsObj) {
                 claims.add(claim);
             }

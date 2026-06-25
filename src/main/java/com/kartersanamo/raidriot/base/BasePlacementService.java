@@ -142,7 +142,7 @@ public final class BasePlacementService {
             option = resolvePerTeam(match, voteWinner).get(side);
             eventWorld = Bukkit.getWorld(match.getEventWorld());
             if (eventWorld == null) {
-                Map<String, String> vars = new HashMap<String, String>();
+                Map<String, String> vars = new HashMap<>();
                 vars.put("world", match.getEventWorld());
                 throw new IllegalStateException(ConfigManager.get().formatMessage("queue.event-world-not-loaded", vars));
             }
@@ -162,13 +162,13 @@ public final class BasePlacementService {
         private void prepareSchematic(World eventWorld, Location anchor) throws Exception {
             String fileName = baseDifficultyStore.getSchematic(option);
             if (fileName == null || fileName.isEmpty()) {
-                Map<String, String> vars = new HashMap<String, String>();
+                Map<String, String> vars = new HashMap<>();
                 vars.put("option", option.name());
                 throw new IllegalStateException(ConfigManager.get().formatMessage("errors.no-schematic", vars));
             }
             File schem = new File(plugin.getDataFolder(), "schematics/" + fileName);
             if (!schem.exists()) {
-                Map<String, String> vars = new HashMap<String, String>();
+                Map<String, String> vars = new HashMap<>();
                 vars.put("path", schem.getPath());
                 throw new IllegalStateException(ConfigManager.get().formatMessage("errors.schematic-not-found", vars));
             }
@@ -200,7 +200,7 @@ public final class BasePlacementService {
                 }
             }
             if (sourceWorldName == null || chunks == null || chunks.isEmpty()) {
-                Map<String, String> vars = new HashMap<String, String>();
+                Map<String, String> vars = new HashMap<>();
                 vars.put("faction", match.getFactionTag(side));
                 vars.put("world", String.valueOf(sourceWorldNames));
                 throw new IllegalStateException(ConfigManager.get().formatMessage("errors.no-baseclaims", vars));
@@ -208,7 +208,7 @@ public final class BasePlacementService {
 
             World sourceWorld = Bukkit.getWorld(sourceWorldName);
             if (sourceWorld == null) {
-                Map<String, String> vars = new HashMap<String, String>();
+                Map<String, String> vars = new HashMap<>();
                 vars.put("world", sourceWorldName);
                 throw new IllegalStateException(ConfigManager.get().formatMessage("errors.factions-source-not-loaded", vars));
             }
@@ -239,7 +239,7 @@ public final class BasePlacementService {
             base.setSolidCenter(originX + localCenter[0], originZ + localCenter[1]);
 
             int[] anchorOffset = ConfigManager.get().getSchematicCenterOffset(option);
-            Set<ChunkKey> claimChunks = new HashSet<ChunkKey>();
+            Set<ChunkKey> claimChunks = new HashSet<>();
             analysis.collectClaimChunks(eventWorld.getName(), originX, originZ, claimChunks);
             analysis.ensureAnchorChunkClaimed(eventWorld.getName(), originX, originZ,
                     anchorOffset[0], anchorOffset[2], claimChunks);
@@ -253,7 +253,7 @@ public final class BasePlacementService {
             base.setBounds(solid.toRegion(eventWorld.getName()));
             base.setSolidCenter(solid.centerX, solid.centerZ);
 
-            Set<ChunkKey> claimChunks = new HashSet<ChunkKey>();
+            Set<ChunkKey> claimChunks = new HashSet<>();
             for (int cx = floorDiv(targetMinX, 16); cx <= floorDiv(scanMaxX, 16); cx++) {
                 for (int cz = floorDiv(targetMinZ, 16); cz <= floorDiv(scanMaxZ, 16); cz++) {
                     claimChunks.add(new ChunkKey(eventWorld.getName(), cx, cz));
@@ -323,7 +323,7 @@ public final class BasePlacementService {
 
     private Map<TeamSide, BaseVoteOption> resolvePerTeam(RaidMatch match, BaseVoteOption voteWinner)
             throws Exception {
-        Map<TeamSide, BaseVoteOption> out = new EnumMap<TeamSide, BaseVoteOption>(TeamSide.class);
+        Map<TeamSide, BaseVoteOption> out = new EnumMap<>(TeamSide.class);
         List<String> sourceWorlds = ConfigManager.get().getFactionsSourceWorlds();
         for (TeamSide side : new TeamSide[]{TeamSide.A, TeamSide.B}) {
             if (voteWinner != BaseVoteOption.FACTION) {

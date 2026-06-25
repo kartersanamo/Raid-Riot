@@ -100,7 +100,7 @@ public final class EventKitStore {
     }
 
     private static List<ItemStack> toList(ItemStack[] items) {
-        List<ItemStack> list = new ArrayList<ItemStack>(items.length);
+        List<ItemStack> list = new ArrayList<>(items.length);
         for (ItemStack item : items) {
             list.add(item == null ? null : item.clone());
         }

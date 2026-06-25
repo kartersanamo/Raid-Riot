@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class MatchLockNotifier {
 
     private final RaidRiotPlugin plugin;
-    private final ConcurrentHashMap<UUID, Long> notifyCooldownMs = new ConcurrentHashMap<UUID, Long>();
+    private final ConcurrentHashMap<UUID, Long> notifyCooldownMs = new ConcurrentHashMap<>();
 
     public MatchLockNotifier(RaidRiotPlugin plugin) {
         this.plugin = plugin;

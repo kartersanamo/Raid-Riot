@@ -42,10 +42,10 @@ public final class FactionQueueResolver {
 
     public static Map<TeamSide, List<UUID>> selectParticipants(QueueSession session, FactionsBridge bridge,
             int perTeam) throws Exception {
-        Map<TeamSide, List<UUID>> selected = new HashMap<TeamSide, List<UUID>>();
-        selected.put(TeamSide.A, new ArrayList<UUID>());
-        selected.put(TeamSide.B, new ArrayList<UUID>());
-        Set<UUID> picked = new HashSet<UUID>();
+        Map<TeamSide, List<UUID>> selected = new HashMap<>();
+        selected.put(TeamSide.A, new ArrayList<>());
+        selected.put(TeamSide.B, new ArrayList<>());
+        Set<UUID> picked = new HashSet<>();
 
         Object factionA = session.getFactionARef();
         Object factionB = session.getFactionBRef();
@@ -65,16 +65,16 @@ public final class FactionQueueResolver {
     }
 
     public static Set<UUID> rejectedPlayers(QueueSession session, Map<TeamSide, List<UUID>> selected) {
-        Set<UUID> picked = new HashSet<UUID>();
+        Set<UUID> picked = new HashSet<>();
         picked.addAll(selected.get(TeamSide.A));
         picked.addAll(selected.get(TeamSide.B));
-        Set<UUID> rejected = new HashSet<UUID>(session.getQueued());
+        Set<UUID> rejected = new HashSet<>(session.getQueued());
         rejected.removeAll(picked);
         return rejected;
     }
 
     private static Map<Object, Integer> countFactions(QueueSession session, FactionsBridge bridge) throws Exception {
-        Map<Object, Integer> counts = new HashMap<Object, Integer>();
+        Map<Object, Integer> counts = new HashMap<>();
         for (Object faction : session.getPlayerFactions().values()) {
             if (faction == null || bridge.isWilderness(faction)) {
                 continue;

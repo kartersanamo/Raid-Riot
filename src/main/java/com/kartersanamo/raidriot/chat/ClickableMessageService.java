@@ -25,7 +25,7 @@ public final class ClickableMessageService {
     }
 
     public void broadcastQueueOpened(int secondsLeft, TeamAssignmentMode mode) {
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("seconds", String.valueOf(secondsLeft));
         for (Player player : Bukkit.getOnlinePlayers()) {
             sendCentered(player, "header");
@@ -63,21 +63,21 @@ public final class ClickableMessageService {
             sendCentered(player, "header");
             sendCentered(player, "event-ended-line1");
             if (winner != null && match.getWinReason() != WinReason.DRAW) {
-                Map<String, String> winnerVars = new HashMap<String, String>();
+                Map<String, String> winnerVars = new HashMap<>();
                 winnerVars.put("winner", match.getFactionTag(winner));
                 sendCentered(player, "event-ended-winner", winnerVars);
                 sendWinnerNames(player, winnerNames);
             } else {
                 sendCentered(player, "event-ended-draw");
             }
-            Map<String, String> timeVars = new HashMap<String, String>();
+            Map<String, String> timeVars = new HashMap<>();
             timeVars.put("time", timeText);
             sendCentered(player, "event-ended-time", timeVars);
         }
     }
 
     private void sendCentered(Player player, String key) {
-        sendCentered(player, key, new HashMap<String, String>());
+        sendCentered(player, key, new HashMap<>());
     }
 
     private void sendCentered(Player player, String key, Map<String, String> vars) {
@@ -89,13 +89,13 @@ public final class ClickableMessageService {
         if (winnerNames.isEmpty()) {
             return;
         }
-        String separator = config.format("messages.centered.winner-name-separator", new HashMap<String, String>());
+        String separator = config.format("messages.centered.winner-name-separator", new HashMap<>());
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < winnerNames.size(); i++) {
             if (i > 0) {
                 builder.append(separator);
             }
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("name", winnerNames.get(i));
             builder.append(config.format("messages.centered.winner-name-entry", vars));
         }
@@ -103,7 +103,7 @@ public final class ClickableMessageService {
     }
 
     private List<String> winnerNames(RaidMatch match, TeamSide winner) {
-        List<String> names = new ArrayList<String>();
+        List<String> names = new ArrayList<>();
         for (UUID id : match.getParticipants()) {
             if (match.getTeamFor(id) != winner) {
                 continue;
@@ -123,7 +123,7 @@ public final class ClickableMessageService {
     }
 
     public void broadcastQueueCountdown(int secondsLeft) {
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("seconds", String.valueOf(secondsLeft));
         config.broadcast("queue.countdown", vars);
     }

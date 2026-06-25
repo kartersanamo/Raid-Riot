@@ -122,7 +122,7 @@ public final class RaidRiotGuiListener implements Listener {
     }
 
     private void sendJoinResult(Player player, QueueManager.JoinResult result) {
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         switch (result) {
             case SUCCESS:
                 QueueManager queueManager = plugin.getEventManager().getQueueManager();

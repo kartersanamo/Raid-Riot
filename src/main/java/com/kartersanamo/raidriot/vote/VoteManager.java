@@ -24,8 +24,8 @@ public final class VoteManager {
     private final RaidRiotPlugin plugin;
     private final Random random = new Random();
     private RaidMatch match;
-    private final Map<UUID, BaseVoteOption> baseVotes = new HashMap<UUID, BaseVoteOption>();
-    private final Map<UUID, KitVoteOption> kitVotes = new HashMap<UUID, KitVoteOption>();
+    private final Map<UUID, BaseVoteOption> baseVotes = new HashMap<>();
+    private final Map<UUID, KitVoteOption> kitVotes = new HashMap<>();
     private long endMs;
     private BukkitTask task;
     private VoteListener listener;
@@ -104,7 +104,7 @@ public final class VoteManager {
     }
 
     private <E extends Enum<E>> Map<E, Integer> tally(Map<UUID, E> votes, Class<E> type) {
-        Map<E, Integer> counts = new EnumMap<E, Integer>(type);
+        Map<E, Integer> counts = new EnumMap<>(type);
         for (E value : type.getEnumConstants()) {
             counts.put(value, 0);
         }
@@ -168,7 +168,7 @@ public final class VoteManager {
         if (best <= 0) {
             return defaultWinner;
         }
-        java.util.List<E> tied = new java.util.ArrayList<E>();
+        java.util.List<E> tied = new java.util.ArrayList<>();
         for (Map.Entry<E, Integer> entry : counts.entrySet()) {
             if (entry.getValue() == best) {
                 tied.add(entry.getKey());

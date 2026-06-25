@@ -1,5 +1,20 @@
 package com.kartersanamo.raidriot.ui;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
+
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
@@ -13,20 +28,6 @@ import com.kartersanamo.raidriot.queue.QueueSession;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import com.kartersanamo.raidriot.vote.KitVoteOption;
 import com.kartersanamo.raidriot.vote.VoteManager;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 public final class RaidRiotGui {
 
@@ -78,6 +79,7 @@ public final class RaidRiotGui {
     }
 
     private static final class QueueHeadLayout {
+
         private final int inventorySize;
         private final int[] teamA;
         private final int[] teamB;
@@ -105,10 +107,10 @@ public final class RaidRiotGui {
         }
         int inventorySize = (2 + headRows) * 9;
 
-        List<Integer> teamA = new ArrayList<Integer>();
-        List<Integer> teamB = new ArrayList<Integer>();
-        List<Integer> combined = new ArrayList<Integer>();
-        List<Integer> dividers = new ArrayList<Integer>();
+        List<Integer> teamA = new ArrayList<>();
+        List<Integer> teamB = new ArrayList<>();
+        List<Integer> combined = new ArrayList<>();
+        List<Integer> dividers = new ArrayList<>();
 
         for (int row = 0; row < headRows; row++) {
             int rowStart = SLOT_QUEUE_HEAD_ROWS_START + row * 9;
@@ -160,7 +162,7 @@ public final class RaidRiotGui {
 
         Map<BaseVoteOption, Integer> baseTally = voteManager.tallyBase();
         Map<KitVoteOption, Integer> kitTally = voteManager.tallyKit();
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("seconds", String.valueOf(voteManager.getRemainingSeconds()));
         inv.setItem(0, infoItem(
                 g("vote.info-title"),
@@ -184,7 +186,7 @@ public final class RaidRiotGui {
 
         RaidMatch match = voteManager.getMatch();
         if (match != null) {
-            placeVotePlayerHeads(inv, match, voteManager, plugin);
+            placeVotePlayerHeads(inv, match, voteManager);
         }
         fillEmptySlots(inv);
         return inv;
@@ -195,8 +197,8 @@ public final class RaidRiotGui {
         fillTopBorder(inv);
 
         MatchState state = match.getState();
-        List<String> infoLore = new ArrayList<String>();
-        Map<String, String> phaseVars = new HashMap<String, String>();
+        List<String> infoLore = new ArrayList<>();
+        Map<String, String> phaseVars = new HashMap<>();
         phaseVars.put("phase", formatPhase(state));
         infoLore.add(g("status.phase", phaseVars));
         appendStatusDetails(match, infoLore);
@@ -215,7 +217,7 @@ public final class RaidRiotGui {
         Inventory inv = Bukkit.createInventory(null, 54, getTitle());
         fillTopBorder(inv);
 
-        List<String> infoLore = new ArrayList<String>();
+        List<String> infoLore = new ArrayList<>();
         infoLore.add(g("spectator.phase-active"));
         appendStatusDetails(match, infoLore);
         infoLore.add(g("spectator.click-to-teleport"));
@@ -225,7 +227,7 @@ public final class RaidRiotGui {
         inv.setItem(SLOT_LEAVE_SPECTATE, leaveSpectateItem());
         inv.setItem(SLOT_STATUS_B, matchTeamItem(match, TeamSide.B));
 
-        Map<Integer, UUID> targets = new HashMap<Integer, UUID>();
+        Map<Integer, UUID> targets = new HashMap<>();
         placeMatchPlayerHeads(inv, match, plugin, true, targets);
         plugin.getSpectatorService().setGuiTargets(targets);
         fillEmptySlots(inv);
@@ -235,26 +237,26 @@ public final class RaidRiotGui {
     private static void appendStatusDetails(RaidMatch match, List<String> lore) {
         MatchState state = match.getState();
         if (state == MatchState.COUNTDOWN) {
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("seconds", String.valueOf(match.getCountdownRemainingSeconds()));
             lore.add(g("status.starts-in", vars));
         } else if (state == MatchState.ACTIVE) {
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("time", TimeFormat.format(match.getRemainingSeconds()));
             lore.add(g("status.time-left", vars));
         }
         if (match.getSelectedBaseVote() != null) {
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("base", match.getSelectedBaseVote().displayName());
             lore.add(g("status.base", vars));
         }
         if (match.getSelectedKitVote() != null) {
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("kit", match.getSelectedKitVote().displayName());
             lore.add(g("status.kit", vars));
         }
         if (state == MatchState.ENDING && match.getWinner() != null) {
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("winner", match.getFactionTag(match.getWinner()));
             lore.add(g("status.winner", vars));
         } else if (state == MatchState.ENDING && match.getWinReason() == WinReason.DRAW) {
@@ -286,17 +288,17 @@ public final class RaidRiotGui {
         int players = match.countOnTeam(side);
         ItemStack stack = new ItemStack(Material.WOOL, 1, wool);
         ItemMeta meta = stack.getItemMeta();
-        Map<String, String> titleVars = new HashMap<String, String>();
+        Map<String, String> titleVars = new HashMap<>();
         titleVars.put("color", color);
         titleVars.put("name", name);
         titleVars.put("players", String.valueOf(players));
         meta.setDisplayName(g("team.display", titleVars));
-        List<String> lore = new ArrayList<String>();
-        Map<String, String> playerVars = new HashMap<String, String>();
+        List<String> lore = new ArrayList<>();
+        Map<String, String> playerVars = new HashMap<>();
         playerVars.put("players", String.valueOf(players));
         lore.add(g("team.players", playerVars));
         if (match.isActive() || match.getState() == MatchState.ENDING) {
-            Map<String, String> depthVars = new HashMap<String, String>();
+            Map<String, String> depthVars = new HashMap<>();
             depthVars.put("depth", String.valueOf(match.getDepthTracker().getDepth(side)));
             lore.add(g("team.wall-depth", depthVars));
         }
@@ -311,20 +313,20 @@ public final class RaidRiotGui {
         ItemStack stack = new ItemStack(material, 1);
         ItemMeta meta = stack.getItemMeta();
         meta.setDisplayName(g("match-info.title"));
-        List<String> lore = new ArrayList<String>();
-        Map<String, String> modeVars = new HashMap<String, String>();
+        List<String> lore = new ArrayList<>();
+        Map<String, String> modeVars = new HashMap<>();
         modeVars.put("mode", match.getAssignmentMode().name().toLowerCase());
         lore.add(g("match-info.mode", modeVars));
-        Map<String, String> worldVars = new HashMap<String, String>();
+        Map<String, String> worldVars = new HashMap<>();
         worldVars.put("world", match.getEventWorld());
         lore.add(g("match-info.world", worldVars));
         if (match.isActive()) {
-            Map<String, String> depthA = new HashMap<String, String>();
+            Map<String, String> depthA = new HashMap<>();
             depthA.put("teamColor", "&e");
             depthA.put("team", match.getFactionTag(TeamSide.A));
             depthA.put("depth", String.valueOf(match.getDepthTracker().getDepth(TeamSide.A)));
             lore.add(g("match-info.depth", depthA));
-            Map<String, String> depthB = new HashMap<String, String>();
+            Map<String, String> depthB = new HashMap<>();
             depthB.put("teamColor", "&c");
             depthB.put("team", match.getFactionTag(TeamSide.B));
             depthB.put("depth", String.valueOf(match.getDepthTracker().getDepth(TeamSide.B)));
@@ -338,8 +340,8 @@ public final class RaidRiotGui {
     private static void placeMatchPlayerHeads(Inventory inv, RaidMatch match, RaidRiotPlugin plugin,
             boolean clickable, Map<Integer, UUID> slotTargets) {
         VirtualDeathService virtualDeath = plugin.getVirtualDeathService();
-        List<UUID> teamA = new ArrayList<UUID>();
-        List<UUID> teamB = new ArrayList<UUID>();
+        List<UUID> teamA = new ArrayList<>();
+        List<UUID> teamB = new ArrayList<>();
         for (UUID id : match.getParticipants()) {
             if (clickable && virtualDeath.isVirtualDead(id)) {
                 continue;
@@ -356,29 +358,26 @@ public final class RaidRiotGui {
     }
 
     private static HeadLoreBuilder matchHeadLore(final RaidMatch match, final TeamSide side, final boolean clickable) {
-        return new HeadLoreBuilder() {
-            @Override
-            public List<String> build(UUID id, String name, Player online) {
-                List<String> lore = new ArrayList<String>();
-                Map<String, String> teamVars = new HashMap<String, String>();
-                teamVars.put("team", match.getFactionTag(side));
-                lore.add(g("team.team-label", teamVars));
-                if (online == null) {
-                    lore.add(g("team.offline"));
-                }
-                if (clickable) {
-                    lore.add(g("team.click-teleport"));
-                }
-                return lore;
+        return (UUID id, String name, Player online) -> {
+            List<String> lore = new ArrayList<>();
+            Map<String, String> teamVars = new HashMap<>();
+            teamVars.put("team", match.getFactionTag(side));
+            lore.add(g("team.team-label", teamVars));
+            if (online == null) {
+                lore.add(g("team.offline"));
             }
+            if (clickable) {
+                lore.add(g("team.click-teleport"));
+            }
+            return lore;
         };
     }
 
     private static void placeQueuePlayerHeads(Inventory inv, QueueSession session, RaidRiotPlugin plugin,
             QueueHeadLayout layout) {
         if (session.getFactionARef() != null && session.getFactionBRef() != null) {
-            List<UUID> teamA = new ArrayList<UUID>();
-            List<UUID> teamB = new ArrayList<UUID>();
+            List<UUID> teamA = new ArrayList<>();
+            List<UUID> teamB = new ArrayList<>();
             FactionsBridge bridge = plugin.getFactionsBridge();
             for (UUID id : session.getJoinOrder()) {
                 Object faction = session.getFaction(id);
@@ -402,19 +401,26 @@ public final class RaidRiotGui {
                 queueHeadLore(session, plugin, null));
     }
 
-    private static void placeVotePlayerHeads(Inventory inv, RaidMatch match, VoteManager voteManager,
-            RaidRiotPlugin plugin) {
-        List<UUID> teamA = new ArrayList<UUID>();
-        List<UUID> teamB = new ArrayList<UUID>();
-        List<UUID> unassigned = new ArrayList<UUID>();
+    private static void placeVotePlayerHeads(Inventory inv, RaidMatch match, VoteManager voteManager) {
+        List<UUID> teamA = new ArrayList<>();
+        List<UUID> teamB = new ArrayList<>();
+        List<UUID> unassigned = new ArrayList<>();
         for (UUID id : match.getParticipants()) {
             TeamSide team = match.getTeamFor(id);
-            if (team == TeamSide.A) {
-                teamA.add(id);
-            } else if (team == TeamSide.B) {
-                teamB.add(id);
-            } else {
+            if (null == team) {
                 unassigned.add(id);
+            } else {
+                switch (team) {
+                    case A:
+                        teamA.add(id);
+                        break;
+                    case B:
+                        teamB.add(id);
+                        break;
+                    default:
+                        unassigned.add(id);
+                        break;
+                }
             }
         }
         if (teamA.isEmpty() && teamB.isEmpty()) {
@@ -427,48 +433,43 @@ public final class RaidRiotGui {
 
     private static HeadLoreBuilder queueHeadLore(final QueueSession session, final RaidRiotPlugin plugin,
             final Boolean teamA) {
-        return new HeadLoreBuilder() {
-            @Override
-            public List<String> build(UUID id, String name, Player online) {
-                List<String> lore = new ArrayList<String>();
-                lore.add(g("team.in-queue"));
-                if (session.getMode() == TeamAssignmentMode.FACTION) {
-                    String factionTag = factionTagFor(plugin, session, id);
-                    if (factionTag != null) {
-                        Map<String, String> vars = new HashMap<String, String>();
-                        vars.put("faction", factionTag);
-                        lore.add(g("team.faction", vars));
-                    }
-                } else if (teamA != null) {
-                    Map<String, String> vars = new HashMap<String, String>();
-                    vars.put("team", teamA ? session.getFactionATag() : session.getFactionBTag());
-                    lore.add(g("team.team-label", vars));
+        return (UUID id, String name, Player online) -> {
+            List<String> lore = new ArrayList<>();
+            lore.add(g("team.in-queue"));
+            if (session.getMode() == TeamAssignmentMode.FACTION) {
+                String factionTag = factionTagFor(plugin, session, id);
+                if (factionTag != null) {
+                    Map<String, String> vars = new HashMap<>();
+                    vars.put("faction", factionTag);
+                    lore.add(g("team.faction", vars));
                 }
-                return lore;
+            } else if (teamA != null) {
+                Map<String, String> vars = new HashMap<>();
+                vars.put("team", teamA ? session.getFactionATag() : session.getFactionBTag());
+                lore.add(g("team.team-label", vars));
             }
+            return lore;
         };
     }
 
     private static HeadLoreBuilder voteHeadLore(final VoteManager voteManager) {
-        return new HeadLoreBuilder() {
-            @Override
-            public List<String> build(UUID id, String name, Player online) {
-                List<String> lore = new ArrayList<String>();
-                BaseVoteOption baseVote = voteManager.getBaseVote(id);
-                KitVoteOption kitVote = voteManager.getKitVote(id);
-                String none = ConfigManager.get("gui.vote-player.none");
-                Map<String, String> baseVars = new HashMap<String, String>();
-                baseVars.put("base", baseVote == null ? none : baseVote.displayName());
-                lore.add(g("vote-player.base", baseVars));
-                Map<String, String> kitVars = new HashMap<String, String>();
-                kitVars.put("kit", kitVote == null ? none : kitVote.displayName());
-                lore.add(g("vote-player.kit", kitVars));
-                return lore;
-            }
+        return (UUID id, String name, Player online) -> {
+            List<String> lore = new ArrayList<>();
+            BaseVoteOption baseVote = voteManager.getBaseVote(id);
+            KitVoteOption kitVote = voteManager.getKitVote(id);
+            String none = ConfigManager.get("gui.vote-player.none");
+            Map<String, String> baseVars = new HashMap<>();
+            baseVars.put("base", baseVote == null ? none : baseVote.displayName());
+            lore.add(g("vote-player.base", baseVars));
+            Map<String, String> kitVars = new HashMap<>();
+            kitVars.put("kit", kitVote == null ? none : kitVote.displayName());
+            lore.add(g("vote-player.kit", kitVars));
+            return lore;
         };
     }
 
     private interface HeadLoreBuilder {
+
         List<String> build(UUID id, String name, Player online);
     }
 
@@ -488,7 +489,7 @@ public final class RaidRiotGui {
             ItemStack head = new ItemStack(Material.SKULL_ITEM, 1, (short) 3);
             SkullMeta meta = (SkullMeta) head.getItemMeta();
             meta.setOwner(name);
-            Map<String, String> nameVars = new HashMap<String, String>();
+            Map<String, String> nameVars = new HashMap<>();
             nameVars.put("name", name);
             meta.setDisplayName(g("player-head.name", nameVars));
             meta.setLore(loreBuilder.build(id, name, online));
@@ -514,7 +515,7 @@ public final class RaidRiotGui {
                 ? ConfigManager.get().getMaxFactionQueuePlayers()
                 : ConfigManager.get().getMaxPlayers();
         int seconds = session.getRemainingSeconds();
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("seconds", String.valueOf(seconds));
         vars.put("count", String.valueOf(session.size()));
         vars.put("max", String.valueOf(maxDisplay));
@@ -542,28 +543,10 @@ public final class RaidRiotGui {
         return stack;
     }
 
-    private static ItemStack factionStatusItem(String tag, QueueSession session, RaidRiotPlugin plugin,
-            boolean teamA) {
-        int count = factionCount(plugin, session, teamA ? session.getFactionARef() : session.getFactionBRef());
-        int max = ConfigManager.get().getPlayersPerTeam();
-        ItemStack stack = new ItemStack(Material.BANNER, 1);
-        ItemMeta meta = stack.getItemMeta();
-        Map<String, String> titleVars = new HashMap<String, String>();
-        titleVars.put("tag", tag);
-        titleVars.put("count", String.valueOf(count));
-        titleVars.put("max", String.valueOf(max));
-        meta.setDisplayName(g("faction-status.title", titleVars));
-        Map<String, String> memberVars = new HashMap<String, String>();
-        memberVars.put("max", String.valueOf(max));
-        meta.setLore(Arrays.asList(g("faction-status.qualified"), g("faction-status.members", memberVars)));
-        stack.setItemMeta(meta);
-        return stack;
-    }
-
     private static ItemStack voteOptionItem(String name, Material mat, byte data, int votes) {
         ItemStack stack = new ItemStack(mat, 1, data);
         ItemMeta meta = stack.getItemMeta();
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("name", name);
         vars.put("votes", String.valueOf(votes));
         meta.setDisplayName(g("vote-option.title", vars));
@@ -578,11 +561,11 @@ public final class RaidRiotGui {
     private static ItemStack kitOptionItem(KitVoteOption option, Material mat, int votes) {
         ItemStack stack = new ItemStack(mat, 1);
         ItemMeta meta = stack.getItemMeta();
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("name", option.displayName());
         vars.put("votes", String.valueOf(votes));
         meta.setDisplayName(g("kit-option.title", vars));
-        List<String> lore = new ArrayList<String>();
+        List<String> lore = new ArrayList<>();
         lore.add(g("kit-option.votes", vars));
         if (option == KitVoteOption.OWN_GEAR) {
             lore.add(g("kit-option.own-gear"));
@@ -650,23 +633,6 @@ public final class RaidRiotGui {
         } catch (Exception ex) {
             return null;
         }
-    }
-
-    private static int factionCount(RaidRiotPlugin plugin, QueueSession session, Object factionRef) {
-        if (factionRef == null) {
-            return 0;
-        }
-        FactionsBridge bridge = plugin.getFactionsBridge();
-        int count = 0;
-        for (Object faction : session.getPlayerFactions().values()) {
-            try {
-                if (bridge.factionsEqual(faction, factionRef)) {
-                    count++;
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        return count;
     }
 
     private static String g(String key) {

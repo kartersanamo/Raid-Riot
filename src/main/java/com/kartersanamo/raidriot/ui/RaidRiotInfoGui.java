@@ -43,7 +43,7 @@ public final class RaidRiotInfoGui {
         ItemMeta meta = stack.getItemMeta();
         meta.setDisplayName(g("info.item-title"));
 
-        List<String> lore = new ArrayList<String>();
+        List<String> lore = new ArrayList<>();
         lore.addAll(formatLines("info.description", portalVars()));
         lore.add(" ");
         lore.add(g("info.information-header"));
@@ -61,7 +61,7 @@ public final class RaidRiotInfoGui {
     }
 
     private static Map<String, String> portalVars() {
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("playersPerTeam", String.valueOf(ConfigManager.get().getPlayersPerTeam()));
         vars.put("teamA", ConfigManager.get().getTeamDisplayName(TeamSide.A));
         vars.put("teamB", ConfigManager.get().getTeamDisplayName(TeamSide.B));
@@ -71,7 +71,7 @@ public final class RaidRiotInfoGui {
 
     private static List<String> formatLines(String listKey, Map<String, String> vars) {
         List<String> lines = ConfigManager.get().formatGuiList(listKey, vars);
-        List<String> out = new ArrayList<String>();
+        List<String> out = new ArrayList<>();
         for (String line : lines) {
             if (line != null && !line.isEmpty()) {
                 out.add(line);

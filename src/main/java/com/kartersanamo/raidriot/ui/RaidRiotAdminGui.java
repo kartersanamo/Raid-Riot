@@ -1,5 +1,18 @@
 package com.kartersanamo.raidriot.ui;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BaseDifficultyStore;
@@ -9,19 +22,6 @@ import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.QueueSession;
 import com.kartersanamo.raidriot.world.SchematicCatalog;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public final class RaidRiotAdminGui {
 
@@ -47,10 +47,10 @@ public final class RaidRiotAdminGui {
 
     public static final int WORLD_LIST_START = 10;
     private static final int[] WORLD_SLOTS = {
-            10, 11, 12, 13, 14, 15, 16,
-            19, 20, 21, 22, 23, 24, 25,
-            28, 29, 30, 31, 32, 33, 34,
-            37, 38, 39, 40, 41, 42, 43
+        10, 11, 12, 13, 14, 15, 16,
+        19, 20, 21, 22, 23, 24, 25,
+        28, 29, 30, 31, 32, 33, 34,
+        37, 38, 39, 40, 41, 42, 43
     };
     private static final int[] SCHEMATIC_SLOTS = WORLD_SLOTS;
 
@@ -82,7 +82,7 @@ public final class RaidRiotAdminGui {
     }
 
     public static String baseSchematicTitle(BaseVoteOption option) {
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("option", option.displayName());
         return ConfigManager.get().formatGui("admin.title-base-schematic", vars);
     }
@@ -132,8 +132,8 @@ public final class RaidRiotAdminGui {
     public static Inventory createHub(RaidRiotPlugin plugin) {
         Inventory inv = Bukkit.createInventory(null, 54, hubTitle());
         fillBorder(inv, new int[]{SLOT_STATUS, SLOT_START_RANDOM, SLOT_START_FACTION,
-                SLOT_CANCEL_QUEUE, SLOT_STOP_MATCH, SLOT_SET_WORLD, SLOT_RELOAD,
-                SLOT_BASE_SETTINGS, SLOT_SET_KIT});
+            SLOT_CANCEL_QUEUE, SLOT_STOP_MATCH, SLOT_SET_WORLD, SLOT_RELOAD,
+            SLOT_BASE_SETTINGS, SLOT_SET_KIT});
 
         inv.setItem(SLOT_STATUS, statusItem(plugin));
 
@@ -154,13 +154,13 @@ public final class RaidRiotAdminGui {
         boolean queueOpen = plugin.getEventManager().getQueueManager().isOpen();
         inv.setItem(SLOT_CANCEL_QUEUE, queueOpen
                 ? actionItem(Material.REDSTONE, "cancel-queue.title",
-                "cancel-queue.description", "cancel-queue.click", null)
+                        "cancel-queue.description", "cancel-queue.click", null)
                 : disabledItem("cancel-queue.title", "cancel-queue.disabled"));
 
         boolean canStopMatch = plugin.getEventManager().hasTeamsAssigned();
         inv.setItem(SLOT_STOP_MATCH, canStopMatch
                 ? actionItem(Material.BARRIER, "stop-match.title",
-                "stop-match.description", "stop-match.click", null)
+                        "stop-match.description", "stop-match.click", null)
                 : disabledItem("stop-match.title", "stop-match.disabled"));
 
         inv.setItem(SLOT_SET_WORLD, actionItem(
@@ -197,11 +197,11 @@ public final class RaidRiotAdminGui {
     public static Inventory createWinnerPicker(RaidRiotPlugin plugin) {
         Inventory inv = Bukkit.createInventory(null, 27, winnerTitle());
         fillBorder(inv, new int[]{SLOT_WINNER_A, SLOT_WINNER_B, SLOT_WINNER_DRAW,
-                SLOT_WINNER_FORCE, SLOT_BACK_WINNER});
+            SLOT_WINNER_FORCE, SLOT_BACK_WINNER});
 
         RaidMatch match = plugin.getEventManager().getActiveMatch();
-        Map<String, String> teamAVars = teamVars(plugin, match, TeamSide.A);
-        Map<String, String> teamBVars = teamVars(plugin, match, TeamSide.B);
+        Map<String, String> teamAVars = teamVars(match, TeamSide.A);
+        Map<String, String> teamBVars = teamVars(match, TeamSide.B);
 
         inv.setItem(SLOT_WINNER_A, actionItem(
                 Material.WOOL, (byte) 5,
@@ -246,7 +246,7 @@ public final class RaidRiotAdminGui {
                 break;
             }
             int slot = WORLD_SLOTS[index];
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("world", world.getName());
             boolean selected = world.getName().equals(currentWorld);
             inv.setItem(slot, actionItem(
@@ -282,7 +282,7 @@ public final class RaidRiotAdminGui {
         String current = store.getSchematic(option);
         List<String> files = SchematicCatalog.listSchematicFiles(plugin.getDataFolder());
 
-        Map<String, String> clearVars = new HashMap<String, String>();
+        Map<String, String> clearVars = new HashMap<>();
         clearVars.put("option", option.displayName());
         inv.setItem(SLOT_CLEAR_SCHEMATIC, actionItem(
                 Material.BARRIER,
@@ -304,7 +304,7 @@ public final class RaidRiotAdminGui {
                 if (index >= SCHEMATIC_SLOTS.length) {
                     break;
                 }
-                Map<String, String> vars = new HashMap<String, String>();
+                Map<String, String> vars = new HashMap<>();
                 vars.put("file", file);
                 vars.put("option", option.displayName());
                 boolean selected = file.equals(current);
@@ -341,13 +341,13 @@ public final class RaidRiotAdminGui {
 
     private static ItemStack baseOptionItem(BaseVoteOption option, BaseDifficultyStore store) {
         String file = store.getSchematic(option);
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("option", option.displayName());
         vars.put("file", file == null
                 ? ConfigManager.get("messages.admin.base-list-not-set")
                 : file);
         Material mat;
-        byte data = 0;
+        byte data;
         switch (option) {
             case EASY:
                 mat = Material.WOOL;
@@ -371,7 +371,7 @@ public final class RaidRiotAdminGui {
     }
 
     private static ItemStack statusItem(RaidRiotPlugin plugin) {
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("world", ConfigManager.get().getEventWorld() == null
                 ? ConfigManager.get("messages.admin.world-not-set")
                 : ConfigManager.get().getEventWorld());
@@ -382,14 +382,14 @@ public final class RaidRiotAdminGui {
         } else if (plugin.getEventManager().getQueueManager().isOpen()) {
             QueueSession session = plugin.getEventManager().getQueueManager().getSession();
             vars.put("phase", ConfigManager.get("messages.admin.status-queue"));
-            Map<String, String> queueVars = new HashMap<String, String>();
+            Map<String, String> queueVars = new HashMap<>();
             queueVars.put("count", String.valueOf(session == null ? 0 : session.size()));
             queueVars.put("max", String.valueOf(ConfigManager.get().getMaxPlayers()));
             queueVars.put("time", String.valueOf(session == null ? 0 : session.getRemainingSeconds()));
             vars.put("detail", ConfigManager.get().formatMessage("admin.status-queue-detail", queueVars));
         } else {
             vars.put("phase", match.getState().name());
-            Map<String, String> matchVars = new HashMap<String, String>();
+            Map<String, String> matchVars = new HashMap<>();
             matchVars.put("teamA", match.getFactionTag(TeamSide.A));
             matchVars.put("teamB", match.getFactionTag(TeamSide.B));
             vars.put("detail", ConfigManager.get().formatMessage("admin.status-match-detail", matchVars));
@@ -402,8 +402,8 @@ public final class RaidRiotAdminGui {
                 vars);
     }
 
-    private static Map<String, String> teamVars(RaidRiotPlugin plugin, RaidMatch match, TeamSide side) {
-        Map<String, String> vars = new HashMap<String, String>();
+    private static Map<String, String> teamVars(RaidMatch match, TeamSide side) {
+        Map<String, String> vars = new HashMap<>();
         if (match != null) {
             vars.put("team", match.getFactionTag(side));
         } else {
@@ -439,7 +439,7 @@ public final class RaidRiotAdminGui {
         ItemStack stack = new ItemStack(material, 1, data);
         ItemMeta meta = stack.getItemMeta();
         meta.setDisplayName(formatKey(titleKey, vars));
-        List<String> lore = new ArrayList<String>();
+        List<String> lore = new ArrayList<>();
         lore.add(formatKey(lore1Key, vars));
         lore.add(formatKey(lore2Key, vars));
         meta.setLore(lore);
@@ -461,7 +461,7 @@ public final class RaidRiotAdminGui {
     }
 
     private static void fillBorder(Inventory inv, int[] skipSlots) {
-        List<Integer> skip = new ArrayList<Integer>();
+        List<Integer> skip = new ArrayList<>();
         if (skipSlots != null) {
             for (int slot : skipSlots) {
                 skip.add(slot);
@@ -492,6 +492,6 @@ public final class RaidRiotAdminGui {
     }
 
     private static String formatKey(String key, Map<String, String> vars) {
-        return ConfigManager.get().formatGui("admin." + key, vars == null ? new HashMap<String, String>() : vars);
+        return ConfigManager.get().formatGui("admin." + key, vars == null ? new HashMap<>() : vars);
     }
 }

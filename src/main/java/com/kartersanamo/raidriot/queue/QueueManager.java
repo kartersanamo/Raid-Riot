@@ -1,22 +1,23 @@
 package com.kartersanamo.raidriot.queue;
 
-import com.kartersanamo.raidriot.RaidRiotPlugin;
-import com.kartersanamo.raidriot.config.ConfigManager;
-import com.kartersanamo.raidriot.chat.ClickableMessageService;
-import com.kartersanamo.raidriot.faction.FactionsBridge;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
+
+import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.chat.ClickableMessageService;
+import com.kartersanamo.raidriot.config.ConfigManager;
+import com.kartersanamo.raidriot.faction.FactionsBridge;
+
 public final class QueueManager {
 
-    private static final Set<Integer> QUEUE_COUNTDOWN_REMINDERS = new HashSet<Integer>();
+    private static final Set<Integer> QUEUE_COUNTDOWN_REMINDERS = new HashSet<>();
 
     static {
         QUEUE_COUNTDOWN_REMINDERS.add(45);
@@ -31,6 +32,7 @@ public final class QueueManager {
     }
 
     public interface QueueListener {
+
         void onQueueLocked(QueueSession session);
 
         void onQueueCancelled(String reason);
@@ -70,7 +72,7 @@ public final class QueueManager {
             throw new IllegalStateException(ConfigManager.get("messages.queue.event-world-not-configured"));
         }
         if (Bukkit.getWorld(world) == null) {
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("world", world);
             throw new IllegalStateException(ConfigManager.get().formatMessage("queue.event-world-not-loaded", vars));
         }
@@ -127,7 +129,7 @@ public final class QueueManager {
                 FactionQueueResolver.assignQualifyingFactions(session, bridge,
                         ConfigManager.get().getPlayersPerTeam());
                 recordJoinStats();
-                checkFactionLock(bridge);
+                checkFactionLock();
                 snapshotOnJoin(player);
                 return JoinResult.SUCCESS;
             }
@@ -193,11 +195,8 @@ public final class QueueManager {
 
     private void startTickTask() {
         cancelTickTask();
-        tickTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
-            @Override
-            public void run() {
-                tick();
-            }
+        tickTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            tick();
         }, 20L, 20L);
     }
 
@@ -229,7 +228,7 @@ public final class QueueManager {
             } else if (session.size() >= ConfigManager.get().getMaxPlayers()) {
                 lockQueue();
             } else {
-                Map<String, String> vars = new HashMap<String, String>();
+                Map<String, String> vars = new HashMap<>();
                 vars.put("count", String.valueOf(session.size()));
                 vars.put("max", String.valueOf(ConfigManager.get().getMaxPlayers()));
                 cancelQueue(ConfigManager.get().formatMessage("queue.cancel-not-enough-players", vars));
@@ -248,7 +247,7 @@ public final class QueueManager {
         }
     }
 
-    private void checkFactionLock(FactionsBridge bridge) throws Exception {
+    private void checkFactionLock() throws Exception {
         int perTeam = ConfigManager.get().getPlayersPerTeam();
         if (session.getFactionARef() != null && session.getFactionBRef() != null
                 && countOnFaction(session.getFactionARef()) >= perTeam

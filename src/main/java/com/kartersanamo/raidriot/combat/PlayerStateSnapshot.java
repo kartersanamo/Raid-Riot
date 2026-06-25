@@ -37,11 +37,11 @@ public final class PlayerStateSnapshot {
         this.saturation = saturation;
         this.gameMode = gameMode;
         this.location = location == null ? null : location.clone();
-        this.effects = new ArrayList<PotionEffect>(effects);
+        this.effects = new ArrayList<>(effects);
     }
 
     public static PlayerStateSnapshot capture(Player player) {
-        List<PotionEffect> effects = new ArrayList<PotionEffect>(player.getActivePotionEffects());
+        List<PotionEffect> effects = new ArrayList<>(player.getActivePotionEffects());
         return new PlayerStateSnapshot(
                 player.getInventory().getContents(),
                 player.getInventory().getArmorContents(),

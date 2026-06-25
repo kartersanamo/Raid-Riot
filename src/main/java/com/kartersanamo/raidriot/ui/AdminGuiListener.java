@@ -1,11 +1,10 @@
 package com.kartersanamo.raidriot.ui;
 
-import com.kartersanamo.raidriot.RaidRiotPlugin;
-import com.kartersanamo.raidriot.base.BaseVoteOption;
-import com.kartersanamo.raidriot.config.ConfigManager;
-import com.kartersanamo.raidriot.match.AdminStopChoice;
-import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
-import com.kartersanamo.raidriot.world.SchematicCatalog;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -14,10 +13,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.base.BaseVoteOption;
+import com.kartersanamo.raidriot.config.ConfigManager;
+import com.kartersanamo.raidriot.match.AdminStopChoice;
+import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
+import com.kartersanamo.raidriot.world.SchematicCatalog;
 
 public final class AdminGuiListener implements Listener {
 
@@ -95,7 +96,7 @@ public final class AdminGuiListener implements Listener {
         if (slot == RaidRiotAdminGui.SLOT_CLEAR_SCHEMATIC) {
             try {
                 plugin.getBaseDifficultyStore().clear(option);
-                Map<String, String> vars = new HashMap<String, String>();
+                Map<String, String> vars = new HashMap<>();
                 vars.put("option", option.displayName());
                 ConfigManager.get().send(player, "admin.base-cleared", vars);
                 adminGuiService.openSchematicPicker(player, option);
@@ -115,7 +116,7 @@ public final class AdminGuiListener implements Listener {
         String file = files.get(index);
         try {
             plugin.getBaseDifficultyStore().setSchematic(option, file);
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("option", option.displayName());
             vars.put("file", file);
             ConfigManager.get().send(player, "admin.base-set", vars);
@@ -242,7 +243,7 @@ public final class AdminGuiListener implements Listener {
         }
         World world = worlds.get(index);
         ConfigManager.get().setEventWorld(world.getName());
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("world", world.getName());
         ConfigManager.get().send(player, "admin.world-set", vars);
         adminGuiService.openHub(player);
@@ -251,7 +252,7 @@ public final class AdminGuiListener implements Listener {
     private void tryStartQueue(Player player, TeamAssignmentMode mode) {
         try {
             plugin.getEventManager().startQueue(mode);
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("mode", mode.name().toLowerCase(Locale.ROOT));
             ConfigManager.get().send(player, "admin.queue-opened", vars);
             adminGuiService.refreshOpenHubs();
@@ -296,7 +297,7 @@ public final class AdminGuiListener implements Listener {
             plugin.getEventKitStore().saveFrom(player);
             ConfigManager.get().send(player, "admin.kit-set");
         } catch (Exception ex) {
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("error", ex.getMessage());
             ConfigManager.get().send(player, "admin.kit-save-failed", vars);
         }

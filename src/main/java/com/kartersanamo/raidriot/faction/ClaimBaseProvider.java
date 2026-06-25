@@ -1,17 +1,17 @@
 package com.kartersanamo.raidriot.faction;
 
-import com.kartersanamo.raidriot.RaidRiotPlugin;
-import com.kartersanamo.raidriot.arena.CuboidRegion;
-import com.kartersanamo.raidriot.arena.TeamBase;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.arena.CuboidRegion;
+import com.kartersanamo.raidriot.arena.TeamBase;
 
 public final class ClaimBaseProvider {
 
@@ -114,7 +114,7 @@ public final class ClaimBaseProvider {
     }
 
     public List<Chunk> listOwnedChunks(Object factionRef, String worldName) throws Exception {
-        List<Chunk> out = new ArrayList<Chunk>();
+        List<Chunk> out = new ArrayList<>();
         FactionsBridge bridge = plugin.getFactionsBridge();
         World world = Bukkit.getWorld(worldName);
         if (world == null) {

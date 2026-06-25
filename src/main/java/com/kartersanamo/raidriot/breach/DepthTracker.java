@@ -11,7 +11,7 @@ import java.util.Map;
 
 public final class DepthTracker {
 
-    private final Map<TeamSide, Integer> maxDepth = new EnumMap<TeamSide, Integer>(TeamSide.class);
+    private final Map<TeamSide, Integer> maxDepth = new EnumMap<>(TeamSide.class);
 
     public DepthTracker() {
         maxDepth.put(TeamSide.A, 0);

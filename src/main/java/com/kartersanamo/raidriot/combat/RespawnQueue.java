@@ -15,7 +15,7 @@ import java.util.UUID;
 public final class RespawnQueue {
 
     private final RaidRiotPlugin plugin;
-    private final Map<UUID, BukkitTask> pending = new HashMap<UUID, BukkitTask>();
+    private final Map<UUID, BukkitTask> pending = new HashMap<>();
 
     public RespawnQueue(RaidRiotPlugin plugin) {
         this.plugin = plugin;
@@ -24,7 +24,7 @@ public final class RespawnQueue {
     public void queueRespawn(RaidMatch match, Player player) {
         cancel(player.getUniqueId());
         int delay = ConfigManager.get().getRespawnDelaySeconds();
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("seconds", String.valueOf(delay));
         ConfigManager.get().send(player, "death.respawn-wait", vars);
 

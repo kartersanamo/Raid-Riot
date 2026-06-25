@@ -49,7 +49,7 @@ public final class SchematicPasteJob {
             BaseBlock block;
             try {
                 block = clipboard.getBlock(new Vector(indexX, indexY, indexZ));
-            } catch (Exception ex) {
+            } catch (ArrayIndexOutOfBoundsException ex) {
                 advance();
                 continue;
             }

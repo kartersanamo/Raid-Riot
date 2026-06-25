@@ -13,7 +13,7 @@ public final class BaseDifficultyStore {
 
     private final RaidRiotPlugin plugin;
     private final File file;
-    private final Map<BaseVoteOption, String> schematics = new EnumMap<BaseVoteOption, String>(BaseVoteOption.class);
+    private final Map<BaseVoteOption, String> schematics = new EnumMap<>(BaseVoteOption.class);
 
     public BaseDifficultyStore(RaidRiotPlugin plugin) {
         this.plugin = plugin;
@@ -71,7 +71,7 @@ public final class BaseDifficultyStore {
     }
 
     public Map<BaseVoteOption, String> snapshot() {
-        return new EnumMap<BaseVoteOption, String>(schematics);
+        return new EnumMap<>(schematics);
     }
 
     private void save() throws IOException {

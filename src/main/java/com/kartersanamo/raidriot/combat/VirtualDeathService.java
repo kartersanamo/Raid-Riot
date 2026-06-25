@@ -1,26 +1,25 @@
 package com.kartersanamo.raidriot.combat;
 
-import com.kartersanamo.raidriot.RaidRiotPlugin;
-import com.kartersanamo.raidriot.config.ConfigManager;
-import com.kartersanamo.raidriot.arena.TeamSide;
-import com.kartersanamo.raidriot.match.RaidMatch;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
-import com.kartersanamo.raidriot.config.ConfigManager;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.arena.TeamSide;
+import com.kartersanamo.raidriot.config.ConfigManager;
+import com.kartersanamo.raidriot.match.RaidMatch;
 
 public final class VirtualDeathService {
 
     private final RaidRiotPlugin plugin;
-    private final Map<UUID, BukkitTask> pending = new HashMap<UUID, BukkitTask>();
+    private final Map<UUID, BukkitTask> pending = new HashMap<>();
 
     public VirtualDeathService(RaidRiotPlugin plugin) {
         this.plugin = plugin;
@@ -55,22 +54,19 @@ public final class VirtualDeathService {
         }
 
         int delay = ConfigManager.get().getRespawnDelaySeconds();
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("seconds", String.valueOf(delay));
         ConfigManager.get().send(player, "death.respawn-wait", vars);
 
-        BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
-            @Override
-            public void run() {
-                pending.remove(player.getUniqueId());
-                finishRespawn(match, player);
-            }
+        BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            pending.remove(player.getUniqueId());
+            finishRespawn(match, player);
         }, delay * 20L);
         pending.put(player.getUniqueId(), task);
     }
 
     private void announceDeath(RaidMatch match, Player victim, Player killer) {
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("victim", victim.getName());
         TeamSide team = match.getTeamFor(victim);
         vars.put("team", team == null ? "" : match.getFactionTag(team));
@@ -121,7 +117,7 @@ public final class VirtualDeathService {
     }
 
     public void shutdown() {
-        for (UUID playerId : new HashSet<UUID>(pending.keySet())) {
+        for (UUID playerId : new HashSet<>(pending.keySet())) {
             cancel(playerId);
             Player player = Bukkit.getPlayer(playerId);
             if (player != null && player.isOnline()) {

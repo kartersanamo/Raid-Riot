@@ -1,18 +1,16 @@
 package com.kartersanamo.raidriot.faction;
 
-import com.kartersanamo.raidriot.RaidRiotPlugin;
-import com.kartersanamo.raidriot.config.ConfigManager;
-import com.kartersanamo.raidriot.arena.CuboidRegion;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+
+import org.bukkit.Location;
+import org.bukkit.World;
+
+import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.arena.CuboidRegion;
+import com.kartersanamo.raidriot.config.ConfigManager;
 
 public final class FactionBaseClaimProvider {
 
@@ -35,10 +33,10 @@ public final class FactionBaseClaimProvider {
                 baseClaimCheck = fLocationClass.getMethod("isBaseClaim");
             }
             ok = true;
-            plugin.getLogger().info("Faction baseclaim hook ready (" + baseClaimCheck.getName() + ").");
+            plugin.getLogger().log(Level.INFO, "Faction baseclaim hook ready ({0}).", baseClaimCheck.getName());
             return true;
         } catch (Throwable t) {
-            plugin.getLogger().warning("Faction baseclaim API unavailable: " + t.getMessage());
+            plugin.getLogger().log(Level.WARNING, "Faction baseclaim API unavailable: {0}", t.getMessage());
             return false;
         }
     }
@@ -65,7 +63,7 @@ public final class FactionBaseClaimProvider {
     }
 
     public List<ChunkCoordinate> listBaseClaimChunks(Object factionRef, String worldName) throws Exception {
-        List<ChunkCoordinate> out = new ArrayList<ChunkCoordinate>();
+        List<ChunkCoordinate> out = new ArrayList<>();
         if (!ok) {
             return out;
         }
@@ -129,6 +127,7 @@ public final class FactionBaseClaimProvider {
     }
 
     public static final class ChunkCoordinate {
+
         public final int x;
         public final int z;
 
@@ -139,6 +138,7 @@ public final class FactionBaseClaimProvider {
     }
 
     public static final class BorderContact {
+
         public boolean positiveX;
         public boolean negativeX;
         public boolean positiveZ;

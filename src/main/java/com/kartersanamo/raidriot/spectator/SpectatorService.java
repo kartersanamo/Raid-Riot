@@ -21,8 +21,8 @@ import java.util.UUID;
 public final class SpectatorService {
 
     private final RaidRiotPlugin plugin;
-    private final Map<UUID, PlayerStateSnapshot> snapshots = new HashMap<UUID, PlayerStateSnapshot>();
-    private final Map<Integer, UUID> guiTargets = new HashMap<Integer, UUID>();
+    private final Map<UUID, PlayerStateSnapshot> snapshots = new HashMap<>();
+    private final Map<Integer, UUID> guiTargets = new HashMap<>();
 
     public SpectatorService(RaidRiotPlugin plugin) {
         this.plugin = plugin;
@@ -66,7 +66,7 @@ public final class SpectatorService {
             return;
         }
         spectator.teleport(target.getLocation());
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("target", target.getName());
         ConfigManager.get().send(spectator, "spectator.teleported", vars);
     }
@@ -84,7 +84,7 @@ public final class SpectatorService {
 
     public void shutdown() {
         guiTargets.clear();
-        Set<UUID> ids = new HashSet<UUID>(snapshots.keySet());
+        Set<UUID> ids = new HashSet<>(snapshots.keySet());
         for (UUID playerId : ids) {
             PlayerStateSnapshot snapshot = snapshots.remove(playerId);
             Player player = Bukkit.getPlayer(playerId);

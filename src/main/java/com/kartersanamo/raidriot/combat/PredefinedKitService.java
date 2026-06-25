@@ -1,13 +1,13 @@
 package com.kartersanamo.raidriot.combat;
 
-import com.kartersanamo.raidriot.config.ConfigManager;
+import java.util.Locale;
+
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import java.util.List;
-import java.util.Locale;
+import com.kartersanamo.raidriot.config.ConfigManager;
 
 public final class PredefinedKitService {
 
@@ -30,10 +30,10 @@ public final class PredefinedKitService {
         PlayerInventory inv = player.getInventory();
         inv.clear();
         inv.setArmorContents(new ItemStack[]{
-                item(config.getPredefinedKitHelmet()),
-                item(config.getPredefinedKitChestplate()),
-                item(config.getPredefinedKitLeggings()),
-                item(config.getPredefinedKitBoots())
+            item(config.getPredefinedKitHelmet()),
+            item(config.getPredefinedKitChestplate()),
+            item(config.getPredefinedKitLeggings()),
+            item(config.getPredefinedKitBoots())
         });
         int slot = 0;
         for (String entry : config.getPredefinedKitItems()) {

@@ -117,7 +117,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             ConfigManager.get().send(sender, "status.none");
             return true;
         }
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("phase", match.getState().name());
         if (plugin.getEventManager().getQueueManager().isOpen()) {
             vars.put("count", String.valueOf(plugin.getEventManager().getQueueManager().getSession().size()));
@@ -190,13 +190,13 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         }
         World world = Bukkit.getWorld(args[3]);
         if (world == null) {
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("world", args[3]);
             ConfigManager.get().send(sender, "command.world-not-loaded", vars);
             return true;
         }
         ConfigManager.get().setEventWorld(world.getName());
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("world", world.getName());
         ConfigManager.get().send(sender, "admin.world-set", vars);
         return true;
@@ -222,7 +222,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         }
         try {
             plugin.getEventManager().startQueue(mode);
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("mode", mode.name().toLowerCase(Locale.ROOT));
             ConfigManager.get().send(sender, "admin.queue-opened", vars);
         } catch (Exception ex) {
@@ -337,7 +337,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
                 ConfigManager.get().send(sender, "admin.base-list-header");
                 for (BaseVoteOption option : new BaseVoteOption[]{BaseVoteOption.EASY, BaseVoteOption.MEDIUM, BaseVoteOption.HARD}) {
                     String file = baseDifficultyStore.getSchematic(option);
-                    Map<String, String> vars = new HashMap<String, String>();
+                    Map<String, String> vars = new HashMap<>();
                     vars.put("option", option.displayName());
                     vars.put("file", file == null
                             ? ConfigManager.get("messages.admin.base-list-not-set")
@@ -349,7 +349,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             if ("set".equals(action) && args.length >= 5) {
                 BaseVoteOption option = BaseVoteOption.parse(args[3]);
                 baseDifficultyStore.setSchematic(option, args[4]);
-                Map<String, String> vars = new HashMap<String, String>();
+                Map<String, String> vars = new HashMap<>();
                 vars.put("option", option.displayName());
                 vars.put("file", args[4]);
                 ConfigManager.get().send(sender, "admin.base-set", vars);
@@ -358,7 +358,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             if ("clear".equals(action) && args.length >= 4) {
                 BaseVoteOption option = BaseVoteOption.parse(args[3]);
                 baseDifficultyStore.clear(option);
-                Map<String, String> vars = new HashMap<String, String>();
+                Map<String, String> vars = new HashMap<>();
                 vars.put("option", option.displayName());
                 ConfigManager.get().send(sender, "admin.base-cleared", vars);
                 return true;
@@ -388,7 +388,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             plugin.getEventKitStore().saveFrom((Player) sender);
             ConfigManager.get().send(sender, "admin.kit-set");
         } catch (Exception ex) {
-            Map<String, String> vars = new HashMap<String, String>();
+            Map<String, String> vars = new HashMap<>();
             vars.put("error", ex.getMessage());
             ConfigManager.get().send(sender, "admin.kit-save-failed", vars);
         }
@@ -450,7 +450,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             return filterPrefix(Collections.singletonList("world"), args[2]);
         }
         if (args.length == 4 && "admin".equalsIgnoreCase(args[0]) && "setup".equalsIgnoreCase(args[1])) {
-            List<String> worlds = new ArrayList<String>();
+            List<String> worlds = new ArrayList<>();
             for (World w : Bukkit.getWorlds()) {
                 worlds.add(w.getName());
             }
@@ -464,7 +464,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             return options;
         }
         String lower = prefix.toLowerCase(Locale.ROOT);
-        List<String> out = new ArrayList<String>();
+        List<String> out = new ArrayList<>();
         for (String option : options) {
             if (option.toLowerCase(Locale.ROOT).startsWith(lower)) {
                 out.add(option);

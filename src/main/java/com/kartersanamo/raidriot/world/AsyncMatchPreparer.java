@@ -1,9 +1,10 @@
 package com.kartersanamo.raidriot.world;
 
+import org.bukkit.scheduler.BukkitTask;
+
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.base.BasePlacementPipeline;
 import com.kartersanamo.raidriot.config.ConfigManager;
-import org.bukkit.scheduler.BukkitTask;
 
 public final class AsyncMatchPreparer {
 
@@ -20,16 +21,13 @@ public final class AsyncMatchPreparer {
 
     public void start(BasePlacementPipeline pipeline) {
         cancel();
-        task = plugin.getServer().getScheduler().runTaskTimer(plugin, new Runnable() {
-            @Override
-            public void run() {
-                TerrainBudget budget = new TerrainBudget(
-                        ConfigManager.get().getTerrainBlocksPerTick(),
-                        ConfigManager.get().getTerrainChunksPerTick(),
-                        ConfigManager.get().getTerrainScanColumnsPerTick());
-                if (pipeline.tick(budget)) {
-                    cancel();
-                }
+        task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+            TerrainBudget budget = new TerrainBudget(
+                    ConfigManager.get().getTerrainBlocksPerTick(),
+                    ConfigManager.get().getTerrainChunksPerTick(),
+                    ConfigManager.get().getTerrainScanColumnsPerTick());
+            if (pipeline.tick(budget)) {
+                cancel();
             }
         }, 1L, 1L);
     }

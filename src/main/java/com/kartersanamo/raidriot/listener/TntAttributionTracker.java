@@ -23,8 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class TntAttributionTracker {
 
     private final RaidRiotPlugin plugin;
-    private final ConcurrentHashMap<UUID, TntOrigin> tntOrigins = new ConcurrentHashMap<UUID, TntOrigin>();
-    private final List<PendingDispense> pendingDispenses = Collections.synchronizedList(new ArrayList<PendingDispense>());
+    private final ConcurrentHashMap<UUID, TntOrigin> tntOrigins = new ConcurrentHashMap<>();
+    private final List<PendingDispense> pendingDispenses = Collections.synchronizedList(new ArrayList<>());
 
     public TntAttributionTracker(RaidRiotPlugin plugin) {
         this.plugin = plugin;

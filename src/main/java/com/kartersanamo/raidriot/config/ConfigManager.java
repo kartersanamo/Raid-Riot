@@ -1,9 +1,18 @@
 package com.kartersanamo.raidriot.config;
 
-import com.kartersanamo.raidriot.RaidRiotPlugin;
-import com.kartersanamo.raidriot.arena.TeamSide;
-import com.kartersanamo.raidriot.base.BaseVoteOption;
-import com.kartersanamo.raidriot.vote.KitVoteOption;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
@@ -13,18 +22,10 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.HashSet;
+import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.arena.TeamSide;
+import com.kartersanamo.raidriot.base.BaseVoteOption;
+import com.kartersanamo.raidriot.vote.KitVoteOption;
 
 public final class ConfigManager {
 
@@ -42,7 +43,7 @@ public final class ConfigManager {
     private Material predefinedKitChestplate = Material.IRON_CHESTPLATE;
     private Material predefinedKitLeggings = Material.IRON_LEGGINGS;
     private Material predefinedKitBoots = Material.IRON_BOOTS;
-    private List<String> predefinedKitItems = new ArrayList<String>();
+    private List<String> predefinedKitItems = new ArrayList<>();
     private int queueCountdownSeconds = 60;
     private int voteDurationSeconds = 30;
     private int baseSeparationBlocks = 200;
@@ -54,9 +55,9 @@ public final class ConfigManager {
     private String eventFactionTagA = "Yellow";
     private String eventFactionTagB = "Red";
     private int eventFactionPowerBuffer = 300;
-    private final Map<BaseVoteOption, int[]> schematicCenterFromMin = new EnumMap<BaseVoteOption, int[]>(BaseVoteOption.class);
+    private final Map<BaseVoteOption, int[]> schematicCenterFromMin = new EnumMap<>(BaseVoteOption.class);
     private String baseClaimMethod = "isBaseClaim";
-    private List<String> factionsSourceWorlds = new ArrayList<String>();
+    private List<String> factionsSourceWorlds = new ArrayList<>();
     private int matchDurationSeconds = 1500;
     private int countdownSeconds = 10;
     private int respawnDelaySeconds = 10;
@@ -67,7 +68,7 @@ public final class ConfigManager {
     private int pasteExtraX;
     private int pasteExtraY;
     private int pasteExtraZ;
-    private Set<Material> breachMaterials = new HashSet<Material>();
+    private final Set<Material> breachMaterials = new HashSet<>();
     private boolean fixedMatchSettingsEnabled = true;
     private BaseVoteOption fixedBase = BaseVoteOption.MEDIUM;
     private KitVoteOption fixedKit = KitVoteOption.PREDEFINED;
@@ -127,7 +128,7 @@ public final class ConfigManager {
         predefinedKitChestplate = parseMaterial(config.getString("predefined-kit.chestplate"), Material.IRON_CHESTPLATE);
         predefinedKitLeggings = parseMaterial(config.getString("predefined-kit.leggings"), Material.IRON_LEGGINGS);
         predefinedKitBoots = parseMaterial(config.getString("predefined-kit.boots"), Material.IRON_BOOTS);
-        predefinedKitItems = new ArrayList<String>(config.getStringList("predefined-kit.items"));
+        predefinedKitItems = new ArrayList<>(config.getStringList("predefined-kit.items"));
         if (predefinedKitItems.isEmpty()) {
             predefinedKitItems.add("TNT:64");
             predefinedKitItems.add("SAND:64");
@@ -148,7 +149,7 @@ public final class ConfigManager {
         eventFactionPowerBuffer = config.getInt("factions.event-faction-power-buffer", 300);
         loadSchematicCenterOffsets();
         baseClaimMethod = config.getString("factions.base-claim-method", "isBaseClaim");
-        factionsSourceWorlds = new ArrayList<String>(config.getStringList("factions.source-world"));
+        factionsSourceWorlds = new ArrayList<>(config.getStringList("factions.source-world"));
         if (factionsSourceWorlds.isEmpty()) {
             String singleWorld = config.getString("factions.source-world", "world");
             if (singleWorld != null && !singleWorld.trim().isEmpty()) {
@@ -182,7 +183,7 @@ public final class ConfigManager {
                 try {
                     breachMaterials.add(Material.valueOf(name.trim().toUpperCase(Locale.ROOT)));
                 } catch (IllegalArgumentException ex) {
-                    plugin.getLogger().warning("Unknown breach material: " + name);
+                    plugin.getLogger().log(Level.WARNING, "Unknown breach material: {0}", name);
                 }
             }
         }
@@ -264,12 +265,12 @@ public final class ConfigManager {
     }
 
     public String formatGui(String key) {
-        return formatGui(key, new HashMap<String, String>());
+        return formatGui(key, new HashMap<>());
     }
 
     public List<String> formatGuiList(String listKey, Map<String, String> vars) {
         List<String> lines = config.getStringList("gui." + listKey);
-        List<String> out = new ArrayList<String>();
+        List<String> out = new ArrayList<>();
         if (lines == null) {
             return out;
         }
@@ -280,13 +281,13 @@ public final class ConfigManager {
     }
 
     public void send(CommandSender sender, String key) {
-        send(sender, key, new HashMap<String, String>());
+        send(sender, key, new HashMap<>());
     }
 
     public void send(CommandSender sender, String key, Map<String, String> vars) {
         String message = formatMessage(key, vars);
         if (isBlank(message)) {
-            plugin.getLogger().warning("Refusing to send empty message for key: " + key);
+            plugin.getLogger().log(Level.WARNING, "Refusing to send empty message for key: {0}", key);
             return;
         }
         sender.sendMessage(ensurePrefix(message));
@@ -302,7 +303,7 @@ public final class ConfigManager {
     public void broadcast(String key, Map<String, String> vars) {
         String msg = formatMessage(key, vars);
         if (isBlank(msg)) {
-            plugin.getLogger().warning("Refusing to broadcast empty message for key: " + key);
+            plugin.getLogger().log(Level.WARNING, "Refusing to broadcast empty message for key: {0}", key);
             return;
         }
         msg = ensurePrefix(msg);
@@ -313,13 +314,13 @@ public final class ConfigManager {
     }
 
     public void broadcastCentered(String key) {
-        broadcastCentered(key, new HashMap<String, String>());
+        broadcastCentered(key, new HashMap<>());
     }
 
     public void broadcastCentered(String key, Map<String, String> vars) {
         String msg = colorize(format("messages.centered." + key, vars));
         if (isBlank(msg)) {
-            plugin.getLogger().warning("Refusing to broadcast empty centered message for key: " + key);
+            plugin.getLogger().log(Level.WARNING, "Refusing to broadcast empty centered message for key: {0}", key);
             return;
         }
         for (Player player : plugin.getServer().getOnlinePlayers()) {
@@ -332,7 +333,7 @@ public final class ConfigManager {
         if (isBlank(raw)) {
             return "";
         }
-        Map<String, String> merged = new HashMap<String, String>(vars);
+        Map<String, String> merged = new HashMap<>(vars);
         merged.put("prefix", colorize(resolveString("messages.prefix", "")));
         String result = raw;
         for (Map.Entry<String, String> entry : merged.entrySet()) {
@@ -382,7 +383,7 @@ public final class ConfigManager {
         }
         try {
             return new int[]{Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()),
-                    Integer.parseInt(parts[2].trim())};
+                Integer.parseInt(parts[2].trim())};
         } catch (NumberFormatException ex) {
             return new int[]{defaultX, defaultY, defaultZ};
         }
@@ -395,7 +396,7 @@ public final class ConfigManager {
         try {
             return Material.valueOf(name.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            plugin.getLogger().warning("Unknown material: " + name);
+            plugin.getLogger().log(Level.WARNING, "Unknown material: {0}", name);
             return fallback;
         }
     }
@@ -407,7 +408,7 @@ public final class ConfigManager {
         try {
             return BaseVoteOption.parse(raw);
         } catch (IllegalArgumentException ex) {
-            plugin.getLogger().warning("Unknown fixed base option: " + raw);
+            plugin.getLogger().log(Level.WARNING, "Unknown fixed base option: {0}", raw);
             return fallback;
         }
     }
@@ -419,7 +420,7 @@ public final class ConfigManager {
         try {
             return KitVoteOption.valueOf(raw.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            plugin.getLogger().warning("Unknown fixed kit option: " + raw);
+            plugin.getLogger().log(Level.WARNING, "Unknown fixed kit option: {0}", raw);
             return fallback;
         }
     }

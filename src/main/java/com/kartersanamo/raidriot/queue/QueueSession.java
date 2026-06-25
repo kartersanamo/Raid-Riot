@@ -12,9 +12,9 @@ import java.util.UUID;
 public final class QueueSession {
 
     private final TeamAssignmentMode mode;
-    private final Set<UUID> queued = new HashSet<UUID>();
-    private final List<UUID> joinOrder = new ArrayList<UUID>();
-    private final Map<UUID, Object> playerFactions = new HashMap<UUID, Object>();
+    private final Set<UUID> queued = new HashSet<>();
+    private final List<UUID> joinOrder = new ArrayList<>();
+    private final Map<UUID, Object> playerFactions = new HashMap<>();
     private Object factionARef;
     private Object factionBRef;
     private String factionATag;

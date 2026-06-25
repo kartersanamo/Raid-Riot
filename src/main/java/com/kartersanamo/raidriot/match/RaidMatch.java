@@ -30,12 +30,12 @@ public final class RaidMatch {
     private final String factionTagB;
     private final Object factionRefA;
     private final Object factionRefB;
-    private final Map<TeamSide, TeamBase> teamBases = new EnumMap<TeamSide, TeamBase>(TeamSide.class);
-    private final Set<UUID> participants = new HashSet<UUID>();
-    private final Map<UUID, TeamSide> participantTeams = new HashMap<UUID, TeamSide>();
-    private final Map<UUID, KitSnapshot> kitSnapshots = new HashMap<UUID, KitSnapshot>();
-    private final Map<UUID, PlayerStateSnapshot> preEventSnapshots = new HashMap<UUID, PlayerStateSnapshot>();
-    private final Map<TeamSide, List<ChunkKey>> claimedChunks = new EnumMap<TeamSide, List<ChunkKey>>(TeamSide.class);
+    private final Map<TeamSide, TeamBase> teamBases = new EnumMap<>(TeamSide.class);
+    private final Set<UUID> participants = new HashSet<>();
+    private final Map<UUID, TeamSide> participantTeams = new HashMap<>();
+    private final Map<UUID, KitSnapshot> kitSnapshots = new HashMap<>();
+    private final Map<UUID, PlayerStateSnapshot> preEventSnapshots = new HashMap<>();
+    private final Map<TeamSide, List<ChunkKey>> claimedChunks = new EnumMap<>(TeamSide.class);
     private final DepthTracker depthTracker = new DepthTracker();
 
     public RaidMatch(String eventWorld, TeamAssignmentMode assignmentMode,
@@ -48,8 +48,8 @@ public final class RaidMatch {
         this.factionRefB = factionRefB;
         teamBases.put(TeamSide.A, new TeamBase(TeamSide.A, factionTagA, factionRefA));
         teamBases.put(TeamSide.B, new TeamBase(TeamSide.B, factionTagB, factionRefB));
-        claimedChunks.put(TeamSide.A, new ArrayList<ChunkKey>());
-        claimedChunks.put(TeamSide.B, new ArrayList<ChunkKey>());
+        claimedChunks.put(TeamSide.A, new ArrayList<>());
+        claimedChunks.put(TeamSide.B, new ArrayList<>());
     }
 
     private MatchState state = MatchState.IDLE;
@@ -243,7 +243,7 @@ public final class RaidMatch {
     }
 
     public Set<ChunkKey> getAllClaimedChunks() {
-        Set<ChunkKey> all = new HashSet<ChunkKey>();
+        Set<ChunkKey> all = new HashSet<>();
         all.addAll(claimedChunks.get(TeamSide.A));
         all.addAll(claimedChunks.get(TeamSide.B));
         return all;

@@ -1,16 +1,33 @@
 package com.kartersanamo.raidriot.match;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.logging.Level;
+
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
+
 import com.kartersanamo.raidriot.RaidRiotPlugin;
-import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.arena.TeamSide;
-import com.kartersanamo.raidriot.base.BasePlacementService;
 import com.kartersanamo.raidriot.base.BasePlacementPipeline;
+import com.kartersanamo.raidriot.base.BasePlacementService;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.combat.EventCombatService;
 import com.kartersanamo.raidriot.combat.PlayerStateSnapshot;
 import com.kartersanamo.raidriot.combat.PredefinedKitService;
 import com.kartersanamo.raidriot.combat.RespawnQueue;
 import com.kartersanamo.raidriot.combat.VirtualDeathService;
+import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.faction.EventFactionService;
 import com.kartersanamo.raidriot.faction.FactionsBridge;
 import com.kartersanamo.raidriot.queue.FactionQueueResolver;
@@ -25,21 +42,6 @@ import com.kartersanamo.raidriot.world.AsyncWorldRestorer;
 import com.kartersanamo.raidriot.world.ChunkLoadHelper;
 import com.kartersanamo.raidriot.world.EventWorldBorderService;
 import com.kartersanamo.raidriot.world.WorldResetService;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 public final class EventManager implements QueueManager.QueueListener, VoteManager.VoteListener {
 
@@ -65,7 +67,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private BukkitTask pendingRestoreTask;
     private BukkitTask waitingForArenaTask;
     private long lastArenaWaitBroadcastMs;
-    private final List<BukkitTask> countdownTasks = new ArrayList<BukkitTask>();
+    private final List<BukkitTask> countdownTasks = new ArrayList<>();
 
     public EventManager(RaidRiotPlugin plugin, QueueManager queueManager, VoteManager voteManager,
             BasePlacementService basePlacementService, WorldResetService worldResetService,
@@ -164,7 +166,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                 worldBorderService.reset();
                 activeMatch = null;
                 if (broadcast && reason != null && !reason.isEmpty()) {
-                    Map<String, String> vars = new HashMap<String, String>();
+                    Map<String, String> vars = new HashMap<>();
                     vars.put("reason", reason);
                     ConfigManager.get().broadcast("match.ended-admin", vars);
                 }
@@ -202,12 +204,9 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             shuttingDown = false;
             return;
         }
-        asyncWorldRestorer.startRestore(new Runnable() {
-            @Override
-            public void run() {
-                worldResetService.endSession();
-                shuttingDown = false;
-            }
+        asyncWorldRestorer.startRestore(() -> {
+            worldResetService.endSession();
+            shuttingDown = false;
         });
     }
 
@@ -281,7 +280,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                 restorePreEventState(player, activeMatch.getPreEventSnapshot(id));
             }
         }
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("reason", reason);
         ConfigManager.get().broadcast("queue.cancelled", vars);
         activeMatch = null;
@@ -296,11 +295,11 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         try {
             assignTeams(session, activeMatch);
         } catch (Exception ex) {
-            plugin.getLogger().severe("Team assignment failed: " + ex.getMessage());
+            plugin.getLogger().log(Level.SEVERE, "Team assignment failed: {0}", ex.getMessage());
             stopMatch("Team assignment failed.");
             return;
         }
-        ConfigManager.get().broadcast("queue.locked", new HashMap<String, String>());
+        ConfigManager.get().broadcast("queue.locked", new HashMap<>());
         if (activeMatch.getEventWorld() != null && !activeMatch.getEventWorld().isEmpty()) {
             worldResetService.beginSession(activeMatch.getEventWorld());
         }
@@ -318,9 +317,9 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         int perTeam = ConfigManager.get().getPlayersPerTeam();
 
         if (session.getMode() == TeamAssignmentMode.RANDOM) {
-            List<UUID> ids = new ArrayList<UUID>(session.getQueued());
+            List<UUID> ids = new ArrayList<>(session.getQueued());
             Collections.shuffle(ids);
-            Set<UUID> selected = new HashSet<UUID>();
+            Set<UUID> selected = new HashSet<>();
             for (int i = 0; i < ids.size() && i < perTeam * 2; i++) {
                 TeamSide side = i < perTeam ? TeamSide.A : TeamSide.B;
                 match.addParticipant(ids.get(i), side);
@@ -339,7 +338,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         activeMatch.setState(MatchState.QUEUE_LOCKED);
 
         Map<TeamSide, List<UUID>> selected = FactionQueueResolver.selectParticipants(session, bridge, perTeam);
-        Set<UUID> picked = new HashSet<UUID>();
+        Set<UUID> picked = new HashSet<>();
         for (UUID id : selected.get(TeamSide.A)) {
             activeMatch.addParticipant(id, TeamSide.A);
             restorePreEventSnapshotToMatch(activeMatch, id, preservedSnapshots);
@@ -354,7 +353,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     }
 
     private Map<UUID, PlayerStateSnapshot> preserveQueuedSnapshots(RaidMatch match, QueueSession session) {
-        Map<UUID, PlayerStateSnapshot> out = new HashMap<UUID, PlayerStateSnapshot>();
+        Map<UUID, PlayerStateSnapshot> out = new HashMap<>();
         if (match == null) {
             return out;
         }
@@ -412,7 +411,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         activeMatch.setState(MatchState.PREPARING);
         activeMatch.setBasesReady(false);
 
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, String> vars = new HashMap<>();
         vars.put("base", baseWinner.displayName());
         vars.put("kit", kitWinner.displayName());
         ConfigManager.get().broadcast("vote.winner", vars);
@@ -421,35 +420,29 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         startGuiRefreshTask();
         BasePlacementPipeline pipeline = basePlacementService.createPipeline(
                 preparingMatch, baseWinner, new BasePlacementPipeline.CompletionListener() {
-                    @Override
-                    public void onComplete() {
-                        Bukkit.getScheduler().runTask(plugin, new Runnable() {
-                            @Override
-                            public void run() {
-                                if (shuttingDown || activeMatch != preparingMatch
-                                        || preparingMatch.getState() != MatchState.PREPARING) {
-                                    return;
-                                }
-                                preparingMatch.setBasesReady(true);
-                                loadParticipantSpawnChunks(preparingMatch);
-                                beginCountdown(preparingMatch);
-                            }
-                        });
+            @Override
+            public void onComplete() {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (shuttingDown || activeMatch != preparingMatch
+                            || preparingMatch.getState() != MatchState.PREPARING) {
+                        return;
                     }
-
-                    @Override
-                    public void onFailed(String reason) {
-                        Bukkit.getScheduler().runTask(plugin, new Runnable() {
-                            @Override
-                            public void run() {
-                                if (shuttingDown || activeMatch != preparingMatch) {
-                                    return;
-                                }
-                                stopMatch("Base placement failed: " + reason);
-                            }
-                        });
-                    }
+                    preparingMatch.setBasesReady(true);
+                    loadParticipantSpawnChunks(preparingMatch);
+                    beginCountdown(preparingMatch);
                 });
+            }
+
+            @Override
+            public void onFailed(String reason) {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (shuttingDown || activeMatch != preparingMatch) {
+                        return;
+                    }
+                    stopMatch("Base placement failed: " + reason);
+                });
+            }
+        });
         matchPreparer.start(pipeline);
     }
 
@@ -461,26 +454,20 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         startGuiRefreshTask();
         for (int i = countdown; i >= 1; i--) {
             final int sec = i;
-            countdownTasks.add(Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
-                @Override
-                public void run() {
-                    if (shuttingDown || activeMatch != match || match.getState() != MatchState.COUNTDOWN) {
-                        return;
-                    }
-                    Map<String, String> vars = new HashMap<String, String>();
-                    vars.put("seconds", String.valueOf(sec));
-                    ConfigManager.get().broadcast("match.countdown", vars);
-                }
-            }, (countdown - sec) * 20L));
-        }
-        countdownTasks.add(Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
-            @Override
-            public void run() {
+            countdownTasks.add(Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (shuttingDown || activeMatch != match || match.getState() != MatchState.COUNTDOWN) {
                     return;
                 }
-                tryActivateMatch(match);
+                Map<String, String> vars = new HashMap<>();
+                vars.put("seconds", String.valueOf(sec));
+                ConfigManager.get().broadcast("match.countdown", vars);
+            }, (countdown - sec) * 20L));
+        }
+        countdownTasks.add(Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (shuttingDown || activeMatch != match || match.getState() != MatchState.COUNTDOWN) {
+                return;
             }
+            tryActivateMatch(match);
         }, countdown * 20L));
     }
 
@@ -491,16 +478,13 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         if (!match.areBasesReady() || matchPreparer.isRunning()) {
             long now = System.currentTimeMillis();
             if (lastArenaWaitBroadcastMs == 0L || now - lastArenaWaitBroadcastMs >= 3000L) {
-                ConfigManager.get().broadcast("match.waiting-for-arena", new HashMap<String, String>());
+                ConfigManager.get().broadcast("match.waiting-for-arena", new HashMap<>());
                 lastArenaWaitBroadcastMs = now;
             }
             cancelWaitingForArenaTask();
-            waitingForArenaTask = Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
-                @Override
-                public void run() {
-                    waitingForArenaTask = null;
-                    tryActivateMatch(match);
-                }
+            waitingForArenaTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                waitingForArenaTask = null;
+                tryActivateMatch(match);
             }, 20L);
             return;
         }
@@ -559,38 +543,32 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     private void startTasks(final RaidMatch match) {
         cancelTasks();
-        timerTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
-            @Override
-            public void run() {
-                if (!match.isActive()) {
-                    return;
-                }
-                if (match.getRemainingSeconds() <= 0) {
-                    endByDepth();
-                    return;
-                }
-                int remaining = match.getRemainingSeconds();
-                if (remaining == 300 || remaining == 60 || remaining == 30 || remaining == 10) {
-                    Map<String, String> vars = new HashMap<String, String>();
-                    vars.put("minutes", String.valueOf(remaining / 60));
-                    vars.put("seconds", String.format("%02d", remaining % 60));
-                    ConfigManager.get().broadcast("match.timer-warning", vars);
-                }
+        timerTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (!match.isActive()) {
+                return;
+            }
+            if (match.getRemainingSeconds() <= 0) {
+                endByDepth();
+                return;
+            }
+            int remaining = match.getRemainingSeconds();
+            if (remaining == 300 || remaining == 60 || remaining == 30 || remaining == 10) {
+                Map<String, String> vars = new HashMap<>();
+                vars.put("minutes", String.valueOf(remaining / 60));
+                vars.put("seconds", String.format("%02d", remaining % 60));
+                ConfigManager.get().broadcast("match.timer-warning", vars);
             }
         }, 20L, 20L);
 
-        depthTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
-            @Override
-            public void run() {
-                if (!match.isActive()) {
-                    return;
-                }
-                for (UUID id : match.getParticipants()) {
-                    Player player = Bukkit.getPlayer(id);
-                    if (player != null) {
-                        match.getDepthTracker().recordPlayer(match, player);
-                        plugin.getBreachService().tryPenetrationFromPlayer(match, player);
-                    }
+        depthTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (!match.isActive()) {
+                return;
+            }
+            for (UUID id : match.getParticipants()) {
+                Player player = Bukkit.getPlayer(id);
+                if (player != null) {
+                    match.getDepthTracker().recordPlayer(match, player);
+                    plugin.getBreachService().tryPenetrationFromPlayer(match, player);
                 }
             }
         }, ConfigManager.get().getDepthSampleIntervalTicks(),
@@ -616,15 +594,12 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         releasePlayersFromMatch(endingMatch);
 
         cancelPendingRestoreTask();
-        pendingRestoreTask = Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
-            @Override
-            public void run() {
-                pendingRestoreTask = null;
-                if (shuttingDown || activeMatch != endingMatch) {
-                    return;
-                }
-                restoreAndClear();
+        pendingRestoreTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            pendingRestoreTask = null;
+            if (shuttingDown || activeMatch != endingMatch) {
+                return;
             }
+            restoreAndClear();
         }, 60L);
     }
 

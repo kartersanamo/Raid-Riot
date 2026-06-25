@@ -36,7 +36,7 @@ public final class BreachService {
         if (match == null || !match.isActive()) {
             return;
         }
-        List<Location> locations = new ArrayList<Location>();
+        List<Location> locations = new ArrayList<>();
         if (epicenter != null) {
             locations.add(epicenter);
         }

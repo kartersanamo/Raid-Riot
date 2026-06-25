@@ -6,7 +6,6 @@ import org.bukkit.block.Block;
 
 public final class ChunkSnapshotBuilder {
 
-    private final String worldName;
     private final int chunkX;
     private final int chunkZ;
     private final ChunkSnapshot snapshot;
@@ -17,7 +16,6 @@ public final class ChunkSnapshotBuilder {
     private boolean complete;
 
     public ChunkSnapshotBuilder(World world, int chunkX, int chunkZ) {
-        this.worldName = world.getName();
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
         this.snapshot = ChunkSnapshot.createEmpty(world.getName(), chunkX, chunkZ);

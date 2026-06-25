@@ -1,10 +1,11 @@
 package com.kartersanamo.raidriot.listener;
 
-import com.kartersanamo.raidriot.RaidRiotPlugin;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+
+import com.kartersanamo.raidriot.RaidRiotPlugin;
 
 public final class MatchParticipantListener implements Listener {
 
@@ -17,11 +18,8 @@ public final class MatchParticipantListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
-            @Override
-            public void run() {
-                plugin.getEventManager().syncParticipantLocation(player);
-            }
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            plugin.getEventManager().syncParticipantLocation(player);
         }, 1L);
     }
 }

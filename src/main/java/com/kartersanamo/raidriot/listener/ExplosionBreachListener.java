@@ -32,7 +32,7 @@ public final class ExplosionBreachListener implements Listener {
         if (match == null || !match.isActive() || !match.isInEventWorld(event.getLocation())) {
             return;
         }
-        List<Location> affected = new ArrayList<Location>();
+        List<Location> affected = new ArrayList<>();
         affected.add(event.getLocation());
         for (org.bukkit.block.Block block : event.blockList()) {
             affected.add(block.getLocation());

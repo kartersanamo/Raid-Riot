@@ -1,16 +1,14 @@
 package com.kartersanamo.raidriot.combat;
 
-import com.kartersanamo.raidriot.RaidRiotPlugin;
-import com.kartersanamo.raidriot.match.RaidMatch;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.match.RaidMatch;
+
 public final class NakedPatchEnforcer {
 
-    private final RaidRiotPlugin plugin;
-
     public NakedPatchEnforcer(RaidRiotPlugin plugin) {
-        this.plugin = plugin;
     }
 
     public boolean mustCancelPatch(Player player, RaidMatch match) {
