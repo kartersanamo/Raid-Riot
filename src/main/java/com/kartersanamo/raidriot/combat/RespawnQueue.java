@@ -45,13 +45,10 @@ public final class RespawnQueue {
             if (side == null) {
                 return;
             }
-            if (active.getTeamBase(side).getSpawn() != null) {
-                Location spawn = SpawnLocationResolver.resolveRespawnLocation(
-                        player.getWorld(), active.getTeamBase(side));
-                if (spawn != null) {
-                    ChunkLoadHelper.loadAround(spawn);
-                    player.teleport(spawn);
-                }
+            Location spawn = SpawnLocationResolver.resolveMatchSpawn(active, side);
+            if (spawn != null) {
+                ChunkLoadHelper.loadAround(spawn);
+                player.teleport(spawn);
             }
             KitSnapshot snapshot = active.getKitSnapshot(player.getUniqueId());
             if (snapshot != null) {

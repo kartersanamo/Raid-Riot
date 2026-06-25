@@ -2,6 +2,7 @@ package com.kartersanamo.raidriot.arena;
 
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.match.RaidMatch;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -49,7 +50,31 @@ public final class SpawnLocationResolver {
             return resolved.clone();
         }
         Location cached = base.getSpawn();
-        return cached != null ? cached.clone() : null;
+        if (cached != null && world != null && cached.getWorld() != null
+                && world.getName().equals(cached.getWorld().getName())) {
+            return cached.clone();
+        }
+        return null;
+    }
+
+    public static Location resolveMatchSpawn(RaidMatch match, TeamSide side) {
+        if (match == null || side == null) {
+            return null;
+        }
+        World eventWorld = Bukkit.getWorld(match.getEventWorld());
+        if (eventWorld == null) {
+            return null;
+        }
+        TeamBase base = match.getTeamBase(side);
+        if (base == null) {
+            return null;
+        }
+        Location cached = base.getSpawn();
+        if (cached != null && cached.getWorld() != null
+                && match.getEventWorld().equals(cached.getWorld().getName())) {
+            return cached.clone();
+        }
+        return resolveRespawnLocation(eventWorld, base);
     }
 
     private static int[] findSpawnColumn(World world, int centerX, int centerZ, CuboidRegion bounds) {

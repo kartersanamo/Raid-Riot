@@ -599,12 +599,12 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         MatchState state = match.getState();
         if (state == MatchState.ACTIVE) {
             eventFactionService.enableRaidBypass(player);
+            teleportParticipantToSpawn(player, match);
             if (match.getSelectedKitVote() == KitVoteOption.PREDEFINED) {
                 predefinedKitService.apply(player);
             }
             match.snapshotKit(player);
             eventCombatService.enableForParticipant(player);
-            teleportParticipantToSpawn(player, match);
         } else if (match.areBasesReady()) {
             teleportParticipantToSpawn(player, match);
         }
@@ -813,25 +813,20 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         long durationMs = ConfigManager.get().getMatchDurationSeconds() * 1000L;
         match.setActiveEndMs(System.currentTimeMillis() + durationMs);
 
+        basePlacementService.refreshSpawns(match);
+        loadParticipantSpawnChunks(match);
+
         for (UUID id : match.getParticipants()) {
             Player player = Bukkit.getPlayer(id);
             if (player == null) {
                 continue;
             }
+            teleportParticipantToSpawn(player, match);
             if (match.getSelectedKitVote() == KitVoteOption.PREDEFINED) {
                 predefinedKitService.apply(player);
             }
             match.snapshotKit(player);
         }
-        basePlacementService.refreshSpawns(match);
-        loadParticipantSpawnChunks(match);
-        final RaidMatch activatingMatch = match;
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            if (shuttingDown || activeMatch != activatingMatch || !activatingMatch.isActive()) {
-                return;
-            }
-            teleportParticipantsToSpawns(activatingMatch);
-        });
 
         plugin.getClickableMessageService().broadcastEventStarted();
         eventCombatService.enableForMatch(match);
@@ -1098,7 +1093,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             plugin.getLogger().warning("Cannot teleport " + player.getName() + ": no team assigned.");
             return;
         }
-        Location spawn = SpawnLocationResolver.resolveRespawnLocation(player.getWorld(), match.getTeamBase(side));
+        Location spawn = SpawnLocationResolver.resolveMatchSpawn(match, side);
         if (spawn == null || spawn.getWorld() == null) {
             plugin.getLogger().warning("Cannot teleport " + player.getName()
                     + " to team " + match.getFactionTag(side) + ": spawn not ready.");

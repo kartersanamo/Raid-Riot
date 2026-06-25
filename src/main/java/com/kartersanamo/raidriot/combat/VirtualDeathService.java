@@ -7,8 +7,10 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -56,8 +58,10 @@ public final class VirtualDeathService {
         player.setFireTicks(0);
         player.setGameMode(GameMode.SPECTATOR);
 
-        if (match.getTeamBase(side).getBounds() != null && player.getWorld() != null) {
-            Location spec = match.getTeamBase(side).spectatorPoint(player.getWorld(), 2);
+        if (match.getTeamBase(side).getBounds() != null) {
+            World eventWorld = Bukkit.getWorld(match.getEventWorld());
+            Location spec = match.getTeamBase(side).spectatorPoint(
+                    eventWorld != null ? eventWorld : player.getWorld(), 2);
             if (spec != null) {
                 player.teleport(spec);
             }
@@ -99,7 +103,7 @@ public final class VirtualDeathService {
             return;
         }
         player.setGameMode(GameMode.SURVIVAL);
-        Location spawn = SpawnLocationResolver.resolveRespawnLocation(player.getWorld(), match.getTeamBase(side));
+        Location spawn = SpawnLocationResolver.resolveMatchSpawn(match, side);
         if (spawn != null) {
             ChunkLoadHelper.loadAround(spawn);
             player.teleport(spawn);
