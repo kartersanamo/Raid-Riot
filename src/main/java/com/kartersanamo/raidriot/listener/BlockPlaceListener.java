@@ -34,10 +34,18 @@ public final class BlockPlaceListener implements Listener {
         if (!match.isInEventWorld(event.getBlock().getLocation())) {
             return;
         }
-        if (!match.isParticipant(event.getPlayer()) && match.isInsideAnyBaseBounds(event.getBlock().getLocation())) {
-            event.setCancelled(true);
-            lockNotifier.notifyLocked(event.getPlayer(), "raid.locked-block-change");
-            return;
+        if (!match.isParticipant(event.getPlayer())) {
+            if (plugin.getSpectatorService().isSpectating(event.getPlayer().getUniqueId())
+                    && match.isInEventWorld(event.getBlock().getLocation())) {
+                event.setCancelled(true);
+                lockNotifier.notifyLocked(event.getPlayer(), "raid.locked-block-change");
+                return;
+            }
+            if (match.isInsideAnyBaseBounds(event.getBlock().getLocation())) {
+                event.setCancelled(true);
+                lockNotifier.notifyLocked(event.getPlayer(), "raid.locked-block-change");
+                return;
+            }
         }
         if (match.isParticipant(event.getPlayer())
                 && teamAccessService.isEnemyClaim(match, event.getPlayer(), event.getBlock().getLocation())) {

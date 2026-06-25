@@ -76,7 +76,9 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
     }
 
     private void openGui(Player player) {
-        plugin.getGuiService().openInfoPortal(player);
+        if (!plugin.getGuiService().openFor(player)) {
+            plugin.getGuiService().openInfoPortal(player);
+        }
     }
 
     private boolean queue(CommandSender sender, String[] args) {

@@ -32,13 +32,13 @@ public final class RaidRiotInfoGui {
                 && inv.getTitle().equals(getInfoTitle());
     }
 
-    public static Inventory create(EventPortalStatus status) {
+    public static Inventory create(EventPortalStatus status, boolean clickable) {
         Inventory inv = Bukkit.createInventory(null, INFO_SIZE, getInfoTitle());
-        inv.setItem(SLOT_ENTER, portalItem(status));
+        inv.setItem(SLOT_ENTER, portalItem(status, clickable));
         return inv;
     }
 
-    private static ItemStack portalItem(EventPortalStatus status) {
+    private static ItemStack portalItem(EventPortalStatus status, boolean clickable) {
         ItemStack stack = new ItemStack(Material.TNT, 1);
         ItemMeta meta = stack.getItemMeta();
         meta.setDisplayName(g("info.item-title"));
@@ -50,9 +50,15 @@ public final class RaidRiotInfoGui {
         lore.addAll(formatLines("info.information", portalVars()));
         lore.add(" ");
         lore.add(g("info.status-header"));
-        lore.add(g("info.status." + status.getConfigKey(), portalVars()));
-        if (!status.isClickable()) {
+        if (status == EventPortalStatus.IN_PROGRESS && clickable) {
+            lore.add(g("info.status.in-progress-spectate", portalVars()));
+        } else {
+            lore.add(g("info.status." + status.getConfigKey(), portalVars()));
+        }
+        if (!clickable) {
             lore.add(g("info.not-open-hint"));
+        } else if (status == EventPortalStatus.IN_PROGRESS) {
+            lore.add(g("info.spectate-hint"));
         }
 
         meta.setLore(lore);

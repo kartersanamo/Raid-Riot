@@ -27,6 +27,10 @@ public final class FactionCommandListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onCommand(PlayerCommandPreprocessEvent event) {
+        if (plugin.getSpectatorService().isSpectating(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+            return;
+        }
         String message = event.getMessage();
         if (isClaimCommand(message)) {
             handleClaim(event);

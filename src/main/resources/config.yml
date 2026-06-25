@@ -56,6 +56,9 @@ breach-materials:
 draw-on-equal-depth: true
 lock-notify-cooldown-ms: 2000
 
+spectators:
+  enabled: true
+
 worldedit-paste-offset:
   add-worldedit-offset: true
   extra-x: 0
@@ -144,8 +147,8 @@ messages:
   spectator:
     entered: "{prefix}&7You are now spectating the match."
     left: "{prefix}&7You stopped spectating."
-    teleported: "{prefix}&7Teleported to &f{target}&7."
-    no-target: "{prefix}&cThat player is not available."
+    disabled: "{prefix}&cSpectating is disabled for this event."
+    view-only: "&7You are in view-only spectator mode."
 
   patch:
     must-be-naked: "{prefix}&cYou must be naked to patch on your base/cannon."
@@ -260,8 +263,10 @@ gui:
       preparing: "&7- &e&lPREPARING"
       starting: "&7- &e&lSTARTING"
       in-progress: "&7- &c&lIN PROGRESS"
+      in-progress-spectate: "&7- &c&lIN PROGRESS &7(Click to spectate!)"
       restoring: "&7- &7&lRESTORING"
     not-open-hint: "&8The queue is not open right now."
+    spectate-hint: "&eClick to spectate the match!"
   queue:
     info-title: "&cQueue"
     closes-in: "&7Closes in &f{seconds}&7 seconds"
@@ -284,7 +289,8 @@ gui:
   spectator:
     info-title: "&cSpectating"
     phase-active: "&7Phase: &fIn Progress"
-    click-to-teleport: "&eClick a player head to teleport."
+    view-only: "&7View-only — you cannot interact or help either team."
+    leave-hint: "&eUse the item below to stop spectating."
   phase:
     teams-locked: "Teams Locked"
     preparing: "Preparing"

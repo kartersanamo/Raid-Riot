@@ -54,6 +54,9 @@ public final class BlockBreakListener implements Listener {
         if (match.isParticipant(player)) {
             return false;
         }
+        if (plugin.getSpectatorService().isSpectating(player.getUniqueId())) {
+            return match.isInEventWorld(player.getLocation());
+        }
         return match.isInsideAnyBaseBounds(player.getLocation());
     }
 }

@@ -220,16 +220,15 @@ public final class RaidRiotGui {
         List<String> infoLore = new ArrayList<>();
         infoLore.add(g("spectator.phase-active"));
         appendStatusDetails(match, infoLore);
-        infoLore.add(g("spectator.click-to-teleport"));
+        infoLore.add(g("spectator.view-only"));
+        infoLore.add(g("spectator.leave-hint"));
         inv.setItem(0, infoItem(g("spectator.info-title"), infoLore.toArray(new String[0])));
 
         inv.setItem(SLOT_STATUS_A, matchTeamItem(match, TeamSide.A));
         inv.setItem(SLOT_LEAVE_SPECTATE, leaveSpectateItem());
         inv.setItem(SLOT_STATUS_B, matchTeamItem(match, TeamSide.B));
 
-        Map<Integer, UUID> targets = new HashMap<>();
-        placeMatchPlayerHeads(inv, match, plugin, true, targets);
-        plugin.getSpectatorService().setGuiTargets(targets);
+        placeMatchPlayerHeads(inv, match, plugin, false, null);
         fillEmptySlots(inv);
         return inv;
     }
@@ -244,6 +243,9 @@ public final class RaidRiotGui {
             Map<String, String> vars = new HashMap<>();
             vars.put("time", TimeFormat.format(match.getRemainingSeconds()));
             lore.add(g("status.time-left", vars));
+            appendTeamDepthLines(match, lore);
+        } else if (state == MatchState.ENDING) {
+            appendTeamDepthLines(match, lore);
         }
         if (match.getSelectedBaseVote() != null) {
             Map<String, String> vars = new HashMap<>();
@@ -261,6 +263,16 @@ public final class RaidRiotGui {
             lore.add(g("status.winner", vars));
         } else if (state == MatchState.ENDING && match.getWinReason() == WinReason.DRAW) {
             lore.add(g("status.draw"));
+        }
+    }
+
+    private static void appendTeamDepthLines(RaidMatch match, List<String> lore) {
+        for (TeamSide side : new TeamSide[]{TeamSide.A, TeamSide.B}) {
+            Map<String, String> depthVars = new HashMap<>();
+            depthVars.put("teamColor", side == TeamSide.A ? "&e" : "&c");
+            depthVars.put("team", match.getFactionTag(side));
+            depthVars.put("depth", String.valueOf(match.getDepthTracker().getDepth(side)));
+            lore.add(g("match-info.depth", depthVars));
         }
     }
 

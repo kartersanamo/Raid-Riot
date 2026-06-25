@@ -75,6 +75,7 @@ public final class ConfigManager {
     private int worldRestoreBlocksPerTick = 4096;
     private int worldRestoreChunksPerTick = 2;
     private int terrainScanColumnsPerTick = 32;
+    private boolean spectatorsEnabled = true;
 
     public ConfigManager(RaidRiotPlugin plugin) {
         this.plugin = plugin;
@@ -174,6 +175,7 @@ public final class ConfigManager {
         worldRestoreBlocksPerTick = config.getInt("world-restore.blocks-per-tick", 2048);
         worldRestoreChunksPerTick = config.getInt("world-restore.chunks-per-tick", 1);
         terrainScanColumnsPerTick = config.getInt("world-restore.scan-columns-per-tick", 32);
+        spectatorsEnabled = config.getBoolean("spectators.enabled", true);
         breachMaterials.clear();
         List<String> mats = config.getStringList("breach-materials");
         if (mats.isEmpty()) {
@@ -568,6 +570,10 @@ public final class ConfigManager {
 
     public boolean isFixedMatchSettingsEnabled() {
         return fixedMatchSettingsEnabled;
+    }
+
+    public boolean isSpectatorsEnabled() {
+        return spectatorsEnabled;
     }
 
     public BaseVoteOption getFixedBase() {

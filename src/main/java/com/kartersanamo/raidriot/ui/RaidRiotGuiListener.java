@@ -18,7 +18,6 @@ import org.bukkit.inventory.Inventory;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 public final class RaidRiotGuiListener implements Listener {
 
@@ -87,16 +86,9 @@ public final class RaidRiotGuiListener implements Listener {
 
         if (match != null && match.isActive()) {
             SpectatorService spectatorService = plugin.getSpectatorService();
-            if (spectatorService.isSpectating(player.getUniqueId())) {
-                if (slot == RaidRiotGui.SLOT_LEAVE_SPECTATE) {
-                    spectatorService.leave(player);
-                    player.closeInventory();
-                    return;
-                }
-                UUID targetId = spectatorService.getTargetAtSlot(slot);
-                if (targetId != null) {
-                    spectatorService.teleportToTarget(player, targetId, match);
-                }
+            if (spectatorService.isSpectating(player.getUniqueId()) && slot == RaidRiotGui.SLOT_LEAVE_SPECTATE) {
+                spectatorService.leave(player);
+                player.closeInventory();
             }
         }
     }
@@ -112,8 +104,12 @@ public final class RaidRiotGuiListener implements Listener {
             return;
         }
         EventPortalStatus status = guiService.resolvePortalStatus();
-        if (!status.isClickable()) {
-            ConfigManager.get().send(player, "portal.not-open");
+        if (!guiService.isPortalClickable(status)) {
+            if (status == EventPortalStatus.IN_PROGRESS && !ConfigManager.get().isSpectatorsEnabled()) {
+                ConfigManager.get().send(player, "spectator.disabled");
+            } else {
+                ConfigManager.get().send(player, "portal.not-open");
+            }
             return;
         }
         if (!guiService.openFor(player)) {

@@ -21,7 +21,14 @@ public final class RaidRiotGuiService {
 
     public void openInfoPortal(Player player) {
         EventPortalStatus status = resolvePortalStatus();
-        player.openInventory(RaidRiotInfoGui.create(status));
+        player.openInventory(RaidRiotInfoGui.create(status, isPortalClickable(status)));
+    }
+
+    public boolean isPortalClickable(EventPortalStatus status) {
+        if (status == EventPortalStatus.OPEN) {
+            return true;
+        }
+        return status == EventPortalStatus.IN_PROGRESS && ConfigManager.get().isSpectatorsEnabled();
     }
 
     public EventPortalStatus resolvePortalStatus() {
@@ -74,13 +81,17 @@ public final class RaidRiotGuiService {
         }
 
         if (match.isActive() && !match.isParticipant(player)) {
+            if (!ConfigManager.get().isSpectatorsEnabled()) {
+                player.openInventory(RaidRiotGui.createStatusGui(plugin, match));
+                return true;
+            }
             SpectatorService spectatorService = plugin.getSpectatorService();
             spectatorService.enterIfNeeded(player, match);
             player.openInventory(RaidRiotGui.createSpectatorGui(plugin, match));
             return true;
         }
 
-        if (isStatusView(match.getState())) {
+        if (hasEventStatusView(match)) {
             player.openInventory(RaidRiotGui.createStatusGui(plugin, match));
             return true;
         }
@@ -128,14 +139,16 @@ public final class RaidRiotGuiService {
                     player.openInventory(RaidRiotGui.createSpectatorGui(plugin, match));
                 } else if (match.isParticipant(player)) {
                     player.openInventory(RaidRiotGui.createStatusGui(plugin, match));
-                } else {
+                } else if (ConfigManager.get().isSpectatorsEnabled()) {
                     player.openInventory(RaidRiotGui.createSpectatorGui(plugin, match));
+                } else {
+                    player.openInventory(RaidRiotGui.createStatusGui(plugin, match));
                 }
             }
             return;
         }
 
-        if (isStatusView(match.getState())) {
+        if (hasEventStatusView(match)) {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (RaidRiotGui.isRaidRiotInventory(player.getOpenInventory().getTopInventory())) {
                     player.openInventory(RaidRiotGui.createStatusGui(plugin, match));
@@ -160,7 +173,20 @@ public final class RaidRiotGuiService {
                 && match.getState() == MatchState.VOTING && plugin.getEventManager().getVoteManager().isVoting()) {
             return true;
         }
-        return isStatusView(match.getState()) || match.isActive();
+        return hasEventStatusView(match.getState()) || match.isActive();
+    }
+
+    private boolean hasEventStatusView(RaidMatch match) {
+        return hasEventStatusView(match.getState());
+    }
+
+    private boolean hasEventStatusView(MatchState state) {
+        return state == MatchState.QUEUE_LOCKED
+                || state == MatchState.VOTING
+                || state == MatchState.PREPARING
+                || state == MatchState.COUNTDOWN
+                || state == MatchState.ACTIVE
+                || state == MatchState.ENDING;
     }
 
     public void closeAllOpen() {
@@ -176,10 +202,6 @@ public final class RaidRiotGuiService {
     }
 
     private boolean isStatusView(MatchState state) {
-        return state == MatchState.QUEUE_LOCKED
-                || state == MatchState.PREPARING
-                || state == MatchState.COUNTDOWN
-                || state == MatchState.ACTIVE
-                || state == MatchState.ENDING;
+        return hasEventStatusView(state);
     }
 }
