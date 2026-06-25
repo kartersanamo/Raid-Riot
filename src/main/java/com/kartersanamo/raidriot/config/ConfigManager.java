@@ -43,7 +43,7 @@ public final class ConfigManager {
     private Material predefinedKitLeggings = Material.IRON_LEGGINGS;
     private Material predefinedKitBoots = Material.IRON_BOOTS;
     private List<String> predefinedKitItems = new ArrayList<String>();
-    private int queueCountdownSeconds = 120;
+    private int queueCountdownSeconds = 60;
     private int voteDurationSeconds = 30;
     private int baseSeparationBlocks = 200;
     private int spawnY = 255;
@@ -135,7 +135,7 @@ public final class ConfigManager {
             predefinedKitItems.add("WATER_BUCKET:1");
             predefinedKitItems.add("LAVA_BUCKET:1");
         }
-        queueCountdownSeconds = config.getInt("queue-countdown-seconds", 120);
+        queueCountdownSeconds = config.getInt("queue-countdown-seconds", 60);
         voteDurationSeconds = config.getInt("vote-duration-seconds", 30);
         baseSeparationBlocks = config.getInt("base-separation-blocks", 200);
         spawnY = config.getInt("spawn-y", 255);

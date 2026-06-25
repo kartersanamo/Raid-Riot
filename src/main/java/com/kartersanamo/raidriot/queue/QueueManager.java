@@ -9,10 +9,26 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public final class QueueManager {
+
+    private static final Set<Integer> QUEUE_COUNTDOWN_REMINDERS = new HashSet<Integer>();
+
+    static {
+        QUEUE_COUNTDOWN_REMINDERS.add(45);
+        QUEUE_COUNTDOWN_REMINDERS.add(30);
+        QUEUE_COUNTDOWN_REMINDERS.add(15);
+        QUEUE_COUNTDOWN_REMINDERS.add(10);
+        QUEUE_COUNTDOWN_REMINDERS.add(5);
+        QUEUE_COUNTDOWN_REMINDERS.add(4);
+        QUEUE_COUNTDOWN_REMINDERS.add(3);
+        QUEUE_COUNTDOWN_REMINDERS.add(2);
+        QUEUE_COUNTDOWN_REMINDERS.add(1);
+    }
 
     public interface QueueListener {
         void onQueueLocked(QueueSession session);
@@ -201,7 +217,7 @@ public final class QueueManager {
             }
             return;
         }
-        if (session.getRemainingSeconds() % 10 == 0 || session.getRemainingSeconds() <= 5) {
+        if (QUEUE_COUNTDOWN_REMINDERS.contains(session.getRemainingSeconds())) {
             clickableMessages.broadcastQueueCountdown(session.getRemainingSeconds());
         }
     }

@@ -3,7 +3,7 @@ players-per-team: 10
 team-a-display-name: Yellow Team
 team-b-display-name: Red Team
 max-faction-queue-players: 100
-queue-countdown-seconds: 120
+queue-countdown-seconds: 60
 vote-duration-seconds: 30
 
 fixed-match-settings:
@@ -76,7 +76,7 @@ messages:
   prefix: "&c&lRaid Riot &8» &r&7"
 
   queue:
-    joined: "{prefix}&aYou joined the queue! &7({count}/{max})"
+    joined: "{prefix}&7You joined the queue! &7({count}/{max})"
     full: "{prefix}&cThe queue is full."
     team-full: "{prefix}&cThat team is full."
     need-faction: "{prefix}&cYou must be in a faction to join this event."
@@ -84,7 +84,7 @@ messages:
     faction-not-qualified: "{prefix}&cYour faction is not eligible for this event."
     not-qualified: "{prefix}&cYou did not qualify for this event."
     cancelled: "{prefix}&cEvent cancelled: &7{reason}"
-    locked: "{prefix}&aQueue locked! Preparing the arena..."
+    locked: "{prefix}&7Queue locked! Preparing the arena..."
     countdown: "{prefix}&7The queue closes in &f{seconds} &7seconds..."
     cancel-factions-not-ready: "Two factions did not reach the required size."
     cancel-not-enough-players: "Not enough players joined ({count}/{max})."
@@ -93,13 +93,13 @@ messages:
     event-world-not-loaded: "Event world not loaded: {world}"
 
   vote:
-    winner: "{prefix}&aSelected base: &e{base}&7 | Kit: &e{kit}&7. Preparing arena..."
+    winner: "{prefix}&7Selected base: &e{base}&7 | Kit: &e{kit}&7. Preparing arena..."
 
   match:
     countdown: "{prefix}&7The event is starting in &f{seconds} &7seconds..."
-    started: "{prefix}&aRaid Riot has begun! &7{teamA} &fvs &7{teamB}"
-    ended-breach: "{prefix}&a{winner} &7breached &c{loser}&7 in &e{time}&7!"
-    ended-depth: "{prefix}&a{winner} &7won with depth &e{depth}&7 vs &c{otherDepth}&7!"
+    started: "{prefix}&7Raid Riot has begun! &7{teamA} &fvs &7{teamB}"
+    ended-breach: "{prefix}&7{winner} &7breached &c{loser}&7 in &e{time}&7!"
+    ended-depth: "{prefix}&7{winner} &7won with depth &e{depth}&7 vs &c{otherDepth}&7!"
     ended-draw: "{prefix}&eDraw! &7Both teams reached depth &e{depth}&7."
     ended-admin: "{prefix}&cMatch stopped: &7{reason}"
     timer-warning: "{prefix}&c{minutes}:{seconds} &7remaining!"
@@ -123,7 +123,7 @@ messages:
     none: "{prefix}&7No active Raid Riot session."
     queue: "{prefix}&7Queue: &e{count}/{max} &8| &e{time}s &8| &7{phase}"
     voting: "{prefix}&7Voting open &8| &e{time}s remaining"
-    active: "{prefix}&7{teamA} &fvs &7{teamB} &8| &e{time} &8| Depth: &a{depthA} &7/ &c{depthB}"
+    active: "{prefix}&7{teamA} &fvs &7{teamB} &8| &e{time} &8| Depth: &7{depthA} &7/ &c{depthB}"
 
   death:
     title: "&c&lYOU DIED"
@@ -133,7 +133,7 @@ messages:
     broadcast-no-killer: "{prefix}&7{victim} &7({team}) was eliminated!"
 
   spectator:
-    entered: "{prefix}&aYou are now spectating the match."
+    entered: "{prefix}&7You are now spectating the match."
     left: "{prefix}&7You stopped spectating."
     teleported: "{prefix}&7Teleported to &f{target}&7."
     no-target: "{prefix}&cThat player is not available."
@@ -145,24 +145,24 @@ messages:
     locked-block-change: "{prefix}&cYou cannot modify blocks here during the event."
 
   faction:
-    claim-success: "{prefix}&aClaimed this chunk for your team."
+    claim-success: "{prefix}&7Claimed this chunk for your team."
     claim-failed: "{prefix}&cCould not claim this chunk."
 
   admin:
-    world-set: "{prefix}&aEvent world set to &e{world}&7."
-    reload: "{prefix}&aReloaded config."
-    kit-set: "{prefix}&aSaved your inventory and armor as the event kit."
+    world-set: "{prefix}&7Event world set to &e{world}&7."
+    reload: "{prefix}&7Reloaded config."
+    kit-set: "{prefix}&7Saved your inventory and armor as the event kit."
     kit-players-only: "{prefix}&cOnly players can set the event kit."
-    queue-opened: "&aRaid Riot queue opened ({mode})."
-    session-stopped: "&aRaid Riot session stopped."
+    queue-opened: "&7Raid Riot queue opened ({mode})."
+    session-stopped: "&7Raid Riot session stopped."
     base-list-header: "&6Base schematics:"
     base-list-entry: "&e{option}&7: &f{file}"
     base-list-not-set: "(not set)"
-    base-set: "&aSet {option} to {file}"
-    base-cleared: "&aCleared {option}."
+    base-set: "&7Set {option} to {file}"
+    base-cleared: "&7Cleared {option}."
     kit-save-failed: "&cCould not save kit: {error}"
     default-queue-stop-reason: "Queue cancelled by admin."
-    queue-stopped: "{prefix}&aQueue cancelled."
+    queue-stopped: "{prefix}&7Queue cancelled."
     no-queue-to-stop: "No queue is open to cancel."
     no-session-to-stop: "No active Raid Riot session to stop."
     world-not-set: "(not set)"
@@ -226,44 +226,42 @@ messages:
     faction-tag-unavailable: "Could not find an available faction tag for base name '{base}'."
 
 gui:
-  title: "&fRaid Riot"
+  title: "7Raid Riot"
   info:
-    title: "&fRaid Riot"
+    title: "&7Raid Riot"
     item-title: "&c&lRaid Riot"
     description:
       - "&fA competitive head-to-head raid between two teams."
       - "&fBreach the enemy base while defending your own."
       - "&fFirst team to penetrate wins, or deepest breach when time runs out."
-    information-header: "&6Information:"
+    information-header: "&cInformation:"
     information:
       - "&f- &7{playersPerTeam} players per team"
       - "&f- &7Teams: &e{teamA} &7vs &c{teamB}"
-      - "&f- &7Event world: &f{world}"
-      - "&f- &7Queue window: &f{queueSeconds}s"
       - "&f- &7Match length: &f{matchMinutes} minutes"
       - "&f- &7Terrain resets after each event"
-    status-header: "&6Status:"
+    status-header: "&cStatus:"
     status:
-      closed: "&7- &cCLOSED"
-      open: "&7- &aOPEN &7(Click to enter!)"
-      voting: "&7- &eVOTING"
-      preparing: "&7- &ePREPARING"
-      starting: "&7- &eSTARTING"
-      in-progress: "&7- &cIN PROGRESS"
-      restoring: "&7- &7RESTORING"
+      closed: "&7- &c&lCLOSED"
+      open: "&7- &a&lOPEN &7(Click to enter!)"
+      voting: "&7- &e&lVOTING"
+      preparing: "&7- &e&lPREPARING"
+      starting: "&7- &e&lSTARTING"
+      in-progress: "&7- &c&lIN PROGRESS"
+      restoring: "&7- &7&lRESTORING"
     not-open-hint: "&8The queue is not open right now."
   queue:
-    info-title: "&6Queue"
+    info-title: "&cQueue"
     closes-in: "&7Closes in &f{seconds}&7 seconds"
     players: "&7Players: &f{count}/{max}"
     mode-random: "&7Teams are assigned randomly when the queue closes."
     mode-faction: "&7First two factions to reach &f{perTeam} &7players become the teams."
   vote:
-    info-title: "&6Vote"
+    info-title: "&cVote"
     time-left: "&7Time left: &f{seconds}s"
     subtitle: "&7Vote for base type and kit mode"
   status:
-    info-title: "&6Raid Riot Status"
+    info-title: "&cRaid Riot Status"
     phase: "&7Phase: &f{phase}"
     starts-in: "&7Starts in: &f{seconds}s"
     time-left: "&7Time left: &f{time}"
@@ -272,7 +270,7 @@ gui:
     winner: "&aWinner: &f{winner}"
     draw: "&eResult: Draw"
   spectator:
-    info-title: "&6Spectating"
+    info-title: "&cSpectating"
     phase-active: "&7Phase: &fIn Progress"
     click-to-teleport: "&eClick a player head to teleport."
   phase:
@@ -291,34 +289,34 @@ gui:
     in-queue: "&7In queue"
     faction: "&7Faction: &f{faction}"
   match-info:
-    title: "&bMatch Info"
+    title: "&cMatch Info"
     mode: "&7Mode: &f{mode}"
     world: "&7World: &f{world}"
     depth: "&7Depth {teamColor}{team}&7: &f{depth}"
   leave-spectate:
-    title: "&cLeave Spectating"
+    title: "&c&lLeave Spectating"
     return: "&7Return to where you were."
     click: "&eClick to leave!"
   join-queue:
-    title: "&aJoin Queue"
+    title: "&a&lJoin Queue"
     description: "&7Join the Raid Riot queue."
     players: "&7Players: &f{count}/{max}"
     click: "&eClick to join!"
   leave-queue:
-    title: "&cLeave Queue"
+    title: "&c&lLeave Queue"
     description: "&7You are in the queue."
     click: "&eClick to leave!"
   faction-status:
-    title: "&6{tag}&7 ({count}/{max})"
+    title: "&c{tag}&7 ({count}/{max})"
     qualified: "&7Qualified faction team."
     members: "&7First {max} members in join order play."
   vote-option:
-    title: "&6{name}"
+    title: "&c{name}"
     vote-for: "&7Vote for &f{name}"
     votes: "&fVotes: {votes}"
     click: "&eClick to vote!"
   kit-option:
-    title: "&b{name}"
+    title: "&c{name}"
     votes: "&fVotes: {votes}"
     own-gear: "&7Keep your current inventory."
     predefined: "&7Everyone receives the same kit."
@@ -328,15 +326,15 @@ gui:
     kit: "&7Kit: &f{kit}"
     none: "None"
   player-head:
-    name: "&b{name}"
+    name: "&c{name}"
     unknown: "Unknown"
   admin:
-    title: "&8Raid Riot &7| &cAdmin"
+    title: "&7Raid Riot Admin"
     title-winner: "&8Select Winner"
     title-world: "&8Select Event World"
-    title-base: "&8Base Schematics"
+    title-base: "&8&lBase Schematics"
     status:
-      title: "&bSession Status"
+      title: "&b&lSession Status"
       world: "&7World: &f{world}"
       phase: "&7Phase: &f{phase}"
       detail: "&7{detail}"

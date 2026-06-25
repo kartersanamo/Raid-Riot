@@ -65,11 +65,6 @@ public final class RaidRiotInfoGui {
         vars.put("playersPerTeam", String.valueOf(ConfigManager.get().getPlayersPerTeam()));
         vars.put("teamA", ConfigManager.get().getTeamDisplayName(TeamSide.A));
         vars.put("teamB", ConfigManager.get().getTeamDisplayName(TeamSide.B));
-        String world = ConfigManager.get().getEventWorld();
-        vars.put("world", world == null || world.isEmpty()
-                ? ConfigManager.get("messages.admin.world-not-set")
-                : world);
-        vars.put("queueSeconds", String.valueOf(ConfigManager.get().getQueueCountdownSeconds()));
         vars.put("matchMinutes", String.valueOf(ConfigManager.get().getMatchDurationSeconds() / 60));
         return vars;
     }

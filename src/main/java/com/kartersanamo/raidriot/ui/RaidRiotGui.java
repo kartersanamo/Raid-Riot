@@ -35,7 +35,7 @@ public final class RaidRiotGui {
     public static final int SLOT_QUEUE_HEAD_ROWS_START = 18;
     private static final int QUEUE_SLOTS_PER_TEAM_PER_ROW = 4;
     private static final int QUEUE_SLOTS_PER_ROW_RANDOM = 8;
-    private static final byte LIGHT_GRAY_PANE = 8;
+    private static final byte GRAY_PANE = 7;
     public static final int SLOT_STATUS_A = 2;
     public static final int SLOT_STATUS_B = 6;
     public static final int SLOT_VOTE_EASY = 2;
@@ -66,11 +66,11 @@ public final class RaidRiotGui {
         inv.setItem(SLOT_JOIN_QUEUE, queueActionItem(session, viewerId));
 
         for (int slot = SLOT_QUEUE_PANE_ROW_START; slot < SLOT_QUEUE_HEAD_ROWS_START; slot++) {
-            inv.setItem(slot, pane(Material.STAINED_GLASS_PANE, LIGHT_GRAY_PANE));
+            inv.setItem(slot, pane(Material.STAINED_GLASS_PANE, GRAY_PANE));
         }
 
         for (int divider : layout.dividers) {
-            inv.setItem(divider, pane(Material.STAINED_GLASS_PANE, LIGHT_GRAY_PANE));
+            inv.setItem(divider, pane(Material.STAINED_GLASS_PANE, GRAY_PANE));
         }
 
         placeQueuePlayerHeads(inv, session, plugin, layout);
