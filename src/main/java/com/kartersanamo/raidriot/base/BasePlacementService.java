@@ -34,6 +34,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -86,7 +87,8 @@ public final class BasePlacementService {
                     return false;
                 case SNAPSHOT:
                     if (snapshotJob == null) {
-                        return true;
+                        phase = TeamJobPhase.TERRAIN;
+                        return false;
                     }
                     int snapUsed = snapshotJob.snapshotBatch(Math.max(0, budget.chunks), Math.max(0, budget.blocks));
                     budget.blocks -= snapUsed;
@@ -136,6 +138,23 @@ public final class BasePlacementService {
                 default:
                     return true;
             }
+        }
+
+        String compactStatus() {
+            if (phase == TeamJobPhase.DONE) {
+                return "done";
+            }
+            if (pasteJob != null) {
+                return phase.name().toLowerCase(Locale.ROOT) + " paste " + pasteJob.getScanProgressPercent() + "%";
+            }
+            if (copyJob != null) {
+                String copyState = copyJob.isComplete() ? "done" : (copyJob.isStarted() ? "running" : "pending");
+                return phase.name().toLowerCase(Locale.ROOT) + " copy " + copyState;
+            }
+            if (snapshotJob != null) {
+                return phase.name().toLowerCase(Locale.ROOT) + " snapshot " + snapshotJob.getProgressPercent() + "%";
+            }
+            return phase.name().toLowerCase(Locale.ROOT);
         }
 
         void appendStatus(List<String> lines, String indent) {
@@ -354,6 +373,26 @@ public final class BasePlacementService {
             return;
         }
         job.appendStatus(lines, indent);
+    }
+
+    public void refreshSpawns(RaidMatch match) {
+        World eventWorld = Bukkit.getWorld(match.getEventWorld());
+        if (eventWorld == null) {
+            return;
+        }
+        for (TeamSide side : new TeamSide[]{TeamSide.A, TeamSide.B}) {
+            TeamBase base = match.getTeamBase(side);
+            if (base.getBounds() != null) {
+                ChunkLoadHelper.loadAround(new Location(eventWorld,
+                        (base.getBounds().getMinX() + base.getBounds().getMaxX()) / 2.0,
+                        base.getBounds().getMaxY(),
+                        (base.getBounds().getMinZ() + base.getBounds().getMaxZ()) / 2.0));
+            }
+            applySpawn(base, eventWorld);
+            if (base.getSpawn() != null) {
+                ChunkLoadHelper.loadAround(base.getSpawn());
+            }
+        }
     }
 
     void finalizePlacement(RaidMatch match) {

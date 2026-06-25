@@ -92,6 +92,15 @@ public final class BasePlacementPipeline {
         return jobBComplete;
     }
 
+    public String compactStatus(BasePlacementService service) {
+        if (finished) {
+            return "done";
+        }
+        String a = jobA == null ? "pending" : jobA.compactStatus();
+        String b = jobB == null ? "pending" : jobB.compactStatus();
+        return "A:" + a + " | B:" + b;
+    }
+
     public void describeStatus(BasePlacementService service, java.util.List<String> lines) {
         lines.add("pipeline finished: " + finished);
         lines.add("post-processed: " + postProcessed);

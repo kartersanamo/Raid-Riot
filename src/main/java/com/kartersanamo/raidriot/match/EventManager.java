@@ -738,6 +738,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         }
         cancelWaitingForArenaTask();
         arenaWaitMessageSent = false;
+        basePlacementService.refreshSpawns(match);
         loadParticipantSpawnChunks(match);
         activateMatch(match);
     }
@@ -781,7 +782,15 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             }
             match.snapshotKit(player);
         }
-        teleportParticipantsToSpawns(match);
+        basePlacementService.refreshSpawns(match);
+        loadParticipantSpawnChunks(match);
+        final RaidMatch activatingMatch = match;
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (shuttingDown || activeMatch != activatingMatch || !activatingMatch.isActive()) {
+                return;
+            }
+            teleportParticipantsToSpawns(activatingMatch);
+        });
 
         plugin.getClickableMessageService().broadcastEventStarted();
         eventCombatService.enableForMatch(match);
@@ -1045,11 +1054,16 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private void teleportParticipantToSpawn(Player player, RaidMatch match) {
         TeamSide side = match.getTeamFor(player);
         if (side == null) {
+            plugin.getLogger().warning("Cannot teleport " + player.getName() + ": no team assigned.");
             return;
         }
         Location spawn = match.getTeamBase(side).getSpawn();
-        if (spawn != null) {
-            player.teleport(spawn.clone());
+        if (spawn == null || spawn.getWorld() == null) {
+            plugin.getLogger().warning("Cannot teleport " + player.getName()
+                    + " to team " + match.getFactionTag(side) + ": spawn not ready.");
+            return;
         }
+        ChunkLoadHelper.loadAround(spawn);
+        player.teleport(spawn.clone());
     }
 }
