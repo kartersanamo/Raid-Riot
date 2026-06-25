@@ -19,8 +19,6 @@ import java.util.UUID;
 
 public final class EventItemService {
 
-    private static final String EVENT_LORE_LINE = ConfigManager.colorize("&c&lEvent Item");
-
     private final RaidRiotPlugin plugin;
     private BukkitTask scanTask;
 
@@ -49,8 +47,12 @@ public final class EventItemService {
             return;
         }
         PlayerInventory inv = player.getInventory();
-        markStacks(inv.getContents(), eventWorld);
-        markStacks(inv.getArmorContents(), eventWorld);
+        ItemStack[] contents = inv.getContents();
+        markStacks(contents, eventWorld);
+        inv.setContents(contents);
+        ItemStack[] armor = inv.getArmorContents();
+        markStacks(armor, eventWorld);
+        inv.setArmorContents(armor);
         player.updateInventory();
     }
 
@@ -59,10 +61,7 @@ public final class EventItemService {
             return;
         }
         for (int i = 0; i < stacks.length; i++) {
-            ItemStack marked = markStack(stacks[i], eventWorld);
-            if (marked != stacks[i]) {
-                stacks[i] = marked;
-            }
+            stacks[i] = markStack(stacks[i], eventWorld);
         }
     }
 
@@ -71,8 +70,8 @@ public final class EventItemService {
             return stack;
         }
         ItemStack copy = stack.clone();
-        applyEventLore(copy);
         EventItemNbt.mark(copy, UUID.randomUUID(), eventWorld);
+        applyEventLore(copy);
         return copy;
     }
 
@@ -195,12 +194,15 @@ public final class EventItemService {
     private void applyEventLore(ItemStack stack) {
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) {
+            meta = Bukkit.getItemFactory().getItemMeta(stack.getType());
+        }
+        if (meta == null) {
             return;
         }
         List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
         removeEventLoreLines(lore);
         lore.add("");
-        lore.add(EVENT_LORE_LINE);
+        lore.add(eventLoreLine());
         meta.setLore(lore);
         stack.setItemMeta(meta);
     }
@@ -225,8 +227,9 @@ public final class EventItemService {
         if (stack == null || !stack.hasItemMeta() || !stack.getItemMeta().hasLore()) {
             return false;
         }
+        String eventLine = eventLoreLine();
         for (String line : stack.getItemMeta().getLore()) {
-            if (EVENT_LORE_LINE.equals(line)) {
+            if (eventLine.equals(line)) {
                 return true;
             }
         }
@@ -235,18 +238,23 @@ public final class EventItemService {
 
     private boolean removeEventLoreLines(List<String> lore) {
         boolean changed = false;
+        String eventLine = eventLoreLine();
         while (lore.size() >= 2
-                && EVENT_LORE_LINE.equals(lore.get(lore.size() - 1))
+                && eventLine.equals(lore.get(lore.size() - 1))
                 && isBlankLoreLine(lore.get(lore.size() - 2))) {
             lore.remove(lore.size() - 1);
             lore.remove(lore.size() - 1);
             changed = true;
         }
-        while (!lore.isEmpty() && EVENT_LORE_LINE.equals(lore.get(lore.size() - 1))) {
+        while (!lore.isEmpty() && eventLine.equals(lore.get(lore.size() - 1))) {
             lore.remove(lore.size() - 1);
             changed = true;
         }
         return changed;
+    }
+
+    private String eventLoreLine() {
+        return ConfigManager.colorize("&c&lEvent Item");
     }
 
     private boolean isBlankLoreLine(String line) {

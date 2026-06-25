@@ -1,5 +1,13 @@
 package com.kartersanamo.raidriot.chat;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.match.PlayerDisplayNames;
@@ -7,13 +15,6 @@ import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.match.WinReason;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import com.kartersanamo.raidriot.ui.TimeFormat;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public final class ClickableMessageService {
 
@@ -67,6 +68,8 @@ public final class ClickableMessageService {
             beginAnnouncement(player);
             sendCentered(player, "header");
             sendCentered(player, "event-ended-line1");
+            endAnnouncement(player);
+
             if (winner != null && match.getWinReason() == WinReason.FORFEIT) {
                 sendCentered(player, "event-ended-forfeit", winnerVars(match, winner));
                 sendWinnerNames(player, winnerNames);
