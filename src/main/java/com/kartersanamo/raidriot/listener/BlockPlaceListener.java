@@ -25,13 +25,17 @@ public final class BlockPlaceListener implements Listener {
         this.teamAccessService = teamAccessService;
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onPlace(BlockPlaceEvent event) {
         RaidMatch match = plugin.getEventManager().getActiveMatch();
         if (match == null || !match.isActive()) {
             return;
         }
         if (!match.isInEventWorld(event.getBlock().getLocation())) {
+            return;
+        }
+        restoreTeamBuildAccess(event, match, event.getBlock().getLocation());
+        if (event.isCancelled()) {
             return;
         }
         if (!match.isParticipant(event.getPlayer())) {
@@ -56,6 +60,15 @@ public final class BlockPlaceListener implements Listener {
         if (nakedPatchEnforcer.mustCancelPatch(event.getPlayer(), match)) {
             event.setCancelled(true);
             ConfigManager.get().send(event.getPlayer(), "patch.must-be-naked");
+        }
+    }
+
+    private void restoreTeamBuildAccess(BlockPlaceEvent event, RaidMatch match, org.bukkit.Location location) {
+        if (!event.isCancelled() || !match.isParticipant(event.getPlayer())) {
+            return;
+        }
+        if (teamAccessService.canModify(event.getPlayer(), match, location)) {
+            event.setCancelled(false);
         }
     }
 }

@@ -96,6 +96,26 @@ public final class EventFactionService {
         match.addClaimedChunk(side, key);
     }
 
+    public boolean unclaimChunkForPlayerTeam(RaidMatch match, Player player) throws Exception {
+        TeamSide side = match.getTeamFor(player);
+        if (side == null) {
+            return false;
+        }
+        Chunk chunk = player.getLocation().getChunk();
+        ChunkKey key = new ChunkKey(chunk.getWorld().getName(), chunk.getX(), chunk.getZ());
+        if (match.isProtectedBaseChunk(key) || !match.hasClaimedChunk(key)) {
+            return false;
+        }
+        FactionsBridge bridge = plugin.getFactionsBridge();
+        Object factionAt = bridge.getFactionAtChunk(chunk);
+        if (!bridge.factionsEqual(factionAt, getEventFaction(side))) {
+            return false;
+        }
+        bridge.unclaimChunk(chunk);
+        match.removeClaimedChunk(key);
+        return true;
+    }
+
     public void unclaimAll(RaidMatch match) {
         if (match == null) {
             return;

@@ -21,17 +21,17 @@ public final class EventFactionAccessListener implements Listener {
         this.teamAccessService = teamAccessService;
     }
 
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onBreak(BlockBreakEvent event) {
         uncancelIfAllowed(event.getPlayer(), event.getBlock().getLocation(), event.isCancelled(), event);
     }
 
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onPlace(BlockPlaceEvent event) {
         uncancelIfAllowed(event.getPlayer(), event.getBlock().getLocation(), event.isCancelled(), event);
     }
 
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInteract(PlayerInteractEvent event) {
         if (event.getClickedBlock() == null) {
             return;

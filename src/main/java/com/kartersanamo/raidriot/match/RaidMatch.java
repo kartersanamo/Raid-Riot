@@ -261,6 +261,11 @@ public final class RaidMatch {
         }
     }
 
+    public void removeClaimedChunk(ChunkKey key) {
+        claimedChunks.get(TeamSide.A).remove(key);
+        claimedChunks.get(TeamSide.B).remove(key);
+    }
+
     public void addProtectedBaseChunk(ChunkKey key) {
         protectedBaseChunks.add(key);
     }

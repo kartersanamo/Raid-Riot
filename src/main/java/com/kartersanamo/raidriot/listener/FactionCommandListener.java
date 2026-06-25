@@ -3,7 +3,6 @@ package com.kartersanamo.raidriot.listener;
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.faction.EventFactionService;
-import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.world.ChunkKey;
 import org.bukkit.Chunk;
@@ -63,13 +62,10 @@ public final class FactionCommandListener implements Listener {
     private void handleUnclaim(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
         RaidMatch match = plugin.getEventManager().getActiveMatch();
-        if (match == null || match.getState() == MatchState.IDLE) {
+        if (match == null || !match.isActive() || !match.isParticipant(player)) {
             return;
         }
         if (!match.isInEventWorld(player.getLocation())) {
-            return;
-        }
-        if (!match.hasProtectedBaseChunksInWorld()) {
             return;
         }
         if (isUnclaimAllCommand(event.getMessage())) {
@@ -82,6 +78,18 @@ public final class FactionCommandListener implements Listener {
         if (match.isProtectedBaseChunk(key)) {
             event.setCancelled(true);
             ConfigManager.get().send(player, "faction.unclaim-base-blocked");
+            return;
+        }
+        event.setCancelled(true);
+        try {
+            if (eventFactionService.unclaimChunkForPlayerTeam(match, player)) {
+                ConfigManager.get().send(player, "faction.unclaim-success");
+            } else {
+                ConfigManager.get().send(player, "faction.unclaim-failed");
+            }
+        } catch (Exception ex) {
+            ConfigManager.get().send(player, "faction.unclaim-failed");
+            plugin.getLogger().warning("Event unclaim failed for " + player.getName() + ": " + ex.getMessage());
         }
     }
 

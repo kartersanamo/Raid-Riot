@@ -24,13 +24,17 @@ public final class BlockBreakListener implements Listener {
         this.teamAccessService = teamAccessService;
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onBreak(BlockBreakEvent event) {
         RaidMatch match = plugin.getEventManager().getActiveMatch();
         if (match == null || !match.isActive()) {
             return;
         }
         if (!match.isInEventWorld(event.getBlock().getLocation())) {
+            return;
+        }
+        restoreTeamBuildAccess(event, match, event.getBlock().getLocation());
+        if (event.isCancelled()) {
             return;
         }
         if (shouldLockNonParticipant(match, event.getPlayer())) {
@@ -58,5 +62,14 @@ public final class BlockBreakListener implements Listener {
             return match.isInEventWorld(player.getLocation());
         }
         return match.isInsideAnyBaseBounds(player.getLocation());
+    }
+
+    private void restoreTeamBuildAccess(BlockBreakEvent event, RaidMatch match, org.bukkit.Location location) {
+        if (!event.isCancelled() || !match.isParticipant(event.getPlayer())) {
+            return;
+        }
+        if (teamAccessService.canModify(event.getPlayer(), match, location)) {
+            event.setCancelled(false);
+        }
     }
 }
