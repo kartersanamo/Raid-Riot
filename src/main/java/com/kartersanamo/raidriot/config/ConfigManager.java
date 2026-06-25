@@ -59,7 +59,8 @@ public final class ConfigManager {
     private String baseClaimMethod = "isBaseClaim";
     private List<String> factionsSourceWorlds = new ArrayList<>();
     private int matchDurationSeconds = 1500;
-    private int countdownSeconds = 10;
+    private int countdownSeconds = 5;
+    private int[] countdownAnnounceSeconds = {5, 3, 2, 1};
     private int respawnDelaySeconds = 10;
     private int depthSampleIntervalTicks = 20;
     private boolean drawOnEqualDepth = true;
@@ -168,7 +169,8 @@ public final class ConfigManager {
             }
         }
         matchDurationSeconds = config.getInt("match-duration-seconds", 1500);
-        countdownSeconds = config.getInt("countdown-seconds", 10);
+        countdownSeconds = config.getInt("countdown-seconds", 5);
+        countdownAnnounceSeconds = loadCountdownAnnounceSeconds();
         respawnDelaySeconds = config.getInt("respawn-delay-seconds", 10);
         depthSampleIntervalTicks = config.getInt("depth-sample-interval-ticks", 20);
         drawOnEqualDepth = config.getBoolean("draw-on-equal-depth", true);
@@ -573,6 +575,22 @@ public final class ConfigManager {
 
     public int getCountdownSeconds() {
         return countdownSeconds;
+    }
+
+    public int[] getCountdownAnnounceSeconds() {
+        return countdownAnnounceSeconds.clone();
+    }
+
+    private int[] loadCountdownAnnounceSeconds() {
+        List<Integer> values = config.getIntegerList("countdown-announce-seconds");
+        if (values == null || values.isEmpty()) {
+            return new int[]{5, 3, 2, 1};
+        }
+        int[] out = new int[values.size()];
+        for (int i = 0; i < values.size(); i++) {
+            out[i] = values.get(i);
+        }
+        return out;
     }
 
     public int getRespawnDelaySeconds() {

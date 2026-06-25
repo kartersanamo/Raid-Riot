@@ -683,16 +683,17 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         match.setState(MatchState.COUNTDOWN);
         final int countdown = ConfigManager.get().getCountdownSeconds();
         match.setCountdownEndMs(System.currentTimeMillis() + countdown * 1000L);
-        for (int i = countdown; i >= 1; i--) {
-            final int sec = i;
+        for (int sec : ConfigManager.get().getCountdownAnnounceSeconds()) {
+            if (sec <= 0 || sec > countdown) {
+                continue;
+            }
+            final int announceSec = sec;
             countdownTasks.add(Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (shuttingDown || activeMatch != match || match.getState() != MatchState.COUNTDOWN) {
                     return;
                 }
-                Map<String, String> vars = new HashMap<>();
-                vars.put("seconds", String.valueOf(sec));
-                ConfigManager.get().broadcast("match.countdown", vars);
-            }, (countdown - sec) * 20L));
+                sendMatchCountdownToParticipants(match, announceSec);
+            }, (countdown - announceSec) * 20L));
         }
         countdownTasks.add(Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (shuttingDown || activeMatch != match || match.getState() != MatchState.COUNTDOWN) {
@@ -700,6 +701,23 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             }
             tryActivateMatch(match);
         }, countdown * 20L));
+    }
+
+    private void sendMatchCountdownToParticipants(RaidMatch match, int seconds) {
+        Map<String, String> vars = new HashMap<>();
+        vars.put("seconds", String.valueOf(seconds));
+        String message = ConfigManager.get().formatMessage("match.countdown", vars);
+        if (message == null || message.trim().isEmpty()) {
+            return;
+        }
+        message = ConfigManager.get().ensurePrefix(message);
+        for (UUID id : match.getEnrolledParticipants()) {
+            Player player = Bukkit.getPlayer(id);
+            if (player != null && player.isOnline()) {
+                player.sendMessage(message);
+            }
+        }
+        plugin.getLogger().info(org.bukkit.ChatColor.stripColor(message));
     }
 
     private void tryActivateMatch(final RaidMatch match) {

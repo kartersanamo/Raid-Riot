@@ -28,6 +28,7 @@ public final class ClickableMessageService {
         Map<String, String> vars = new HashMap<>();
         vars.put("seconds", String.valueOf(secondsLeft));
         for (Player player : Bukkit.getOnlinePlayers()) {
+            beginAnnouncement(player);
             sendCentered(player, "header");
             sendCentered(player, "queue-open-line1");
             if (mode == TeamAssignmentMode.FACTION) {
@@ -37,14 +38,17 @@ public final class ClickableMessageService {
                 sendCentered(player, "queue-open-random-line2", vars);
             }
             sendCentered(player, "queue-open-footer");
+            endAnnouncement(player);
         }
     }
 
     public void broadcastEventStarted() {
         for (Player player : Bukkit.getOnlinePlayers()) {
+            beginAnnouncement(player);
             sendCentered(player, "header");
             sendCentered(player, "event-started-line1");
             sendCentered(player, "event-started-line2");
+            endAnnouncement(player);
         }
     }
 
@@ -60,6 +64,7 @@ public final class ClickableMessageService {
         List<String> winnerNames = winner == null ? Collections.<String>emptyList() : winnerNames(match, winner);
 
         for (Player player : Bukkit.getOnlinePlayers()) {
+            beginAnnouncement(player);
             sendCentered(player, "header");
             sendCentered(player, "event-ended-line1");
             if (winner != null && match.getWinReason() == WinReason.FORFEIT) {
@@ -78,7 +83,16 @@ public final class ClickableMessageService {
             Map<String, String> timeVars = new HashMap<>();
             timeVars.put("time", timeText);
             sendCentered(player, "event-ended-time", timeVars);
+            endAnnouncement(player);
         }
+    }
+
+    private void beginAnnouncement(Player player) {
+        player.sendMessage("");
+    }
+
+    private void endAnnouncement(Player player) {
+        player.sendMessage("");
     }
 
     private void sendCentered(Player player, String key) {
