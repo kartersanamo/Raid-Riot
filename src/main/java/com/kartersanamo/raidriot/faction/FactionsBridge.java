@@ -6,6 +6,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Talks to SaberFactions via reflection so Raid Riot compiles without the SaberFactions Maven artifact.
@@ -18,7 +23,12 @@ public final class FactionsBridge {
     private Method boardGetFactionAt;
     private Method boardSetFactionAt;
     private Method boardRemoveAt;
+    private Method boardGetAllClaims;
     private Method fLocationWrapChunk;
+    private Method fLocationGetFaction;
+    private Method fLocationGetX;
+    private Method fLocationGetZ;
+    private Method fLocationGetWorldName;
     private Object factionsInstance;
     private Method factionsGetByTag;
     private Method factionsGetWilderness;
@@ -49,9 +59,14 @@ public final class FactionsBridge {
             boardGetFactionAt = boardClass.getMethod("getFactionAt", Class.forName("com.massivecraft.factions.FLocation"));
             boardSetFactionAt = boardClass.getMethod("setFactionAt", Class.forName("com.massivecraft.factions.Faction"), Class.forName("com.massivecraft.factions.FLocation"));
             boardRemoveAt = boardClass.getMethod("removeAt", Class.forName("com.massivecraft.factions.FLocation"));
+            boardGetAllClaims = boardClass.getMethod("getAllClaims");
 
             Class<?> fLocationClass = Class.forName("com.massivecraft.factions.FLocation");
             fLocationWrapChunk = fLocationClass.getMethod("wrap", Chunk.class);
+            fLocationGetFaction = fLocationClass.getMethod("getFaction");
+            fLocationGetX = fLocationClass.getMethod("getX");
+            fLocationGetZ = fLocationClass.getMethod("getZ");
+            fLocationGetWorldName = fLocationClass.getMethod("getWorldName");
 
             Class<?> factionsClass = Class.forName("com.massivecraft.factions.Factions");
             factionsInstance = factionsClass.getMethod("getInstance").invoke(null);
@@ -192,6 +207,51 @@ public final class FactionsBridge {
     public void unclaimChunk(Chunk chunk) throws Exception {
         Object floc = fLocationWrapChunk.invoke(null, chunk);
         boardRemoveAt.invoke(boardInstance, floc);
+    }
+
+    /**
+     * Removes every board claim in {@code worldName} owned by any of the given factions.
+     */
+    public int unclaimAllFactionsInWorld(String worldName, Collection<Object> factions) throws Exception {
+        if (worldName == null || worldName.isEmpty() || factions == null || factions.isEmpty()) {
+            return 0;
+        }
+        Set<String> factionIds = new HashSet<String>();
+        for (Object faction : factions) {
+            if (faction != null && !isWilderness(faction)) {
+                factionIds.add((String) factionGetId.invoke(faction));
+            }
+        }
+        if (factionIds.isEmpty()) {
+            return 0;
+        }
+        Object claimsObj = boardGetAllClaims.invoke(boardInstance);
+        if (!(claimsObj instanceof Iterable)) {
+            return 0;
+        }
+        List<Object> toRemove = new ArrayList<Object>();
+        for (Object claim : (Iterable<?>) claimsObj) {
+            Object faction = fLocationGetFaction.invoke(claim);
+            if (faction == null || isWilderness(faction)) {
+                continue;
+            }
+            String id = (String) factionGetId.invoke(faction);
+            if (!factionIds.contains(id)) {
+                continue;
+            }
+            String claimWorld = (String) fLocationGetWorldName.invoke(claim);
+            if (claimWorld == null || !claimWorld.equals(worldName)) {
+                continue;
+            }
+            toRemove.add(claim);
+        }
+        for (Object claim : toRemove) {
+            boardRemoveAt.invoke(boardInstance, claim);
+        }
+        if (!toRemove.isEmpty()) {
+            factionsForceSave.invoke(factionsInstance);
+        }
+        return toRemove.size();
     }
 
     public boolean isWilderness(Object faction) throws Exception {

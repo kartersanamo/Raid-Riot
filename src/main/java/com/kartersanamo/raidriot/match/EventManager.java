@@ -156,6 +156,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                 }
             } else {
                 worldBorderService.reset();
+                eventFactionService.unclaimEventWorld(plugin.getRaidRiotConfig().getEventWorld());
             }
             scheduleWorldRestore(syncWorldRestore);
         } finally {

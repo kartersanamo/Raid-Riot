@@ -8,7 +8,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public final class EventFactionService {
@@ -93,17 +95,61 @@ public final class EventFactionService {
     }
 
     public void unclaimAll(RaidMatch match) {
+        if (match == null) {
+            return;
+        }
+        unclaimEventWorld(match.getEventWorld(), collectCleanupFactions(match));
+        match.clearClaimedChunks();
+    }
+
+    public void unclaimEventWorld(String worldName) {
+        List<Object> factions = new ArrayList<Object>();
+        factions.add(eventFactionA);
+        factions.add(eventFactionB);
+        unclaimEventWorld(worldName, factions);
+    }
+
+    private void unclaimEventWorld(String worldName, List<Object> factions) {
+        if (worldName == null || worldName.isEmpty()) {
+            return;
+        }
         FactionsBridge bridge = plugin.getFactionsBridge();
-        for (ChunkKey key : new HashSet<ChunkKey>(match.getAllClaimedChunks())) {
+        try {
+            int removed = bridge.unclaimAllFactionsInWorld(worldName, factions);
+            if (removed > 0) {
+                plugin.getLogger().info("Removed " + removed + " faction claims from " + worldName + " during cleanup.");
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Failed to unclaim all claims in " + worldName + ": " + ex.getMessage());
+            unclaimTrackedChunksFallback(bridge, factions, worldName);
+        }
+    }
+
+    private List<Object> collectCleanupFactions(RaidMatch match) {
+        Set<Object> factions = new HashSet<Object>();
+        factions.add(eventFactionA);
+        factions.add(eventFactionB);
+        Object refA = match.getFactionRef(TeamSide.A);
+        Object refB = match.getFactionRef(TeamSide.B);
+        if (refA != null) {
+            factions.add(refA);
+        }
+        if (refB != null) {
+            factions.add(refB);
+        }
+        return new ArrayList<Object>(factions);
+    }
+
+    private void unclaimTrackedChunksFallback(FactionsBridge bridge, List<Object> factions, String worldName) {
+        for (Object faction : factions) {
+            if (faction == null) {
+                continue;
+            }
             try {
-                Chunk chunk = Bukkit.getWorld(key.getWorldName()).getChunkAt(key.getX(), key.getZ());
-                bridge.unclaimChunk(chunk);
-            } catch (Exception ex) {
-                plugin.getLogger().warning("Failed to unclaim " + key.getWorldName()
-                        + " " + key.getX() + "," + key.getZ() + ": " + ex.getMessage());
+                bridge.unclaimAllFactionsInWorld(worldName, java.util.Collections.singletonList(faction));
+            } catch (Exception ignored) {
             }
         }
-        match.clearClaimedChunks();
     }
 
     public boolean isEventFaction(Object faction) throws Exception {
