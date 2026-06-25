@@ -38,6 +38,7 @@ import com.kartersanamo.raidriot.listener.TntSpawnListener;
 import com.kartersanamo.raidriot.listener.VirtualCombatListener;
 import com.kartersanamo.raidriot.item.EventItemService;
 import com.kartersanamo.raidriot.match.EventManager;
+import com.kartersanamo.raidriot.match.MatchNotificationService;
 import com.kartersanamo.raidriot.queue.QueueManager;
 import com.kartersanamo.raidriot.spectator.SpectatorService;
 import com.kartersanamo.raidriot.ui.AdminGuiListener;
@@ -74,6 +75,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
     private AdminGuiService adminGuiService;
     private ClickableMessageService clickableMessageService;
     private EventItemService eventItemService;
+    private MatchNotificationService matchNotificationService;
 
     public static RaidRiotPlugin getInstance() {
         return instance;
@@ -133,6 +135,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
         eventCombatService = new EventCombatService(this);
         eventTeamAccessService = new EventTeamAccessService(this, eventFactionService);
         eventItemService = new EventItemService(this);
+        matchNotificationService = new MatchNotificationService(this);
         PredefinedKitService predefinedKitService = new PredefinedKitService(eventKitStore, eventItemService);
         clickableMessageService = new ClickableMessageService(configManager);
         QueueManager queueManager = new QueueManager(this, clickableMessageService);
@@ -269,5 +272,9 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
     public EventItemService getEventItemService() {
         return eventItemService;
+    }
+
+    public MatchNotificationService getMatchNotificationService() {
+        return matchNotificationService;
     }
 }

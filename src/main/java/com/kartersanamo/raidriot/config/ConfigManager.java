@@ -67,6 +67,7 @@ public final class ConfigManager {
     private int countdownSeconds = 5;
     private int[] countdownAnnounceSeconds = {5, 3, 2, 1};
     private int respawnDelaySeconds = 10;
+    private int respawnInvulnerabilitySeconds = 3;
     private int depthSampleIntervalTicks = 20;
     private int breachMinInteriorDepth = 2;
     private boolean drawOnEqualDepth = true;
@@ -178,6 +179,7 @@ public final class ConfigManager {
         countdownSeconds = config.getInt("countdown-seconds", 5);
         countdownAnnounceSeconds = loadCountdownAnnounceSeconds();
         respawnDelaySeconds = config.getInt("respawn-delay-seconds", 10);
+        respawnInvulnerabilitySeconds = config.getInt("respawn-invulnerability-seconds", 3);
         depthSampleIntervalTicks = config.getInt("depth-sample-interval-ticks", 20);
         breachMinInteriorDepth = config.getInt("breach-min-interior-depth", 2);
         drawOnEqualDepth = config.getBoolean("draw-on-equal-depth", true);
@@ -636,6 +638,10 @@ public final class ConfigManager {
 
     public int getRespawnDelaySeconds() {
         return respawnDelaySeconds;
+    }
+
+    public int getRespawnInvulnerabilitySeconds() {
+        return respawnInvulnerabilitySeconds;
     }
 
     public int getDepthSampleIntervalTicks() {

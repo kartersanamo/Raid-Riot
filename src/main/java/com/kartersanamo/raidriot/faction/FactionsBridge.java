@@ -44,6 +44,8 @@ public final class FactionsBridge {
     private Object fPlayersInstance;
     private Method fPlayersGetByPlayer;
     private Method fPlayerGetFaction;
+    private Method fPlayerIsAdminBypassing;
+    private Method fPlayerSetAdminBypassing;
 
     public FactionsBridge(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -100,6 +102,8 @@ public final class FactionsBridge {
             fPlayersGetByPlayer = fPlayersClass.getMethod("getByPlayer", Player.class);
             Class<?> fPlayerClass = Class.forName("com.massivecraft.factions.FPlayer");
             fPlayerGetFaction = fPlayerClass.getMethod("getFaction");
+            fPlayerIsAdminBypassing = fPlayerClass.getMethod("isAdminBypassing");
+            fPlayerSetAdminBypassing = resolveBypassSetter(fPlayerClass);
 
             ok = true;
             return true;
@@ -377,5 +381,43 @@ public final class FactionsBridge {
             return null;
         }
         return fPlayerGetFaction.invoke(fp);
+    }
+
+    public boolean canControlBypass() {
+        return fPlayerIsAdminBypassing != null && fPlayerSetAdminBypassing != null;
+    }
+
+    public boolean isAdminBypassing(Player player) throws Exception {
+        Object fp = getFPlayer(player);
+        if (fp == null) {
+            return false;
+        }
+        return (Boolean) fPlayerIsAdminBypassing.invoke(fp);
+    }
+
+    public void setAdminBypassing(Player player, boolean bypassing) throws Exception {
+        Object fp = getFPlayer(player);
+        if (fp == null) {
+            return;
+        }
+        fPlayerSetAdminBypassing.invoke(fp, bypassing);
+    }
+
+    private Object getFPlayer(Player player) throws Exception {
+        if (player == null) {
+            return null;
+        }
+        return fPlayersGetByPlayer.invoke(fPlayersInstance, player);
+    }
+
+    private Method resolveBypassSetter(Class<?> fPlayerClass) {
+        for (String name : new String[]{"setIsAdminBypassing", "setAdminBypassing"}) {
+            try {
+                return fPlayerClass.getMethod(name, boolean.class);
+            } catch (NoSuchMethodException ignored) {
+            }
+        }
+        plugin.getLogger().info("FPlayer admin bypass setter unavailable; faction deny messages may still appear.");
+        return null;
     }
 }

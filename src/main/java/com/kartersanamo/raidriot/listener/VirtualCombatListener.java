@@ -40,6 +40,10 @@ public final class VirtualCombatListener implements Listener {
             event.setCancelled(true);
             return;
         }
+        if (virtualDeathService.hasRespawnInvulnerability(victim.getUniqueId())) {
+            event.setCancelled(true);
+            return;
+        }
 
         Player killer = null;
         if (event instanceof EntityDamageByEntityEvent) {

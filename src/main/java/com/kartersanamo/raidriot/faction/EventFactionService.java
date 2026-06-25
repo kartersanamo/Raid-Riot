@@ -3,7 +3,10 @@ package com.kartersanamo.raidriot.faction;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -21,6 +24,7 @@ public final class EventFactionService {
     private final RaidRiotPlugin plugin;
     private Object eventFactionA;
     private Object eventFactionB;
+    private final Map<UUID, Boolean> savedBypassState = new ConcurrentHashMap<>();
 
     public EventFactionService(RaidRiotPlugin plugin) {
         this.plugin = plugin;
@@ -82,18 +86,41 @@ public final class EventFactionService {
     }
 
     public void claimChunkForPlayerTeam(RaidMatch match, Player player) throws Exception {
+        claimChunksForPlayerTeam(match, player, 0);
+    }
+
+    public List<Chunk> claimChunksForPlayerTeam(RaidMatch match, Player player, int radius) throws Exception {
         TeamSide side = match.getTeamFor(player);
         if (side == null) {
-            return;
+            return java.util.Collections.emptyList();
         }
-        Chunk chunk = player.getLocation().getChunk();
+        Chunk center = player.getLocation().getChunk();
+        int range = Math.max(0, Math.min(radius, 20));
+        List<Chunk> claimed = new ArrayList<>();
+        for (int dx = -range; dx <= range; dx++) {
+            for (int dz = -range; dz <= range; dz++) {
+                Chunk chunk = center.getWorld().getChunkAt(center.getX() + dx, center.getZ() + dz);
+                if (tryClaimChunkForTeam(match, side, chunk)) {
+                    claimed.add(chunk);
+                }
+            }
+        }
+        return claimed;
+    }
+
+    private boolean tryClaimChunkForTeam(RaidMatch match, TeamSide side, Chunk chunk) throws Exception {
         ChunkKey key = new ChunkKey(chunk.getWorld().getName(), chunk.getX(), chunk.getZ());
         if (match.hasClaimedChunk(key)) {
-            return;
+            return false;
         }
         FactionsBridge bridge = plugin.getFactionsBridge();
+        Object factionAt = bridge.getFactionAtChunk(chunk);
+        if (!bridge.isWilderness(factionAt)) {
+            return false;
+        }
         bridge.claimChunkForFaction(chunk, getEventFaction(side));
         match.addClaimedChunk(side, key);
+        return true;
     }
 
     public boolean unclaimChunkForPlayerTeam(RaidMatch match, Player player) throws Exception {
@@ -188,5 +215,72 @@ public final class EventFactionService {
             return TeamSide.B;
         }
         return null;
+    }
+
+    public void enableRaidBypass(Player player) {
+        if (player == null) {
+            return;
+        }
+        FactionsBridge bridge = plugin.getFactionsBridge();
+        if (!bridge.canControlBypass()) {
+            return;
+        }
+        UUID id = player.getUniqueId();
+        try {
+            savedBypassState.putIfAbsent(id, bridge.isAdminBypassing(player));
+            bridge.setAdminBypassing(player, true);
+        } catch (Exception ex) {
+            plugin.getLogger().log(Level.WARNING, "Could not enable faction bypass for {0}: {1}",
+                    new Object[]{player.getName(), ex.getMessage()});
+        }
+    }
+
+    public void disableRaidBypass(Player player) {
+        if (player == null) {
+            return;
+        }
+        FactionsBridge bridge = plugin.getFactionsBridge();
+        if (!bridge.canControlBypass()) {
+            return;
+        }
+        UUID id = player.getUniqueId();
+        Boolean previous = savedBypassState.remove(id);
+        if (previous == null) {
+            return;
+        }
+        try {
+            bridge.setAdminBypassing(player, previous);
+        } catch (Exception ex) {
+            plugin.getLogger().log(Level.WARNING, "Could not restore faction bypass for {0}: {1}",
+                    new Object[]{player.getName(), ex.getMessage()});
+        }
+    }
+
+    public void enableRaidBypass(RaidMatch match) {
+        if (match == null) {
+            return;
+        }
+        for (UUID id : match.getEnrolledParticipants()) {
+            if (match.isDeparted(id)) {
+                continue;
+            }
+            Player player = Bukkit.getPlayer(id);
+            if (player != null) {
+                enableRaidBypass(player);
+            }
+        }
+    }
+
+    public void disableRaidBypass(RaidMatch match) {
+        if (match == null) {
+            return;
+        }
+        for (UUID id : match.getEnrolledParticipants()) {
+            Player player = Bukkit.getPlayer(id);
+            if (player != null) {
+                disableRaidBypass(player);
+            }
+        }
+        savedBypassState.clear();
     }
 }

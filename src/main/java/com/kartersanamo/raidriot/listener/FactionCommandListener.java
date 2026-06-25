@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.listener;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.faction.EventFactionService;
 import com.kartersanamo.raidriot.match.RaidMatch;
@@ -12,7 +13,10 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public final class FactionCommandListener implements Listener {
 
@@ -50,9 +54,22 @@ public final class FactionCommandListener implements Listener {
             return;
         }
         event.setCancelled(true);
+        TeamSide side = match.getTeamFor(player);
+        if (side == null) {
+            ConfigManager.get().send(player, "faction.claim-failed");
+            return;
+        }
+        int radius = parseClaimRadius(event.getMessage());
         try {
-            eventFactionService.claimChunkForPlayerTeam(match, player);
-            ConfigManager.get().send(player, "faction.claim-success");
+            List<Chunk> claimed = eventFactionService.claimChunksForPlayerTeam(match, player, radius);
+            if (claimed.isEmpty()) {
+                ConfigManager.get().send(player, "faction.claim-failed");
+                return;
+            }
+            for (Chunk chunk : claimed) {
+                plugin.getMatchNotificationService().notifyTeammates(
+                        match, side, "faction.claim-success", claimMessageVars(match, side, player, chunk));
+            }
         } catch (Exception ex) {
             ConfigManager.get().send(player, "faction.claim-failed");
             plugin.getLogger().warning("Event claim failed for " + player.getName() + ": " + ex.getMessage());
@@ -90,6 +107,30 @@ public final class FactionCommandListener implements Listener {
         } catch (Exception ex) {
             ConfigManager.get().send(player, "faction.unclaim-failed");
             plugin.getLogger().warning("Event unclaim failed for " + player.getName() + ": " + ex.getMessage());
+        }
+    }
+
+    private static Map<String, String> claimMessageVars(RaidMatch match, TeamSide side, Player player, Chunk chunk) {
+        Map<String, String> vars = new HashMap<>();
+        vars.put("name", player.getName());
+        vars.put("team", match.getFactionTag(side));
+        vars.put("teamColor", ConfigManager.get().getTeamChatColor(side));
+        vars.put("lightRed", "&c");
+        vars.put("lightGray", "&7");
+        vars.put("chunkStartXCoord", String.valueOf(chunk.getX() * 16));
+        vars.put("chunkStartZCoord", String.valueOf(chunk.getZ() * 16));
+        return vars;
+    }
+
+    private int parseClaimRadius(String message) {
+        String[] parts = parseFactionCommand(message);
+        if (parts == null || parts.length < 3) {
+            return 0;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(parts[2]));
+        } catch (NumberFormatException ex) {
+            return 0;
         }
     }
 

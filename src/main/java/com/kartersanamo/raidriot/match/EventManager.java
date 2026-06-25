@@ -233,6 +233,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         if (match == null) {
             return;
         }
+        eventFactionService.disableRaidBypass(match);
         eventCombatService.disableForMatch(match);
         respawnQueue.cancelAll();
         virtualDeathService.cancelAll();
@@ -562,6 +563,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         match.markDeparted(id);
         respawnQueue.cancel(id);
         virtualDeathService.cancel(id);
+        eventFactionService.disableRaidBypass(player);
         eventCombatService.disableForParticipant(player);
         restorePreEventState(player, match.getPreEventSnapshot(id));
         ejectPlayerFromEventWorld(player, match.getEventWorld());
@@ -620,6 +622,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         match.rejoinParticipant(player.getUniqueId());
         MatchState state = match.getState();
         if (state == MatchState.ACTIVE) {
+            eventFactionService.enableRaidBypass(player);
             if (match.getSelectedKitVote() == KitVoteOption.PREDEFINED) {
                 predefinedKitService.apply(player);
             }
@@ -678,6 +681,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             eventItemService.purgeCarrier(player, false);
         }
         eventCombatService.disableForParticipant(player);
+        eventFactionService.disableRaidBypass(player);
         virtualDeathService.cancel(player.getUniqueId());
         if (snapshot != null) {
             snapshot.apply(player);
@@ -855,6 +859,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
         plugin.getClickableMessageService().broadcastEventStarted();
         eventCombatService.enableForMatch(match);
+        eventFactionService.enableRaidBypass(match);
         startTasks(match);
         startGuiRefreshTask();
     }

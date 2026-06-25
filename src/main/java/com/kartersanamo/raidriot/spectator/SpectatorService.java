@@ -82,6 +82,10 @@ public final class SpectatorService {
         return guiTargets.get(slot);
     }
 
+    public Set<UUID> getSpectatorIds() {
+        return java.util.Collections.unmodifiableSet(new HashSet<>(snapshots.keySet()));
+    }
+
     public void shutdown() {
         guiTargets.clear();
         Set<UUID> ids = new HashSet<>(snapshots.keySet());

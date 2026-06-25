@@ -62,7 +62,8 @@ countdown-announce-seconds:
   - 3
   - 2
   - 1
-respawn-delay-seconds: 10
+respawn-delay-seconds: 5
+respawn-invulnerability-seconds: 3
 depth-sample-interval-ticks: 20
 # Blocks past the obsidian wall (interior side only) required before a position counts as a breach.
 breach-min-interior-depth: 2
@@ -165,8 +166,8 @@ messages:
     title: "&c&lYOU DIED"
     subtitle: ""
     respawn-wait: "{prefix}&7Respawning in &c{seconds}&7 seconds..."
-    broadcast: "{prefix}&7{victim} &7({team}) was eliminated by &c{killer}&7!"
-    broadcast-no-killer: "{prefix}&7{victim} &7({team}) was eliminated!"
+    broadcast: "{prefix}&7{killer} &7has killed &7{victim}&7."
+    broadcast-no-killer: "{prefix}&7{victim} &7has died."
 
   spectator:
     entered: "{prefix}&7You are now spectating the match."
@@ -184,7 +185,7 @@ messages:
     locked-block-change: "{prefix}&cYou cannot modify blocks here during the event."
 
   faction:
-    claim-success: "{prefix}&7Claimed this chunk for your team."
+    claim-success: "{prefix}&7{name} &7has claimed a chunk at {lightRed}{chunkStartXCoord}{lightGray}, {lightRed}{chunkStartZCoord} &7for {teamColor}{team}&7."
     claim-failed: "{prefix}&cCould not claim this chunk."
     unclaim-success: "{prefix}&7Unclaimed this chunk for your team."
     unclaim-failed: "{prefix}&cCould not unclaim this chunk."

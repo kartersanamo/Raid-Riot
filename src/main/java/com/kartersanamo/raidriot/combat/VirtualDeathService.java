@@ -3,6 +3,7 @@ package com.kartersanamo.raidriot.combat;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -20,6 +21,8 @@ public final class VirtualDeathService {
 
     private final RaidRiotPlugin plugin;
     private final Map<UUID, BukkitTask> pending = new HashMap<>();
+    private final Set<UUID> respawnInvulnerable = new HashSet<>();
+    private final Map<UUID, BukkitTask> invulnerabilityTasks = new HashMap<>();
 
     public VirtualDeathService(RaidRiotPlugin plugin) {
         this.plugin = plugin;
@@ -27,6 +30,10 @@ public final class VirtualDeathService {
 
     public boolean isVirtualDead(UUID id) {
         return pending.containsKey(id);
+    }
+
+    public boolean hasRespawnInvulnerability(UUID id) {
+        return respawnInvulnerable.contains(id);
     }
 
     public void handleVirtualDeath(RaidMatch match, Player player, Player killer) {
@@ -68,13 +75,11 @@ public final class VirtualDeathService {
     private void announceDeath(RaidMatch match, Player victim, Player killer) {
         Map<String, String> vars = new HashMap<>();
         vars.put("victim", victim.getName());
-        TeamSide team = match.getTeamFor(victim);
-        vars.put("team", team == null ? "" : match.getFactionTag(team));
         if (killer != null && killer != victim) {
             vars.put("killer", killer.getName());
-            ConfigManager.get().broadcast("death.broadcast", vars);
+            plugin.getMatchNotificationService().notifyMatchAudience(match, "death.broadcast", vars);
         } else {
-            ConfigManager.get().broadcast("death.broadcast-no-killer", vars);
+            plugin.getMatchNotificationService().notifyMatchAudience(match, "death.broadcast-no-killer", vars);
         }
     }
 
@@ -100,6 +105,25 @@ public final class VirtualDeathService {
         }
         player.setHealth(player.getMaxHealth());
         player.setFoodLevel(20);
+        grantRespawnInvulnerability(player);
+    }
+
+    private void grantRespawnInvulnerability(Player player) {
+        UUID id = player.getUniqueId();
+        clearRespawnInvulnerability(id);
+        respawnInvulnerable.add(id);
+        int seconds = ConfigManager.get().getRespawnInvulnerabilitySeconds();
+        BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> clearRespawnInvulnerability(id),
+                seconds * 20L);
+        invulnerabilityTasks.put(id, task);
+    }
+
+    private void clearRespawnInvulnerability(UUID playerId) {
+        respawnInvulnerable.remove(playerId);
+        BukkitTask task = invulnerabilityTasks.remove(playerId);
+        if (task != null) {
+            task.cancel();
+        }
     }
 
     public void cancel(UUID playerId) {
@@ -125,5 +149,8 @@ public final class VirtualDeathService {
             }
         }
         pending.clear();
+        for (UUID playerId : new HashSet<>(respawnInvulnerable)) {
+            clearRespawnInvulnerability(playerId);
+        }
     }
 }
