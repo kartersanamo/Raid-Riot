@@ -1,7 +1,8 @@
 package com.kartersanamo.raidriot.breach;
 
-import com.kartersanamo.raidriot.arena.TeamBase;
+import com.kartersanamo.raidriot.arena.ClaimTerritory;
 import com.kartersanamo.raidriot.arena.TeamSide;
+import com.kartersanamo.raidriot.world.ChunkKey;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -25,17 +26,17 @@ public final class DepthTracker {
             return;
         }
         int current = getDepth(attacker);
-        TeamBase enemyBase = match.getTeamBase(attacker.opposite());
+        List<ChunkKey> enemyClaims = match.getClaimedChunks(attacker.opposite());
         int measured = 0;
         if (epicenter != null) {
-            measured = Math.max(measured, enemyBase.measureDepthIntoBase(epicenter));
+            measured = Math.max(measured, ClaimTerritory.measureDepthIntoClaims(epicenter, enemyClaims));
         }
         if (affectedBlocks != null) {
             for (Block block : affectedBlocks) {
                 if (block == null) {
                     continue;
                 }
-                measured = Math.max(measured, enemyBase.measureDepthIntoBase(block.getLocation()));
+                measured = Math.max(measured, ClaimTerritory.measureDepthIntoClaims(block.getLocation(), enemyClaims));
             }
         }
         if (measured <= current) {

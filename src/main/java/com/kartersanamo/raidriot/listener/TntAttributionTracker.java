@@ -1,6 +1,9 @@
 package com.kartersanamo.raidriot.listener;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.arena.TeamSide;
+import com.kartersanamo.raidriot.match.RaidMatch;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -84,7 +87,46 @@ public final class TntAttributionTracker {
         }
         if (match != null) {
             tntOrigins.put(event.getEntity().getUniqueId(), new TntOrigin(match.birthEstimate, match.factionAtDispenser));
+            return;
         }
+        attributeNearestParticipant(event.getEntity().getUniqueId(), event.getLocation());
+    }
+
+    private void attributeNearestParticipant(UUID tntId, Location location) {
+        RaidMatch match = plugin.getEventManager().getActiveMatch();
+        if (match == null || !match.isActive() || location == null || location.getWorld() == null) {
+            return;
+        }
+        if (!match.isInEventWorld(location)) {
+            return;
+        }
+        Player nearest = null;
+        double nearestDistance = 16.0D * 16.0D;
+        for (UUID id : match.getParticipants()) {
+            Player player = Bukkit.getPlayer(id);
+            if (player == null || !player.isOnline() || player.getWorld() != location.getWorld()) {
+                continue;
+            }
+            double distance = player.getLocation().distanceSquared(location);
+            if (distance <= nearestDistance) {
+                nearestDistance = distance;
+                nearest = player;
+            }
+        }
+        if (nearest == null) {
+            return;
+        }
+        TeamSide side = match.getTeamFor(nearest);
+        if (side == null) {
+            return;
+        }
+        Object faction;
+        try {
+            faction = plugin.getEventFactionService().getEventFaction(side);
+        } catch (Exception ex) {
+            return;
+        }
+        tntOrigins.put(tntId, new TntOrigin(location.clone(), faction));
     }
 
     public ExplosionAttribution resolveExplosion(EntityExplodeEvent event) {

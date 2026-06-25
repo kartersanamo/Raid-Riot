@@ -4,6 +4,7 @@ import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.match.MatchState;
+import com.kartersanamo.raidriot.match.PlayerDisplayNames;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.QueueSession;
 import com.kartersanamo.raidriot.vote.VoteManager;
@@ -258,22 +259,7 @@ public final class RaidRiotGuiService {
     }
 
     private static String formatTeamPlayerList(RaidMatch match, TeamSide side) {
-        List<String> names = new ArrayList<>();
-        for (UUID id : match.getEnrolledParticipants()) {
-            if (match.getTeamFor(id) != side) {
-                continue;
-            }
-            Player online = Bukkit.getPlayer(id);
-            String name = online != null ? online.getName() : null;
-            if (name == null) {
-                OfflinePlayer offline = Bukkit.getOfflinePlayer(id);
-                name = offline.getName();
-            }
-            if (name != null && !name.isEmpty()) {
-                names.add("&f" + name);
-            }
-        }
-        Collections.sort(names);
+        List<String> names = PlayerDisplayNames.coloredSorted(match, match.getEnrolledParticipants(), side);
         if (names.isEmpty()) {
             return ConfigManager.get().formatGui("info.match-players-none");
         }

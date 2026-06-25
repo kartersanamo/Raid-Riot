@@ -3,6 +3,7 @@ package com.kartersanamo.raidriot.listener;
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.breach.BreachService;
+import com.kartersanamo.raidriot.breach.ExplosionDepthAttribution;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -53,8 +54,9 @@ public final class ExplosionBreachListener implements Listener {
         if (!(event.getEntity() instanceof TNTPrimed)) {
             return;
         }
-        TeamSide depthTeam = attacker != null ? attacker : (actor != null ? match.getTeamFor(actor) : null);
-        if (depthTeam != null) {
+        TeamSide depthTeam = ExplosionDepthAttribution.resolveAttacker(plugin, match, event, attribution);
+        if (depthTeam != null && ExplosionDepthAttribution.affectsEnemyClaims(
+                match, depthTeam, event.getLocation(), event.blockList())) {
             match.getDepthTracker().recordExplosion(match, event.getLocation(), event.blockList(), depthTeam);
         }
     }

@@ -2,6 +2,7 @@ package com.kartersanamo.raidriot.chat;
 
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.config.ConfigManager;
+import com.kartersanamo.raidriot.match.PlayerDisplayNames;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.match.WinReason;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
@@ -9,12 +10,10 @@ import com.kartersanamo.raidriot.ui.TimeFormat;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public final class ClickableMessageService {
 
@@ -61,7 +60,8 @@ public final class ClickableMessageService {
         }
         TeamSide winner = match.getWinner();
         String timeText = formatDuration(match.getElapsedActiveSeconds());
-        List<String> winnerNames = winner == null ? Collections.<String>emptyList() : winnerNames(match, winner);
+        List<String> winnerNames = winner == null ? Collections.<String>emptyList()
+                : PlayerDisplayNames.coloredSorted(match, match.getParticipants(), winner);
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             beginAnnouncement(player);
@@ -122,22 +122,6 @@ public final class ClickableMessageService {
             builder.append(config.format("messages.centered.winner-name-entry", vars));
         }
         CenteredChat.send(player, builder.toString());
-    }
-
-    private List<String> winnerNames(RaidMatch match, TeamSide winner) {
-        List<String> names = new ArrayList<>();
-        for (UUID id : match.getParticipants()) {
-            if (match.getTeamFor(id) != winner) {
-                continue;
-            }
-            Player online = Bukkit.getPlayer(id);
-            String name = online != null ? online.getName() : Bukkit.getOfflinePlayer(id).getName();
-            if (name != null) {
-                names.add(name);
-            }
-        }
-        Collections.sort(names);
-        return names;
     }
 
     private String formatDuration(int seconds) {

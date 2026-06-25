@@ -287,6 +287,23 @@ public final class RaidMatch {
         return claimedChunks.get(TeamSide.A).contains(key) || claimedChunks.get(TeamSide.B).contains(key);
     }
 
+    public List<ChunkKey> getClaimedChunks(TeamSide side) {
+        return Collections.unmodifiableList(claimedChunks.get(side));
+    }
+
+    public TeamSide getTeamForClaimedChunk(ChunkKey key) {
+        if (key == null) {
+            return null;
+        }
+        if (claimedChunks.get(TeamSide.A).contains(key)) {
+            return TeamSide.A;
+        }
+        if (claimedChunks.get(TeamSide.B).contains(key)) {
+            return TeamSide.B;
+        }
+        return null;
+    }
+
     public Set<ChunkKey> getAllClaimedChunks() {
         Set<ChunkKey> all = new HashSet<>();
         all.addAll(claimedChunks.get(TeamSide.A));

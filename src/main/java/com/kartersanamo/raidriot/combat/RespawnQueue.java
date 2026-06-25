@@ -5,13 +5,16 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.arena.SpawnLocationResolver;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.match.RaidMatch;
+import com.kartersanamo.raidriot.world.ChunkLoadHelper;
 
 public final class RespawnQueue {
 
@@ -43,7 +46,12 @@ public final class RespawnQueue {
                 return;
             }
             if (active.getTeamBase(side).getSpawn() != null) {
-                player.teleport(active.getTeamBase(side).getSpawn());
+                Location spawn = SpawnLocationResolver.resolveRespawnLocation(
+                        player.getWorld(), active.getTeamBase(side));
+                if (spawn != null) {
+                    ChunkLoadHelper.loadAround(spawn);
+                    player.teleport(spawn);
+                }
             }
             KitSnapshot snapshot = active.getKitSnapshot(player.getUniqueId());
             if (snapshot != null) {

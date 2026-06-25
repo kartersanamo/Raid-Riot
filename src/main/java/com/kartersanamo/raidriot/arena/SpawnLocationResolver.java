@@ -37,11 +37,19 @@ public final class SpawnLocationResolver {
 
         int[] spawnColumn = findSpawnColumn(world, centerX, centerZ, bounds);
         if (spawnColumn == null) {
-            int configured = ConfigManager.get().getSpawnY();
-            int fallbackY = Math.min(bounds.getMaxY(), Math.max(bounds.getMinY(), configured));
-            return new Location(world, centerX + 0.5, fallbackY, centerZ + 0.5);
+            return null;
         }
         return new Location(world, spawnColumn[0] + 0.5, spawnColumn[1], spawnColumn[2] + 0.5);
+    }
+
+    public static Location resolveRespawnLocation(World world, TeamBase base) {
+        Location resolved = resolveTeamSpawn(world, base);
+        if (resolved != null) {
+            base.setSpawn(resolved);
+            return resolved.clone();
+        }
+        Location cached = base.getSpawn();
+        return cached != null ? cached.clone() : null;
     }
 
     private static int[] findSpawnColumn(World world, int centerX, int centerZ, CuboidRegion bounds) {
@@ -86,20 +94,7 @@ public final class SpawnLocationResolver {
     }
 
     private static int findSafeSpawnY(World world, int x, int z, int minY, int maxY) {
-        int topSolid = -1;
         for (int y = minY; y <= maxY; y++) {
-            if (isSolid(world.getBlockAt(x, y, z))) {
-                topSolid = y;
-            }
-        }
-        if (topSolid < 0) {
-            return -1;
-        }
-        return findStandingY(world, x, z, topSolid + 1, maxY);
-    }
-
-    private static int findStandingY(World world, int x, int z, int startY, int maxY) {
-        for (int y = startY; y <= Math.min(maxY + 1, 255); y++) {
             if (hasStandingSpace(world, x, y, z)) {
                 return y;
             }

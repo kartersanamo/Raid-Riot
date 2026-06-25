@@ -5,6 +5,7 @@ import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.combat.PlayerStateSnapshot;
 import com.kartersanamo.raidriot.combat.VirtualDeathService;
+import com.kartersanamo.raidriot.match.PlayerDisplayNames;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -67,7 +68,7 @@ public final class SpectatorService {
         }
         spectator.teleport(target.getLocation());
         Map<String, String> vars = new HashMap<>();
-        vars.put("target", target.getName());
+        vars.put("target", PlayerDisplayNames.colored(match, target));
         ConfigManager.get().send(spectator, "spectator.teleported", vars);
     }
 

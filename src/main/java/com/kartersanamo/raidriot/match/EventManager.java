@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.arena.SpawnLocationResolver;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BasePlacementPipeline;
 import com.kartersanamo.raidriot.base.BasePlacementService;
@@ -489,33 +490,8 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     }
 
     private static String formatTeammateNames(RaidMatch match, UUID self, TeamSide side) {
-        List<String> names = new ArrayList<>();
-        for (UUID id : match.getEnrolledParticipants()) {
-            if (id.equals(self) || match.getTeamFor(id) != side) {
-                continue;
-            }
-            Player online = Bukkit.getPlayer(id);
-            String name = online != null ? online.getName() : null;
-            if (name == null) {
-                OfflinePlayer offline = Bukkit.getOfflinePlayer(id);
-                name = offline.getName();
-            }
-            if (name != null && !name.isEmpty()) {
-                names.add(name);
-            }
-        }
-        Collections.sort(names);
-        if (names.isEmpty()) {
-            return null;
-        }
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < names.size(); i++) {
-            if (i > 0) {
-                builder.append("&8, ");
-            }
-            builder.append("&8").append(names.get(i));
-        }
-        return builder.toString();
+        String teammates = PlayerDisplayNames.joinTeammates(match, self, side, "&7, ");
+        return teammates.isEmpty() ? null : teammates;
     }
 
     public boolean isInEventMatch(RaidMatch match) {
@@ -642,7 +618,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             return;
         }
         Map<String, String> vars = new HashMap<>();
-        vars.put("player", departed.getName());
+        vars.put("player", PlayerDisplayNames.colored(match, departed));
         vars.put("team", match.getFactionTag(side));
         for (UUID id : match.getEnrolledParticipants()) {
             if (id.equals(departed.getUniqueId()) || match.isDeparted(id)) {
@@ -1122,13 +1098,13 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             plugin.getLogger().warning("Cannot teleport " + player.getName() + ": no team assigned.");
             return;
         }
-        Location spawn = match.getTeamBase(side).getSpawn();
+        Location spawn = SpawnLocationResolver.resolveRespawnLocation(player.getWorld(), match.getTeamBase(side));
         if (spawn == null || spawn.getWorld() == null) {
             plugin.getLogger().warning("Cannot teleport " + player.getName()
                     + " to team " + match.getFactionTag(side) + ": spawn not ready.");
             return;
         }
         ChunkLoadHelper.loadAround(spawn);
-        player.teleport(spawn.clone());
+        player.teleport(spawn);
     }
 }

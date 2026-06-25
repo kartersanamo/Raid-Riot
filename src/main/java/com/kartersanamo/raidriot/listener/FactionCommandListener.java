@@ -5,6 +5,7 @@ import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.faction.EventFactionService;
 import com.kartersanamo.raidriot.faction.EventTeamAccessService;
+import com.kartersanamo.raidriot.match.PlayerDisplayNames;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.world.ChunkKey;
 import org.bukkit.Chunk;
@@ -99,9 +100,15 @@ public final class FactionCommandListener implements Listener {
             return;
         }
         event.setCancelled(true);
+        TeamSide side = match.getTeamFor(player);
+        if (side == null) {
+            ConfigManager.get().send(player, "faction.unclaim-failed");
+            return;
+        }
         try {
             if (eventFactionService.unclaimChunkForPlayerTeam(match, player)) {
-                ConfigManager.get().send(player, "faction.unclaim-success");
+                plugin.getMatchNotificationService().notifyTeammates(
+                        match, side, "faction.unclaim-success", claimMessageVars(match, side, player, chunk));
             } else {
                 ConfigManager.get().send(player, "faction.unclaim-failed");
             }
@@ -123,7 +130,7 @@ public final class FactionCommandListener implements Listener {
 
     private static Map<String, String> claimMessageVars(RaidMatch match, TeamSide side, Player player, Chunk chunk) {
         Map<String, String> vars = new HashMap<>();
-        vars.put("name", player.getName());
+        vars.put("name", PlayerDisplayNames.colored(match, player));
         vars.put("team", match.getFactionTag(side));
         vars.put("teamColor", ConfigManager.get().getTeamChatColor(side));
         vars.put("lightRed", "&c");

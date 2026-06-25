@@ -13,9 +13,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.arena.SpawnLocationResolver;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.config.ConfigManager;
+import com.kartersanamo.raidriot.match.PlayerDisplayNames;
 import com.kartersanamo.raidriot.match.RaidMatch;
+import com.kartersanamo.raidriot.world.ChunkLoadHelper;
 
 public final class VirtualDeathService {
 
@@ -74,9 +77,9 @@ public final class VirtualDeathService {
 
     private void announceDeath(RaidMatch match, Player victim, Player killer) {
         Map<String, String> vars = new HashMap<>();
-        vars.put("victim", victim.getName());
+        vars.put("victim", PlayerDisplayNames.colored(match, victim));
         if (killer != null && killer != victim) {
-            vars.put("killer", killer.getName());
+            vars.put("killer", PlayerDisplayNames.colored(match, killer));
             plugin.getMatchNotificationService().notifyMatchAudience(match, "death.broadcast", vars);
         } else {
             plugin.getMatchNotificationService().notifyMatchAudience(match, "death.broadcast-no-killer", vars);
@@ -96,8 +99,10 @@ public final class VirtualDeathService {
             return;
         }
         player.setGameMode(GameMode.SURVIVAL);
-        if (match.getTeamBase(side).getSpawn() != null) {
-            player.teleport(match.getTeamBase(side).getSpawn());
+        Location spawn = SpawnLocationResolver.resolveRespawnLocation(player.getWorld(), match.getTeamBase(side));
+        if (spawn != null) {
+            ChunkLoadHelper.loadAround(spawn);
+            player.teleport(spawn);
         }
         KitSnapshot snapshot = match.getKitSnapshot(player.getUniqueId());
         if (snapshot != null) {

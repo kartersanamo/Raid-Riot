@@ -65,7 +65,7 @@ countdown-announce-seconds:
 respawn-delay-seconds: 5
 respawn-invulnerability-seconds: 3
 depth-sample-interval-ticks: 20
-# Depth is measured only from TNT explosions inside the enemy schematic (blocks inward from the nearest exterior face).
+# Depth is measured only from TNT explosions inside the enemy team's faction claims (blocks inward from the nearest exterior face of their claim envelope).
 # Blocks past the obsidian wall (interior side only) required before a position counts as a breach.
 breach-min-interior-depth: 2
 
@@ -146,7 +146,7 @@ messages:
     not-in: "{prefix}&cYou are not in the queue."
     confirm-prompt: "{prefix}&eAre you sure? Run &c/rr leave &eagain within 30 seconds to leave the event."
     event-success: "{prefix}&7You left the Raid Riot event."
-    team-member-left: "{prefix}&c{player} &7left your team and is no longer in the event."
+    team-member-left: "{prefix}{player} &7left your team and is no longer in the event."
 
   rejoin:
     hint: "{prefix}&7You were sent to spawn. Run &c/rr rejoin &7to return to your base while the match is still running."
@@ -167,8 +167,8 @@ messages:
     title: "&c&lYOU DIED"
     subtitle: ""
     respawn-wait: "{prefix}&7Respawning in &c{seconds}&7 seconds..."
-    broadcast: "{prefix}&7{killer} &7has killed &7{victim}&7."
-    broadcast-no-killer: "{prefix}&7{victim} &7has died."
+    broadcast: "{prefix}{killer} &7has killed {victim}&7."
+    broadcast-no-killer: "{prefix}{victim} &7has died."
 
   spectator:
     entered: "{prefix}&7You are now spectating the match."
@@ -188,7 +188,7 @@ messages:
   faction:
     claim-success: "{prefix}&7{name} &7has claimed a chunk at {lightRed}{chunkStartXCoord}{lightGray}, {lightRed}{chunkStartZCoord} &7for {teamColor}{team}&7."
     claim-failed: "{prefix}&cCould not claim this chunk."
-    unclaim-success: "{prefix}&7Unclaimed this chunk for your team."
+    unclaim-success: "{prefix}&7{name} &7has unclaimed a chunk at {lightRed}{chunkStartXCoord}{lightGray}, {lightRed}{chunkStartZCoord} &7for {teamColor}{team}&7."
     unclaim-failed: "{prefix}&cCould not unclaim this chunk."
     unclaim-base-blocked: "{prefix}&cYou cannot unclaim your team's base."
     unclaim-all-blocked: "{prefix}&cYou cannot unclaim base territory during Raid Riot."
@@ -263,7 +263,7 @@ messages:
     event-ended-draw: "&fWinner: &eDraw"
     event-ended-time: "&fTime: &c{time}"
     winner-name-separator: "&8, "
-    winner-name-entry: "&8{name}"
+    winner-name-entry: "{name}"
     duration-one-second: "1 second"
     duration-seconds: "{seconds} seconds"
 
@@ -283,7 +283,9 @@ gui:
     title: "Raid Riot"
     item-title: "&c&lRaid Riot"
     description:
-      - "&fA competitive head-to-head event between two opposing teams racing to raid the other's base while defending your own at the same time!"
+      - "&fA competitive head-to-head event between two opposing teams"
+      - "&fracing to raid the other's base while defending your own"
+      - "&fat the same time!"
     information-header: "&cInformation:"
     information:
       - "&f- &7{playersPerTeam} players per team"
