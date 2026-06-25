@@ -126,8 +126,6 @@ public final class ClickableMessageService {
     public void broadcastQueueCountdown(int secondsLeft) {
         Map<String, String> vars = new HashMap<String, String>();
         vars.put("seconds", String.valueOf(secondsLeft));
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            CenteredChat.send(player, config.format("messages.centered.countdown", vars));
-        }
+        config.broadcast("queue.countdown", vars);
     }
 }
