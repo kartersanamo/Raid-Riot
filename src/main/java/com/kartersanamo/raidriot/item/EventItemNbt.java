@@ -18,6 +18,7 @@ final class EventItemNbt {
     private static final String WORLD_KEY = "RaidRiotEventWorld";
 
     private static final boolean AVAILABLE;
+    private static final Method AS_CRAFT_COPY;
     private static final Method AS_NMS_COPY;
     private static final Method AS_BUKKIT_COPY;
     private static final Method HAS_TAG;
@@ -30,6 +31,7 @@ final class EventItemNbt {
     private static final Class<?> NBT_COMPOUND_CLASS;
 
     static {
+        Method asCraftCopy = null;
         Method asNmsCopy = null;
         Method asBukkitCopy = null;
         Method hasTag = null;
@@ -50,6 +52,7 @@ final class EventItemNbt {
             Class<?> nmsItemStack = Class.forName("net.minecraft.server." + version + ".ItemStack");
             nbtCompoundClass = Class.forName("net.minecraft.server." + version + ".NBTTagCompound");
 
+            asCraftCopy = craftItemStack.getMethod("asCraftCopy", ItemStack.class);
             asNmsCopy = craftItemStack.getMethod("asNMSCopy", ItemStack.class);
             asBukkitCopy = craftItemStack.getMethod("asBukkitCopy", nmsItemStack);
             hasTag = nmsItemStack.getMethod("hasTag");
@@ -65,6 +68,7 @@ final class EventItemNbt {
                     "Event item NBT is unavailable on this server version; event items cannot be secured.", ex);
         }
 
+        AS_CRAFT_COPY = asCraftCopy;
         AS_NMS_COPY = asNmsCopy;
         AS_BUKKIT_COPY = asBukkitCopy;
         HAS_TAG = hasTag;
@@ -90,7 +94,10 @@ final class EventItemNbt {
             return;
         }
         try {
-            Object nms = AS_NMS_COPY.invoke(null, stack);
+            Object nms = toNms(stack);
+            if (nms == null) {
+                return;
+            }
             Object root = readOrCreateRoot(nms);
             COMPOUND_SET_STRING.invoke(root, ID_KEY, itemId.toString());
             COMPOUND_SET_STRING.invoke(root, WORLD_KEY, worldName);
@@ -106,11 +113,14 @@ final class EventItemNbt {
             return;
         }
         try {
-            Object nms = AS_NMS_COPY.invoke(null, stack);
-            if (!(Boolean) HAS_TAG.invoke(nms)) {
+            Object nms = toNms(stack);
+            if (nms == null || !(Boolean) HAS_TAG.invoke(nms)) {
                 return;
             }
             Object root = GET_TAG.invoke(nms);
+            if (root == null) {
+                return;
+            }
             boolean changed = false;
             if ((Boolean) COMPOUND_HAS_KEY.invoke(root, ID_KEY)) {
                 COMPOUND_REMOVE.invoke(root, ID_KEY);
@@ -163,18 +173,26 @@ final class EventItemNbt {
             return null;
         }
         try {
-            Object nms = AS_NMS_COPY.invoke(null, stack);
-            if (!(Boolean) HAS_TAG.invoke(nms)) {
+            Object nms = toNms(stack);
+            if (nms == null || !(Boolean) HAS_TAG.invoke(nms)) {
                 return null;
             }
             Object root = GET_TAG.invoke(nms);
-            if (!(Boolean) COMPOUND_HAS_KEY.invoke(root, key)) {
+            if (root == null || !(Boolean) COMPOUND_HAS_KEY.invoke(root, key)) {
                 return null;
             }
             return (String) COMPOUND_GET_STRING.invoke(root, key);
         } catch (ReflectiveOperationException ex) {
             return null;
         }
+    }
+
+    private static Object toNms(ItemStack stack) throws ReflectiveOperationException {
+        ItemStack craft = (ItemStack) AS_CRAFT_COPY.invoke(null, stack);
+        if (craft == null) {
+            return null;
+        }
+        return AS_NMS_COPY.invoke(null, craft);
     }
 
     private static void copyBack(Object nms, ItemStack stack) throws ReflectiveOperationException {
@@ -186,8 +204,11 @@ final class EventItemNbt {
     }
 
     private static Object readOrCreateRoot(Object nms) throws ReflectiveOperationException {
-        if ((Boolean) HAS_TAG.invoke(nms)) {
-            return GET_TAG.invoke(nms);
+        if (nms != null && (Boolean) HAS_TAG.invoke(nms)) {
+            Object tag = GET_TAG.invoke(nms);
+            if (tag != null) {
+                return tag;
+            }
         }
         return NBT_COMPOUND_CLASS.newInstance();
     }

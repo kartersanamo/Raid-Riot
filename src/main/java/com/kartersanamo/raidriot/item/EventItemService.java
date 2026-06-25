@@ -95,10 +95,13 @@ public final class EventItemService {
     }
 
     public boolean isEventItem(ItemStack stack) {
-        if (EventItemNbt.isAvailable() && EventItemNbt.isEventItem(stack)) {
+        if (stack == null || stack.getType() == Material.AIR) {
+            return false;
+        }
+        if (hasEventLore(stack)) {
             return true;
         }
-        return hasEventLore(stack);
+        return EventItemNbt.isAvailable() && EventItemNbt.isEventItem(stack);
     }
 
     public int purgeCarrier(Player player) {
