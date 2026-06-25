@@ -289,7 +289,14 @@ public final class ConfigManager {
             plugin.getLogger().warning("Refusing to send empty message for key: " + key);
             return;
         }
-        sender.sendMessage(message);
+        sender.sendMessage(ensurePrefix(message));
+    }
+
+    public void sendError(CommandSender sender, String message) {
+        if (isBlank(message)) {
+            return;
+        }
+        sender.sendMessage(ensurePrefix(colorize("&c" + message)));
     }
 
     public void broadcast(String key, Map<String, String> vars) {
@@ -298,6 +305,7 @@ public final class ConfigManager {
             plugin.getLogger().warning("Refusing to broadcast empty message for key: " + key);
             return;
         }
+        msg = ensurePrefix(msg);
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             player.sendMessage(msg);
         }
@@ -332,6 +340,22 @@ public final class ConfigManager {
             result = result.replace("{" + entry.getKey() + "}", value);
         }
         return colorize(result);
+    }
+
+    public String ensurePrefix(String message) {
+        if (isBlank(message)) {
+            return message;
+        }
+        String prefix = colorize(resolveString("messages.prefix", ""));
+        if (isBlank(prefix)) {
+            return message;
+        }
+        String strippedMessage = ChatColor.stripColor(message);
+        String strippedPrefix = ChatColor.stripColor(prefix);
+        if (strippedMessage.startsWith(strippedPrefix)) {
+            return message;
+        }
+        return prefix + message;
     }
 
     public static String colorize(String input) {

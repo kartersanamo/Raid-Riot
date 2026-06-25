@@ -226,7 +226,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             vars.put("mode", mode.name().toLowerCase(Locale.ROOT));
             ConfigManager.get().send(sender, "admin.queue-opened", vars);
         } catch (Exception ex) {
-            sender.sendMessage(ConfigManager.colorize("&c" + ex.getMessage()));
+            ConfigManager.get().sendError(sender, ex.getMessage());
         }
         return true;
     }
@@ -265,7 +265,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             plugin.getEventManager().stopQueue(reason);
             ConfigManager.get().send(sender, "admin.queue-stopped");
         } catch (Exception ex) {
-            sender.sendMessage(ConfigManager.colorize("&c" + ex.getMessage()));
+            ConfigManager.get().sendError(sender, ex.getMessage());
         }
         return true;
     }
@@ -282,7 +282,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
                 ConfigManager.get().send(sender, "admin.no-session-to-stop");
             }
         } catch (Exception ex) {
-            sender.sendMessage(ConfigManager.colorize("&c" + ex.getMessage()));
+            ConfigManager.get().sendError(sender, ex.getMessage());
         }
         return true;
     }
@@ -297,7 +297,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
                 ConfigManager.get().send(sender, "admin.session-stopped");
             }
         } catch (Exception ex) {
-            sender.sendMessage(ConfigManager.colorize("&c" + ex.getMessage()));
+            ConfigManager.get().sendError(sender, ex.getMessage());
         }
         return true;
     }
@@ -342,7 +342,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
                     vars.put("file", file == null
                             ? ConfigManager.get("messages.admin.base-list-not-set")
                             : file);
-                    sender.sendMessage(ConfigManager.get().formatMessage("admin.base-list-entry", vars));
+                    ConfigManager.get().send(sender, "admin.base-list-entry", vars);
                 }
                 return true;
             }
@@ -364,7 +364,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
         } catch (Exception ex) {
-            sender.sendMessage(ConfigManager.colorize("&c" + ex.getMessage()));
+            ConfigManager.get().sendError(sender, ex.getMessage());
             return true;
         }
         ConfigManager.get().send(sender, "command.usage-base-full");

@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.ui;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.base.BaseVoteOption;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -26,6 +27,10 @@ public final class AdminGuiService {
 
     public void openBaseViewer(Player player) {
         player.openInventory(RaidRiotAdminGui.createBaseViewer(plugin));
+    }
+
+    public void openSchematicPicker(Player player, BaseVoteOption option) {
+        player.openInventory(RaidRiotAdminGui.createSchematicPicker(plugin, option));
     }
 
     public void refreshOpenHubs() {

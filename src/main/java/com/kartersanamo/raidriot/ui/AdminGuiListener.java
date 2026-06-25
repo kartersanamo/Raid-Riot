@@ -1,9 +1,11 @@
 package com.kartersanamo.raidriot.ui;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
+import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.match.AdminStopChoice;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
+import com.kartersanamo.raidriot.world.SchematicCatalog;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -60,13 +62,80 @@ public final class AdminGuiListener implements Listener {
                 handleWorldClick(player, slot);
                 break;
             case BASE:
-                if (slot == RaidRiotAdminGui.SLOT_BACK_BASE) {
-                    adminGuiService.openHub(player);
-                }
+                handleBaseClick(player, slot);
+                break;
+            case BASE_SCHEMATIC:
+                handleSchematicClick(player, top, slot);
                 break;
             default:
                 break;
         }
+    }
+
+    private void handleBaseClick(Player player, int slot) {
+        if (slot == RaidRiotAdminGui.SLOT_BACK_BASE) {
+            adminGuiService.openHub(player);
+            return;
+        }
+        BaseVoteOption option = baseOptionFromSlot(slot);
+        if (option != null) {
+            adminGuiService.openSchematicPicker(player, option);
+        }
+    }
+
+    private void handleSchematicClick(Player player, Inventory top, int slot) {
+        BaseVoteOption option = RaidRiotAdminGui.baseSchematicOptionFor(top);
+        if (option == null) {
+            return;
+        }
+        if (slot == RaidRiotAdminGui.SLOT_BACK_SCHEMATIC) {
+            adminGuiService.openBaseViewer(player);
+            return;
+        }
+        if (slot == RaidRiotAdminGui.SLOT_CLEAR_SCHEMATIC) {
+            try {
+                plugin.getBaseDifficultyStore().clear(option);
+                Map<String, String> vars = new HashMap<String, String>();
+                vars.put("option", option.displayName());
+                ConfigManager.get().send(player, "admin.base-cleared", vars);
+                adminGuiService.openSchematicPicker(player, option);
+            } catch (Exception ex) {
+                ConfigManager.get().sendError(player, ex.getMessage());
+            }
+            return;
+        }
+        int index = RaidRiotAdminGui.schematicSlotToIndex(slot);
+        if (index < 0) {
+            return;
+        }
+        List<String> files = SchematicCatalog.listSchematicFiles(plugin.getDataFolder());
+        if (index >= files.size()) {
+            return;
+        }
+        String file = files.get(index);
+        try {
+            plugin.getBaseDifficultyStore().setSchematic(option, file);
+            Map<String, String> vars = new HashMap<String, String>();
+            vars.put("option", option.displayName());
+            vars.put("file", file);
+            ConfigManager.get().send(player, "admin.base-set", vars);
+            adminGuiService.openSchematicPicker(player, option);
+        } catch (Exception ex) {
+            ConfigManager.get().sendError(player, ex.getMessage());
+        }
+    }
+
+    private BaseVoteOption baseOptionFromSlot(int slot) {
+        if (slot == 10) {
+            return BaseVoteOption.EASY;
+        }
+        if (slot == 12) {
+            return BaseVoteOption.MEDIUM;
+        }
+        if (slot == 14) {
+            return BaseVoteOption.HARD;
+        }
+        return null;
     }
 
     private void handleHubClick(Player player, int slot) {
@@ -187,7 +256,7 @@ public final class AdminGuiListener implements Listener {
             ConfigManager.get().send(player, "admin.queue-opened", vars);
             adminGuiService.refreshOpenHubs();
         } catch (Exception ex) {
-            player.sendMessage(ConfigManager.colorize("&c" + ex.getMessage()));
+            ConfigManager.get().sendError(player, ex.getMessage());
         }
     }
 
@@ -197,7 +266,7 @@ public final class AdminGuiListener implements Listener {
             ConfigManager.get().send(player, "admin.queue-stopped");
             adminGuiService.refreshOpenHubs();
         } catch (Exception ex) {
-            player.sendMessage(ConfigManager.colorize("&c" + ex.getMessage()));
+            ConfigManager.get().sendError(player, ex.getMessage());
         }
     }
 
@@ -207,7 +276,7 @@ public final class AdminGuiListener implements Listener {
             ConfigManager.get().send(player, "admin.session-stopped");
             player.closeInventory();
         } catch (Exception ex) {
-            player.sendMessage(ConfigManager.colorize("&c" + ex.getMessage()));
+            ConfigManager.get().sendError(player, ex.getMessage());
         }
     }
 

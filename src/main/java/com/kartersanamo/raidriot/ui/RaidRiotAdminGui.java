@@ -8,6 +8,7 @@ import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.queue.QueueSession;
+import com.kartersanamo.raidriot.world.SchematicCatalog;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -41,6 +42,8 @@ public final class RaidRiotAdminGui {
     public static final int SLOT_BACK_WINNER = 18;
     public static final int SLOT_BACK_WORLD = 49;
     public static final int SLOT_BACK_BASE = 18;
+    public static final int SLOT_BACK_SCHEMATIC = 49;
+    public static final int SLOT_CLEAR_SCHEMATIC = 4;
 
     public static final int WORLD_LIST_START = 10;
     private static final int[] WORLD_SLOTS = {
@@ -49,12 +52,14 @@ public final class RaidRiotAdminGui {
             28, 29, 30, 31, 32, 33, 34,
             37, 38, 39, 40, 41, 42, 43
     };
+    private static final int[] SCHEMATIC_SLOTS = WORLD_SLOTS;
 
     public enum Screen {
         HUB,
         WINNER,
         WORLD,
-        BASE
+        BASE,
+        BASE_SCHEMATIC
     }
 
     private RaidRiotAdminGui() {
@@ -76,15 +81,14 @@ public final class RaidRiotAdminGui {
         return ConfigManager.get().formatGui("admin.title-base");
     }
 
+    public static String baseSchematicTitle(BaseVoteOption option) {
+        Map<String, String> vars = new HashMap<String, String>();
+        vars.put("option", option.displayName());
+        return ConfigManager.get().formatGui("admin.title-base-schematic", vars);
+    }
+
     public static boolean isAdminInventory(Inventory inv) {
-        if (inv == null || inv.getTitle() == null) {
-            return false;
-        }
-        String title = inv.getTitle();
-        return title.equals(hubTitle())
-                || title.equals(winnerTitle())
-                || title.equals(worldTitle())
-                || title.equals(baseTitle());
+        return screenFor(inv) != null;
     }
 
     public static Screen screenFor(Inventory inv) {
@@ -103,6 +107,24 @@ public final class RaidRiotAdminGui {
         }
         if (title.equals(baseTitle())) {
             return Screen.BASE;
+        }
+        for (BaseVoteOption option : schematicOptions()) {
+            if (title.equals(baseSchematicTitle(option))) {
+                return Screen.BASE_SCHEMATIC;
+            }
+        }
+        return null;
+    }
+
+    public static BaseVoteOption baseSchematicOptionFor(Inventory inv) {
+        if (inv == null || inv.getTitle() == null) {
+            return null;
+        }
+        String title = inv.getTitle();
+        for (BaseVoteOption option : schematicOptions()) {
+            if (title.equals(baseSchematicTitle(option))) {
+                return option;
+            }
         }
         return null;
     }
@@ -252,6 +274,58 @@ public final class RaidRiotAdminGui {
         return inv;
     }
 
+    public static Inventory createSchematicPicker(RaidRiotPlugin plugin, BaseVoteOption option) {
+        Inventory inv = Bukkit.createInventory(null, 54, baseSchematicTitle(option));
+        fillBorder(inv, new int[]{SLOT_CLEAR_SCHEMATIC, SLOT_BACK_SCHEMATIC});
+
+        BaseDifficultyStore store = plugin.getBaseDifficultyStore();
+        String current = store.getSchematic(option);
+        List<String> files = SchematicCatalog.listSchematicFiles(plugin.getDataFolder());
+
+        Map<String, String> clearVars = new HashMap<String, String>();
+        clearVars.put("option", option.displayName());
+        inv.setItem(SLOT_CLEAR_SCHEMATIC, actionItem(
+                Material.BARRIER,
+                "base.schematic.clear.title",
+                "base.schematic.clear.description",
+                "base.schematic.clear.click",
+                clearVars));
+
+        if (files.isEmpty()) {
+            inv.setItem(22, actionItem(
+                    Material.PAPER,
+                    "base.schematic.empty.title",
+                    "base.schematic.empty.description",
+                    "base.schematic.empty.description",
+                    clearVars));
+        } else {
+            int index = 0;
+            for (String file : files) {
+                if (index >= SCHEMATIC_SLOTS.length) {
+                    break;
+                }
+                Map<String, String> vars = new HashMap<String, String>();
+                vars.put("file", file);
+                vars.put("option", option.displayName());
+                boolean selected = file.equals(current);
+                inv.setItem(SCHEMATIC_SLOTS[index], actionItem(
+                        selected ? Material.EMERALD_BLOCK : Material.PAPER,
+                        selected ? "base.schematic.selected.title" : "base.schematic.title",
+                        selected ? "base.schematic.selected.description" : "base.schematic.description",
+                        "base.schematic.click",
+                        vars));
+                index++;
+            }
+        }
+
+        inv.setItem(SLOT_BACK_SCHEMATIC, backItem());
+        return inv;
+    }
+
+    public static int schematicSlotToIndex(int slot) {
+        return worldSlotToIndex(slot);
+    }
+
     public static int worldSlotToIndex(int slot) {
         for (int i = 0; i < WORLD_SLOTS.length; i++) {
             if (WORLD_SLOTS[i] == slot) {
@@ -259,6 +333,10 @@ public final class RaidRiotAdminGui {
             }
         }
         return -1;
+    }
+
+    private static BaseVoteOption[] schematicOptions() {
+        return new BaseVoteOption[]{BaseVoteOption.EASY, BaseVoteOption.MEDIUM, BaseVoteOption.HARD};
     }
 
     private static ItemStack baseOptionItem(BaseVoteOption option, BaseDifficultyStore store) {
