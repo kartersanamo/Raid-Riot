@@ -1,6 +1,7 @@
 package com.kartersanamo.raidriot.world;
 
 import com.kartersanamo.raidriot.faction.FactionBaseClaimProvider;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
@@ -15,6 +16,7 @@ public final class CrossWorldCopyJob {
     private final int minSourceZ;
     private final int targetMinX;
     private final int targetMinZ;
+    private final byte teamWoolData;
 
     private int chunkIndex;
     private int localX;
@@ -24,12 +26,13 @@ public final class CrossWorldCopyJob {
 
     public CrossWorldCopyJob(World source, World target,
             List<FactionBaseClaimProvider.ChunkCoordinate> chunks,
-            int targetMinX, int targetMinZ) {
+            int targetMinX, int targetMinZ, byte teamWoolData) {
         this.source = source;
         this.target = target;
         this.chunks = chunks;
         this.targetMinX = targetMinX;
         this.targetMinZ = targetMinZ;
+        this.teamWoolData = teamWoolData;
         int minX = Integer.MAX_VALUE;
         int minZ = Integer.MAX_VALUE;
         for (FactionBaseClaimProvider.ChunkCoordinate chunk : chunks) {
@@ -54,8 +57,13 @@ public final class CrossWorldCopyJob {
             int dstZ = targetMinZ + (srcZ - minSourceZ);
             Block src = source.getBlockAt(srcX, y, srcZ);
             Block dst = target.getBlockAt(dstX, y, dstZ);
-            dst.setType(src.getType());
-            dst.setData(src.getData());
+            if (src.getType() == Material.WOOL) {
+                dst.setType(Material.WOOL);
+                dst.setData(teamWoolData);
+            } else {
+                dst.setType(src.getType());
+                dst.setData(src.getData());
+            }
             copied++;
             advance();
         }

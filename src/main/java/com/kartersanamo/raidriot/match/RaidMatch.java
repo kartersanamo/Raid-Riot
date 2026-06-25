@@ -36,6 +36,7 @@ public final class RaidMatch {
     private final Map<UUID, KitSnapshot> kitSnapshots = new HashMap<>();
     private final Map<UUID, PlayerStateSnapshot> preEventSnapshots = new HashMap<>();
     private final Map<TeamSide, List<ChunkKey>> claimedChunks = new EnumMap<>(TeamSide.class);
+    private final Set<ChunkKey> protectedBaseChunks = new HashSet<>();
     private final DepthTracker depthTracker = new DepthTracker();
 
     public RaidMatch(String eventWorld, TeamAssignmentMode assignmentMode,
@@ -238,6 +239,23 @@ public final class RaidMatch {
         }
     }
 
+    public void addProtectedBaseChunk(ChunkKey key) {
+        protectedBaseChunks.add(key);
+    }
+
+    public boolean isProtectedBaseChunk(ChunkKey key) {
+        return protectedBaseChunks.contains(key);
+    }
+
+    public boolean hasProtectedBaseChunksInWorld() {
+        for (ChunkKey key : protectedBaseChunks) {
+            if (eventWorld.equals(key.getWorldName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean hasClaimedChunk(ChunkKey key) {
         return claimedChunks.get(TeamSide.A).contains(key) || claimedChunks.get(TeamSide.B).contains(key);
     }
@@ -252,6 +270,7 @@ public final class RaidMatch {
     public void clearClaimedChunks() {
         claimedChunks.get(TeamSide.A).clear();
         claimedChunks.get(TeamSide.B).clear();
+        protectedBaseChunks.clear();
     }
 
     public Set<UUID> getParticipants() {

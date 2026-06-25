@@ -148,6 +148,8 @@ messages:
   faction:
     claim-success: "{prefix}&7Claimed this chunk for your team."
     claim-failed: "{prefix}&cCould not claim this chunk."
+    unclaim-base-blocked: "{prefix}&cYou cannot unclaim your team's base."
+    unclaim-all-blocked: "{prefix}&cYou cannot unclaim base territory during Raid Riot."
 
   admin:
     world-set: "{prefix}&7Event world set to &e{world}&7."

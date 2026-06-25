@@ -17,26 +17,29 @@ public final class SchematicPasteJob {
     private final int width;
     private final int height;
     private final int length;
+    private final byte teamWoolData;
 
     private int indexX;
     private int indexY;
     private int indexZ;
     private boolean started;
 
-    public SchematicPasteJob(World world, CuboidClipboard clipboard, int originX, int originY, int originZ) {
+    public SchematicPasteJob(World world, CuboidClipboard clipboard, int originX, int originY, int originZ,
+            byte teamWoolData) {
         this.world = world;
         this.clipboard = clipboard;
         this.originX = originX;
         this.originY = originY;
         this.originZ = originZ;
+        this.teamWoolData = teamWoolData;
         this.width = clipboard.getWidth();
         this.height = clipboard.getHeight();
         this.length = clipboard.getLength();
     }
 
     public static SchematicPasteJob fromClipboard(World world, CuboidClipboard clipboard,
-            int originX, int originY, int originZ) {
-        return new SchematicPasteJob(world, clipboard, originX, originY, originZ);
+            int originX, int originY, int originZ, byte teamWoolData) {
+        return new SchematicPasteJob(world, clipboard, originX, originY, originZ, teamWoolData);
     }
 
     public int pasteBatch(int maxBlocks) {
@@ -57,8 +60,12 @@ public final class SchematicPasteJob {
                 Material material = Material.getMaterial(block.getId());
                 if (material != null && material != Material.AIR) {
                     Block target = world.getBlockAt(originX + indexX, originY + indexY, originZ + indexZ);
+                    byte data = (byte) block.getData();
+                    if (material == Material.WOOL) {
+                        data = teamWoolData;
+                    }
                     target.setType(material);
-                    target.setData((byte) block.getData());
+                    target.setData(data);
                     pasted++;
                 }
             }

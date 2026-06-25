@@ -68,6 +68,7 @@ public final class EventFactionService {
             Chunk chunk = Bukkit.getWorld(key.getWorldName()).getChunkAt(key.getX(), key.getZ());
             bridge.claimChunkForFaction(chunk, faction);
             match.addClaimedChunk(side, key);
+            match.addProtectedBaseChunk(key);
         }
     }
 

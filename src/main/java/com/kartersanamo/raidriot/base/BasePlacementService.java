@@ -182,7 +182,8 @@ public final class BasePlacementService {
             snapshotJob = new RegionChunkSnapshotJob(worldResetService, eventWorld,
                     originX, originX + analysis.width,
                     originZ, originZ + analysis.length);
-            pasteJob = SchematicPasteJob.fromClipboard(eventWorld, clipboard, originX, originY, originZ);
+            pasteJob = SchematicPasteJob.fromClipboard(eventWorld, clipboard, originX, originY, originZ,
+                    side.getWoolData());
         }
 
         private void prepareFaction(World eventWorld, Location anchor) throws Exception {
@@ -224,11 +225,10 @@ public final class BasePlacementService {
 
             snapshotJob = new RegionChunkSnapshotJob(worldResetService, eventWorld,
                     targetMinX, scanMaxX, targetMinZ, scanMaxZ);
-            copyJob = new CrossWorldCopyJob(sourceWorld, eventWorld, chunks, targetMinX, targetMinZ);
+            copyJob = new CrossWorldCopyJob(sourceWorld, eventWorld, chunks, targetMinX, targetMinZ, side.getWoolData());
         }
 
         private void finalizeSchematic() throws Exception {
-            World eventWorld = Bukkit.getWorld(match.getEventWorld());
             TeamBase base = match.getTeamBase(side);
             base.setPasteOrigin(originX, originY, originZ);
             base.setBounds(new CuboidRegion(eventWorld.getName(),
@@ -247,7 +247,6 @@ public final class BasePlacementService {
         }
 
         private void finalizeFactionScan(SolidRegionScanner.Result solid) throws Exception {
-            World eventWorld = Bukkit.getWorld(match.getEventWorld());
             TeamBase base = match.getTeamBase(side);
             base.setPasteOrigin(targetMinX, solid.minY, targetMinZ);
             base.setBounds(solid.toRegion(eventWorld.getName()));

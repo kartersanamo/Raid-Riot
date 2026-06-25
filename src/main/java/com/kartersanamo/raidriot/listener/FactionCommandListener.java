@@ -3,7 +3,10 @@ package com.kartersanamo.raidriot.listener;
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.faction.EventFactionService;
+import com.kartersanamo.raidriot.match.MatchState;
 import com.kartersanamo.raidriot.match.RaidMatch;
+import com.kartersanamo.raidriot.world.ChunkKey;
+import org.bukkit.Chunk;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -24,9 +27,17 @@ public final class FactionCommandListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onCommand(PlayerCommandPreprocessEvent event) {
-        if (!isClaimCommand(event.getMessage())) {
+        String message = event.getMessage();
+        if (isClaimCommand(message)) {
+            handleClaim(event);
             return;
         }
+        if (isUnclaimCommand(message)) {
+            handleUnclaim(event);
+        }
+    }
+
+    private void handleClaim(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
         RaidMatch match = plugin.getEventManager().getActiveMatch();
         if (match == null || !match.isActive() || !match.isParticipant(player)) {
@@ -45,19 +56,62 @@ public final class FactionCommandListener implements Listener {
         }
     }
 
+    private void handleUnclaim(PlayerCommandPreprocessEvent event) {
+        Player player = event.getPlayer();
+        RaidMatch match = plugin.getEventManager().getActiveMatch();
+        if (match == null || match.getState() == MatchState.IDLE) {
+            return;
+        }
+        if (!match.isInEventWorld(player.getLocation())) {
+            return;
+        }
+        if (!match.hasProtectedBaseChunksInWorld()) {
+            return;
+        }
+        if (isUnclaimAllCommand(event.getMessage())) {
+            event.setCancelled(true);
+            ConfigManager.get().send(player, "faction.unclaim-all-blocked");
+            return;
+        }
+        Chunk chunk = player.getLocation().getChunk();
+        ChunkKey key = new ChunkKey(chunk.getWorld().getName(), chunk.getX(), chunk.getZ());
+        if (match.isProtectedBaseChunk(key)) {
+            event.setCancelled(true);
+            ConfigManager.get().send(player, "faction.unclaim-base-blocked");
+        }
+    }
+
     private boolean isClaimCommand(String message) {
+        String[] parts = parseFactionCommand(message);
+        return parts != null && parts.length >= 2 && "claim".equals(parts[1]);
+    }
+
+    private boolean isUnclaimCommand(String message) {
+        String[] parts = parseFactionCommand(message);
+        return parts != null && parts.length >= 2 && "unclaim".equals(parts[1]);
+    }
+
+    private boolean isUnclaimAllCommand(String message) {
+        String[] parts = parseFactionCommand(message);
+        return parts != null && parts.length >= 3 && "unclaim".equals(parts[1]) && "all".equals(parts[2]);
+    }
+
+    private String[] parseFactionCommand(String message) {
         if (message == null) {
-            return false;
+            return null;
         }
         String trimmed = message.trim().toLowerCase(Locale.ROOT);
         if (!trimmed.startsWith("/")) {
-            return false;
+            return null;
         }
         String[] parts = trimmed.substring(1).split("\\s+");
         if (parts.length < 2) {
-            return false;
+            return null;
         }
         String root = parts[0];
-        return ("f".equals(root) || "faction".equals(root) || "fac".equals(root)) && "claim".equals(parts[1]);
+        if (!"f".equals(root) && !"faction".equals(root) && !"fac".equals(root)) {
+            return null;
+        }
+        return parts;
     }
 }
