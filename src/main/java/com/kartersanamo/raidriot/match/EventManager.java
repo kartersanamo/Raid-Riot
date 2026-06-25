@@ -316,6 +316,10 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     }
 
     private void assignTeams(QueueSession session, RaidMatch match) throws Exception {
+        if (session.isForceStart()) {
+            assignTeamsForceStart(session, match);
+            return;
+        }
         FactionsBridge bridge = plugin.getFactionsBridge();
         int perTeam = ConfigManager.get().getPlayersPerTeam();
 
@@ -353,6 +357,59 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             picked.add(id);
         }
         notifyRejected(session, picked, preservedSnapshots);
+    }
+
+    private void assignTeamsForceStart(QueueSession session, RaidMatch match) throws Exception {
+        if (session.getMode() == TeamAssignmentMode.RANDOM) {
+            assignForceStartEvenSplit(session, match);
+            return;
+        }
+        assignForceStartFaction(session, match);
+    }
+
+    private void assignForceStartEvenSplit(QueueSession session, RaidMatch match) {
+        List<UUID> ids = new ArrayList<>(session.getQueued());
+        Collections.shuffle(ids);
+        int splitAt = (ids.size() + 1) / 2;
+        for (int i = 0; i < ids.size(); i++) {
+            TeamSide side = i < splitAt ? TeamSide.A : TeamSide.B;
+            match.addParticipant(ids.get(i), side);
+        }
+    }
+
+    private void assignForceStartFaction(QueueSession session, RaidMatch match) throws Exception {
+        FactionsBridge bridge = plugin.getFactionsBridge();
+        List<Object> topFactions = FactionQueueResolver.topFactionsByCount(session, bridge, 2);
+        if (topFactions.size() < 2) {
+            assignForceStartEvenSplit(session, match);
+            return;
+        }
+
+        Object factionA = topFactions.get(0);
+        Object factionB = topFactions.get(1);
+        String tagA = bridge.getFactionTag(factionA);
+        String tagB = bridge.getFactionTag(factionB);
+        Map<UUID, PlayerStateSnapshot> preservedSnapshots = preserveQueuedSnapshots(activeMatch, session);
+        activeMatch = new RaidMatch(match.getEventWorld(), session.getMode(), tagA, tagB, factionA, factionB);
+        activeMatch.setState(MatchState.QUEUE_LOCKED);
+
+        for (UUID id : session.getJoinOrder()) {
+            Object faction = session.getFaction(id);
+            TeamSide side = resolveForceStartFactionSide(bridge, faction, factionA, factionB, activeMatch);
+            activeMatch.addParticipant(id, side);
+            restorePreEventSnapshotToMatch(activeMatch, id, preservedSnapshots);
+        }
+    }
+
+    private TeamSide resolveForceStartFactionSide(FactionsBridge bridge, Object faction, Object factionA,
+            Object factionB, RaidMatch match) throws Exception {
+        if (faction != null && bridge.factionsEqual(faction, factionA)) {
+            return TeamSide.A;
+        }
+        if (faction != null && bridge.factionsEqual(faction, factionB)) {
+            return TeamSide.B;
+        }
+        return match.countOnTeam(TeamSide.A) <= match.countOnTeam(TeamSide.B) ? TeamSide.A : TeamSide.B;
     }
 
     private Map<UUID, PlayerStateSnapshot> preserveQueuedSnapshots(RaidMatch match, QueueSession session) {
@@ -753,6 +810,26 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         queueManager.cancelQueue(reason == null || reason.isEmpty()
                 ? ConfigManager.get("messages.admin.default-queue-stop-reason")
                 : reason);
+    }
+
+    public synchronized void forceStartQueue() {
+        if (!queueManager.isOpen()) {
+            throw new IllegalStateException(ConfigManager.get("messages.admin.no-queue-to-forcestart"));
+        }
+        if (activeMatch == null || activeMatch.getState() != MatchState.QUEUE_OPEN) {
+            throw new IllegalStateException(ConfigManager.get("messages.admin.no-queue-to-forcestart"));
+        }
+        QueueManager.ForceStartResult result = queueManager.forceStart();
+        switch (result) {
+            case NO_QUEUE:
+                throw new IllegalStateException(ConfigManager.get("messages.admin.no-queue-to-forcestart"));
+            case CANCELLED:
+                throw new IllegalStateException(ConfigManager.get("messages.admin.forcestart-cancelled"));
+            case STARTED:
+                break;
+            default:
+                break;
+        }
     }
 
     public synchronized void adminStopMatch(AdminStopChoice choice, String reason) {

@@ -20,6 +20,7 @@ public final class QueueSession {
     private String factionATag;
     private String factionBTag;
     private long endMs;
+    private boolean forceStart;
 
     public QueueSession(TeamAssignmentMode mode, long endMs) {
         this.mode = mode;
@@ -104,5 +105,13 @@ public final class QueueSession {
 
     public void setFactionBTag(String factionBTag) {
         this.factionBTag = factionBTag;
+    }
+
+    public boolean isForceStart() {
+        return forceStart;
+    }
+
+    public void setForceStart(boolean forceStart) {
+        this.forceStart = forceStart;
     }
 }

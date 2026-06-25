@@ -40,6 +40,20 @@ public final class FactionQueueResolver {
         }
     }
 
+    public static List<Object> topFactionsByCount(QueueSession session, FactionsBridge bridge, int limit) throws Exception {
+        Map<Object, Integer> counts = countFactions(session, bridge);
+        List<Map.Entry<Object, Integer>> ranked = new ArrayList<>(counts.entrySet());
+        ranked.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+        List<Object> top = new ArrayList<>();
+        for (Map.Entry<Object, Integer> entry : ranked) {
+            top.add(entry.getKey());
+            if (top.size() >= limit) {
+                break;
+            }
+        }
+        return top;
+    }
+
     public static Map<TeamSide, List<UUID>> selectParticipants(QueueSession session, FactionsBridge bridge,
             int perTeam) throws Exception {
         Map<TeamSide, List<UUID>> selected = new HashMap<>();

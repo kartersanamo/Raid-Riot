@@ -186,6 +186,8 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
                 return adminSetup(sender, args);
             case "start":
                 return adminStart(sender, args);
+            case "forcestart":
+                return adminForceStart(sender);
             case "stop":
                 return adminStop(sender, args);
             case "stopqueue":
@@ -248,6 +250,20 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             Map<String, String> vars = new HashMap<>();
             vars.put("mode", mode.name().toLowerCase(Locale.ROOT));
             ConfigManager.get().send(sender, "admin.queue-opened", vars);
+        } catch (Exception ex) {
+            ConfigManager.get().sendError(sender, ex.getMessage());
+        }
+        return true;
+    }
+
+    private boolean adminForceStart(CommandSender sender) {
+        if (!sender.hasPermission("raidriot.admin.start")) {
+            ConfigManager.get().send(sender, "command.no-permission");
+            return true;
+        }
+        try {
+            plugin.getEventManager().forceStartQueue();
+            ConfigManager.get().send(sender, "admin.forcestart-success");
         } catch (Exception ex) {
             ConfigManager.get().sendError(sender, ex.getMessage());
         }
@@ -442,6 +458,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         ConfigManager.get().send(sender, "command.admin-help-header");
         ConfigManager.get().send(sender, "command.admin-help-setup");
         ConfigManager.get().send(sender, "command.admin-help-start");
+        ConfigManager.get().send(sender, "command.admin-help-forcestart");
         ConfigManager.get().send(sender, "command.admin-help-stop");
         ConfigManager.get().send(sender, "command.admin-help-stopqueue");
         ConfigManager.get().send(sender, "command.admin-help-gui");
@@ -458,7 +475,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             return filterPrefix(Collections.singletonList("leave"), args[1]);
         }
         if (args.length == 2 && "admin".equalsIgnoreCase(args[0]) && sender.hasPermission("raidriot.admin")) {
-            return filterPrefix(Arrays.asList("setup", "start", "stop", "stopqueue", "base", "kit", "reload"), args[1]);
+            return filterPrefix(Arrays.asList("setup", "start", "forcestart", "stop", "stopqueue", "base", "kit", "reload"), args[1]);
         }
         if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "kit".equalsIgnoreCase(args[1])) {
             return filterPrefix(Collections.singletonList("set"), args[2]);

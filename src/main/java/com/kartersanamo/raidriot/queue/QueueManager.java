@@ -98,6 +98,28 @@ public final class QueueManager {
         }
     }
 
+    public enum ForceStartResult {
+        NO_QUEUE,
+        CANCELLED,
+        STARTED
+    }
+
+    public synchronized ForceStartResult forceStart() {
+        if (session == null) {
+            return ForceStartResult.NO_QUEUE;
+        }
+        int size = session.size();
+        if (size < 2) {
+            Map<String, String> vars = new HashMap<>();
+            vars.put("count", String.valueOf(size));
+            cancelQueue(ConfigManager.get().formatMessage("queue.cancel-forcestart-not-enough", vars));
+            return ForceStartResult.CANCELLED;
+        }
+        session.setForceStart(true);
+        lockQueue();
+        return ForceStartResult.STARTED;
+    }
+
     public int getLastJoinReportedSize() {
         return lastJoinReportedSize;
     }
