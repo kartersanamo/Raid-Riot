@@ -4,6 +4,7 @@ import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.config.ConfigManager;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BasePlacementService;
+import com.kartersanamo.raidriot.base.BasePlacementPipeline;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.combat.EventCombatService;
 import com.kartersanamo.raidriot.combat.PlayerStateSnapshot;
@@ -19,6 +20,7 @@ import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import com.kartersanamo.raidriot.ui.RaidRiotGuiService;
 import com.kartersanamo.raidriot.vote.KitVoteOption;
 import com.kartersanamo.raidriot.vote.VoteManager;
+import com.kartersanamo.raidriot.world.AsyncMatchPreparer;
 import com.kartersanamo.raidriot.world.AsyncWorldRestorer;
 import com.kartersanamo.raidriot.world.EventWorldBorderService;
 import com.kartersanamo.raidriot.world.WorldResetService;
@@ -50,6 +52,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private final VirtualDeathService virtualDeathService;
     private final EventCombatService eventCombatService;
     private final AsyncWorldRestorer asyncWorldRestorer;
+    private final AsyncMatchPreparer matchPreparer;
     private RaidMatch activeMatch;
     private volatile boolean shuttingDown;
     private BukkitTask timerTask;
@@ -77,6 +80,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         this.virtualDeathService = virtualDeathService;
         this.eventCombatService = eventCombatService;
         this.asyncWorldRestorer = asyncWorldRestorer;
+        this.matchPreparer = new AsyncMatchPreparer(plugin);
         queueManager.setListener(this);
         voteManager.setListener(this);
     }
@@ -86,10 +90,14 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     }
 
     public boolean hasActiveSession() {
-        if (asyncWorldRestorer.isRestoring()) {
+        if (asyncWorldRestorer.isRestoring() || matchPreparer.isRunning()) {
             return true;
         }
         return activeMatch != null && activeMatch.getState() != MatchState.IDLE;
+    }
+
+    public boolean isPreparingTerrain() {
+        return matchPreparer.isRunning();
     }
 
     public boolean isWorldRestoring() {
@@ -133,6 +141,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             cancelTasks();
             cancelCountdownTasks();
             cancelPendingRestoreTask();
+            matchPreparer.cancel();
             stopGuiRefreshTask();
             queueManager.shutdown();
             voteManager.cancel();
@@ -204,7 +213,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     }
 
     public synchronized void startQueue(TeamAssignmentMode mode) {
-        if (asyncWorldRestorer.isRestoring()) {
+        if (asyncWorldRestorer.isRestoring() || matchPreparer.isRunning()) {
             throw new IllegalStateException(ConfigManager.get("messages.match.terrain-restoring"));
         }
         if (hasActiveSession() || queueManager.isOpen()) {
@@ -381,14 +390,39 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         ConfigManager.get().broadcast("vote.winner", vars);
 
         worldResetService.beginSession(activeMatch.getEventWorld());
-        try {
-            basePlacementService.placeBases(activeMatch, baseWinner);
-        } catch (Exception ex) {
-            plugin.getLogger().severe("Base placement failed: " + ex.getMessage());
-            stopMatch("Base placement failed: " + ex.getMessage());
-            return;
-        }
-        beginCountdown(activeMatch);
+        startGuiRefreshTask();
+
+        final RaidMatch preparingMatch = activeMatch;
+        BasePlacementPipeline pipeline = basePlacementService.createPipeline(
+                preparingMatch, baseWinner, new BasePlacementPipeline.CompletionListener() {
+                    @Override
+                    public void onComplete() {
+                        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+                            @Override
+                            public void run() {
+                                if (shuttingDown || activeMatch != preparingMatch
+                                        || preparingMatch.getState() != MatchState.PREPARING) {
+                                    return;
+                                }
+                                beginCountdown(preparingMatch);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onFailed(String reason) {
+                        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+                            @Override
+                            public void run() {
+                                if (shuttingDown || activeMatch != preparingMatch) {
+                                    return;
+                                }
+                                stopMatch("Base placement failed: " + reason);
+                            }
+                        });
+                    }
+                });
+        matchPreparer.start(pipeline);
     }
 
     private void beginCountdown(final RaidMatch match) {

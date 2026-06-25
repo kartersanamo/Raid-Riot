@@ -73,6 +73,7 @@ public final class ConfigManager {
     private KitVoteOption fixedKit = KitVoteOption.PREDEFINED;
     private int worldRestoreBlocksPerTick = 4096;
     private int worldRestoreChunksPerTick = 2;
+    private int terrainScanColumnsPerTick = 32;
 
     public ConfigManager(RaidRiotPlugin plugin) {
         this.plugin = plugin;
@@ -169,8 +170,9 @@ public final class ConfigManager {
         fixedMatchSettingsEnabled = config.getBoolean("fixed-match-settings.enabled", true);
         fixedBase = parseBaseVoteOption(config.getString("fixed-match-settings.base", "medium"), BaseVoteOption.MEDIUM);
         fixedKit = parseKitVoteOption(config.getString("fixed-match-settings.kit", "predefined"), KitVoteOption.PREDEFINED);
-        worldRestoreBlocksPerTick = config.getInt("world-restore.blocks-per-tick", 4096);
-        worldRestoreChunksPerTick = config.getInt("world-restore.chunks-per-tick", 2);
+        worldRestoreBlocksPerTick = config.getInt("world-restore.blocks-per-tick", 2048);
+        worldRestoreChunksPerTick = config.getInt("world-restore.chunks-per-tick", 1);
+        terrainScanColumnsPerTick = config.getInt("world-restore.scan-columns-per-tick", 32);
         breachMaterials.clear();
         List<String> mats = config.getStringList("breach-materials");
         if (mats.isEmpty()) {
@@ -545,5 +547,17 @@ public final class ConfigManager {
 
     public int getWorldRestoreChunksPerTick() {
         return worldRestoreChunksPerTick;
+    }
+
+    public int getTerrainBlocksPerTick() {
+        return worldRestoreBlocksPerTick;
+    }
+
+    public int getTerrainChunksPerTick() {
+        return worldRestoreChunksPerTick;
+    }
+
+    public int getTerrainScanColumnsPerTick() {
+        return terrainScanColumnsPerTick;
     }
 }

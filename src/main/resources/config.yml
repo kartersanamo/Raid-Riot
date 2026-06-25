@@ -12,8 +12,9 @@ fixed-match-settings:
   kit: predefined
 
 world-restore:
-  blocks-per-tick: 4096
-  chunks-per-tick: 2
+  blocks-per-tick: 2048
+  chunks-per-tick: 1
+  scan-columns-per-tick: 32
 
 base-separation-blocks: 200
 spawn-y: 255

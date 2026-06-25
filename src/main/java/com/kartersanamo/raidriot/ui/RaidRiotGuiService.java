@@ -111,7 +111,8 @@ public final class RaidRiotGuiService {
     }
 
     public boolean shouldAutoRefresh() {
-        if (plugin.getEventManager().isShuttingDown() || plugin.getEventManager().isWorldRestoring()) {
+        if (plugin.getEventManager().isShuttingDown() || plugin.getEventManager().isWorldRestoring()
+                || plugin.getEventManager().isPreparingTerrain()) {
             return false;
         }
         if (plugin.getEventManager().getQueueManager().isOpen()) {

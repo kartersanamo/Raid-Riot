@@ -75,6 +75,16 @@ public final class WorldResetService {
         initialSnapshots.put(key, ChunkSnapshot.capture(world, chunkX, chunkZ));
     }
 
+    public void storeSnapshot(ChunkSnapshot snapshot) {
+        if (activeWorld == null || snapshot == null) {
+            return;
+        }
+        long key = ChunkSnapshot.chunkKey(snapshot.getChunkX(), snapshot.getChunkZ());
+        if (!initialSnapshots.containsKey(key)) {
+            initialSnapshots.put(key, snapshot);
+        }
+    }
+
     public void snapshotRegion(World world, int minX, int maxX, int minZ, int maxZ) {
         if (world == null) {
             return;

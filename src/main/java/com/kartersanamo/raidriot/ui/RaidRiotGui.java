@@ -31,6 +31,11 @@ import java.util.UUID;
 public final class RaidRiotGui {
 
     public static final int SLOT_JOIN_QUEUE = 4;
+    public static final int SLOT_QUEUE_PANE_ROW_START = 9;
+    public static final int SLOT_QUEUE_HEAD_ROWS_START = 18;
+    private static final int QUEUE_SLOTS_PER_TEAM_PER_ROW = 4;
+    private static final int QUEUE_SLOTS_PER_ROW_RANDOM = 8;
+    private static final byte LIGHT_GRAY_PANE = 8;
     public static final int SLOT_STATUS_A = 2;
     public static final int SLOT_STATUS_B = 6;
     public static final int SLOT_VOTE_EASY = 2;
@@ -54,39 +59,99 @@ public final class RaidRiotGui {
     }
 
     public static Inventory createQueueGui(RaidRiotPlugin plugin, QueueSession session, UUID viewerId) {
-        Inventory inv = Bukkit.createInventory(null, 54, getTitle());
-        fillTopBorder(inv);
-
-        int maxDisplay = session.getMode() == TeamAssignmentMode.FACTION
-                ? ConfigManager.get().getMaxFactionQueuePlayers()
-                : ConfigManager.get().getMaxPlayers();
-        int seconds = session.getRemainingSeconds();
-        Map<String, String> vars = new HashMap<String, String>();
-        vars.put("seconds", String.valueOf(seconds));
-        vars.put("count", String.valueOf(session.size()));
-        vars.put("max", String.valueOf(maxDisplay));
-        vars.put("perTeam", String.valueOf(ConfigManager.get().getPlayersPerTeam()));
-        String modeLine = session.getMode() == TeamAssignmentMode.RANDOM
-                ? g("queue.mode-random")
-                : g("queue.mode-faction", vars);
-        inv.setItem(0, infoItem(
-                g("queue.info-title"),
-                g("queue.closes-in", vars),
-                g("queue.players", vars),
-                modeLine));
+        int playersPerTeam = ConfigManager.get().getPlayersPerTeam();
+        QueueHeadLayout layout = buildQueueHeadLayout(playersPerTeam, session.getMode());
+        Inventory inv = Bukkit.createInventory(null, layout.inventorySize, getTitle());
 
         inv.setItem(SLOT_JOIN_QUEUE, queueActionItem(session, viewerId));
 
-        if (session.getFactionATag() != null) {
-            inv.setItem(SLOT_STATUS_A, factionStatusItem(session.getFactionATag(), session, plugin, true));
-        }
-        if (session.getFactionBTag() != null) {
-            inv.setItem(SLOT_STATUS_B, factionStatusItem(session.getFactionBTag(), session, plugin, false));
+        for (int slot = SLOT_QUEUE_PANE_ROW_START; slot < SLOT_QUEUE_HEAD_ROWS_START; slot++) {
+            inv.setItem(slot, pane(Material.STAINED_GLASS_PANE, LIGHT_GRAY_PANE));
         }
 
-        placeQueuePlayerHeads(inv, session, plugin);
-        fillEmptySlots(inv);
+        for (int divider : layout.dividers) {
+            inv.setItem(divider, pane(Material.STAINED_GLASS_PANE, LIGHT_GRAY_PANE));
+        }
+
+        placeQueuePlayerHeads(inv, session, plugin, layout);
         return inv;
+    }
+
+    private static final class QueueHeadLayout {
+        private final int inventorySize;
+        private final int[] teamA;
+        private final int[] teamB;
+        private final int[] combined;
+        private final int[] dividers;
+
+        private QueueHeadLayout(int inventorySize, int[] teamA, int[] teamB, int[] combined, int[] dividers) {
+            this.inventorySize = inventorySize;
+            this.teamA = teamA;
+            this.teamB = teamB;
+            this.combined = combined;
+            this.dividers = dividers;
+        }
+    }
+
+    private static QueueHeadLayout buildQueueHeadLayout(int playersPerTeam, TeamAssignmentMode mode) {
+        int headRows;
+        int maxHeads;
+        if (mode == TeamAssignmentMode.FACTION) {
+            headRows = (int) Math.ceil(playersPerTeam / (double) QUEUE_SLOTS_PER_TEAM_PER_ROW);
+            maxHeads = playersPerTeam;
+        } else {
+            headRows = (int) Math.ceil((playersPerTeam * 2) / (double) QUEUE_SLOTS_PER_ROW_RANDOM);
+            maxHeads = playersPerTeam * 2;
+        }
+        int inventorySize = (2 + headRows) * 9;
+
+        List<Integer> teamA = new ArrayList<Integer>();
+        List<Integer> teamB = new ArrayList<Integer>();
+        List<Integer> combined = new ArrayList<Integer>();
+        List<Integer> dividers = new ArrayList<Integer>();
+
+        for (int row = 0; row < headRows; row++) {
+            int rowStart = SLOT_QUEUE_HEAD_ROWS_START + row * 9;
+            dividers.add(rowStart + 4);
+            if (mode == TeamAssignmentMode.FACTION) {
+                for (int column = 0; column < QUEUE_SLOTS_PER_TEAM_PER_ROW; column++) {
+                    teamA.add(rowStart + column);
+                    teamB.add(rowStart + 5 + column);
+                }
+            } else {
+                for (int column = 0; column < 4; column++) {
+                    combined.add(rowStart + column);
+                }
+                for (int column = 0; column < 4; column++) {
+                    combined.add(rowStart + 5 + column);
+                }
+            }
+        }
+
+        trimSlots(teamA, maxHeads);
+        trimSlots(teamB, maxHeads);
+        trimSlots(combined, maxHeads);
+
+        return new QueueHeadLayout(
+                inventorySize,
+                toArray(teamA),
+                toArray(teamB),
+                toArray(combined),
+                toArray(dividers));
+    }
+
+    private static void trimSlots(List<Integer> slots, int max) {
+        while (slots.size() > max) {
+            slots.remove(slots.size() - 1);
+        }
+    }
+
+    private static int[] toArray(List<Integer> values) {
+        int[] out = new int[values.size()];
+        for (int i = 0; i < values.size(); i++) {
+            out[i] = values.get(i);
+        }
+        return out;
     }
 
     public static Inventory createVoteGui(RaidRiotPlugin plugin, VoteManager voteManager) {
@@ -309,7 +374,8 @@ public final class RaidRiotGui {
         };
     }
 
-    private static void placeQueuePlayerHeads(Inventory inv, QueueSession session, RaidRiotPlugin plugin) {
+    private static void placeQueuePlayerHeads(Inventory inv, QueueSession session, RaidRiotPlugin plugin,
+            QueueHeadLayout layout) {
         if (session.getFactionARef() != null && session.getFactionBRef() != null) {
             List<UUID> teamA = new ArrayList<UUID>();
             List<UUID> teamB = new ArrayList<UUID>();
@@ -328,11 +394,12 @@ public final class RaidRiotGui {
                 } catch (Exception ignored) {
                 }
             }
-            fillTeamHeadSlots(inv, TEAM_A_HEAD_SLOTS, teamA, false, null, queueHeadLore(session, plugin, true));
-            fillTeamHeadSlots(inv, TEAM_B_HEAD_SLOTS, teamB, false, null, queueHeadLore(session, plugin, false));
+            fillTeamHeadSlots(inv, layout.teamA, teamA, false, null, queueHeadLore(session, plugin, true));
+            fillTeamHeadSlots(inv, layout.teamB, teamB, false, null, queueHeadLore(session, plugin, false));
             return;
         }
-        fillTeamHeadSlots(inv, TEAM_A_HEAD_SLOTS, session.getJoinOrder(), false, null, queueHeadLore(session, plugin, null));
+        fillTeamHeadSlots(inv, layout.combined, session.getJoinOrder(), false, null,
+                queueHeadLore(session, plugin, null));
     }
 
     private static void placeVotePlayerHeads(Inventory inv, RaidMatch match, VoteManager voteManager,
@@ -446,23 +513,28 @@ public final class RaidRiotGui {
         int maxDisplay = session.getMode() == TeamAssignmentMode.FACTION
                 ? ConfigManager.get().getMaxFactionQueuePlayers()
                 : ConfigManager.get().getMaxPlayers();
+        int seconds = session.getRemainingSeconds();
         Map<String, String> vars = new HashMap<String, String>();
+        vars.put("seconds", String.valueOf(seconds));
         vars.put("count", String.valueOf(session.size()));
         vars.put("max", String.valueOf(maxDisplay));
         boolean inQueue = viewerId != null && session.contains(viewerId);
-        Material material = inQueue ? Material.REDSTONE_BLOCK : Material.EMERALD;
-        ItemStack stack = new ItemStack(material, 1);
+        int stackAmount = Math.max(1, Math.min(64, seconds));
+
+        ItemStack stack = new ItemStack(Material.IRON_SWORD, stackAmount);
         ItemMeta meta = stack.getItemMeta();
         if (inQueue) {
             meta.setDisplayName(g("leave-queue.title"));
             meta.setLore(Arrays.asList(
                     g("leave-queue.description"),
+                    g("queue.closes-in", vars),
                     g("join-queue.players", vars),
                     g("leave-queue.click")));
         } else {
             meta.setDisplayName(g("join-queue.title"));
             meta.setLore(Arrays.asList(
                     g("join-queue.description"),
+                    g("queue.closes-in", vars),
                     g("join-queue.players", vars),
                     g("join-queue.click")));
         }

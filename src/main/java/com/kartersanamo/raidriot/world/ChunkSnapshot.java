@@ -18,30 +18,28 @@ public final class ChunkSnapshot {
     private final Map<Integer, Byte> data = new HashMap<>();
     private int restoreIndex;
 
+    static ChunkSnapshot createEmpty(String worldName, int chunkX, int chunkZ) {
+        return new ChunkSnapshot(worldName, chunkX, chunkZ);
+    }
+
     private ChunkSnapshot(String worldName, int chunkX, int chunkZ) {
         this.worldName = worldName;
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
     }
 
+    void recordBlock(int x, int y, int z, Material type, byte blockData) {
+        int key = pack(x, y, z);
+        blocks.put(key, type);
+        data.put(key, blockData);
+    }
+
     public static ChunkSnapshot capture(World world, int chunkX, int chunkZ) {
-        ChunkSnapshot snapshot = new ChunkSnapshot(world.getName(), chunkX, chunkZ);
-        int baseX = chunkX << 4;
-        int baseZ = chunkZ << 4;
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
-                for (int y = 0; y <= 255; y++) {
-                    Block block = world.getBlockAt(baseX + x, y, baseZ + z);
-                    if (block.getType() == Material.AIR) {
-                        continue;
-                    }
-                    int key = pack(x, y, z);
-                    snapshot.blocks.put(key, block.getType());
-                    snapshot.data.put(key, block.getData());
-                }
-            }
+        ChunkSnapshotBuilder builder = new ChunkSnapshotBuilder(world, chunkX, chunkZ);
+        while (!builder.isComplete()) {
+            builder.captureBatch(world, Integer.MAX_VALUE);
         }
-        return snapshot;
+        return builder.finish();
     }
 
     public int restoreBatch(int maxBlocks) {
@@ -86,6 +84,14 @@ public final class ChunkSnapshot {
 
     public static long chunkKey(int chunkX, int chunkZ) {
         return ((long) chunkX << 32) | (chunkZ & 0xFFFFFFFFL);
+    }
+
+    public int getChunkX() {
+        return chunkX;
+    }
+
+    public int getChunkZ() {
+        return chunkZ;
     }
 
     private static int pack(int x, int y, int z) {
