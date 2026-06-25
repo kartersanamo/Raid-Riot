@@ -7,9 +7,15 @@ import com.kartersanamo.raidriot.vote.KitVoteOption;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -74,21 +80,40 @@ public final class ConfigManager {
     }
 
     public static ConfigManager get() {
+        if (instance == null) {
+            throw new IllegalStateException("ConfigManager is not initialized.");
+        }
         return instance;
     }
 
     public static String get(String path) {
-        return instance.getString(path);
+        return get().getString(path);
     }
 
     public static String get(String path, String fallback) {
-        return instance.getString(path, fallback);
+        return get().getString(path, fallback);
     }
 
     public void reload() {
+        plugin.saveDefaultConfig();
         plugin.reloadConfig();
-        config = plugin.getConfig();
+        FileConfiguration loaded = plugin.getConfig();
+        FileConfiguration defaults = loadDefaultConfig();
+        if (defaults != null) {
+            loaded.setDefaults(defaults);
+            loaded.options().copyDefaults(true);
+        }
+        config = loaded;
         loadSettings();
+    }
+
+    private FileConfiguration loadDefaultConfig() {
+        InputStream stream = plugin.getResource("config.yml");
+        if (stream == null) {
+            plugin.getLogger().warning("Default config.yml missing from plugin jar.");
+            return null;
+        }
+        return YamlConfiguration.loadConfiguration(new InputStreamReader(stream, StandardCharsets.UTF_8));
     }
 
     private void loadSettings() {
@@ -181,11 +206,36 @@ public final class ConfigManager {
     }
 
     public String getString(String path) {
-        return config.getString(path, path);
+        return resolveString(path, path);
     }
 
     public String getString(String path, String fallback) {
-        return config.getString(path, fallback);
+        return resolveString(path, fallback);
+    }
+
+    private String resolveString(String path, String fallback) {
+        String value = readString(config, path);
+        if (!isBlank(value)) {
+            return value;
+        }
+        if (config != null && config.getDefaults() != null) {
+            value = readString(config.getDefaults(), path);
+            if (!isBlank(value)) {
+                return value;
+            }
+        }
+        return fallback != null ? fallback : path;
+    }
+
+    private String readString(Configuration source, String path) {
+        if (source == null || !source.isString(path)) {
+            return null;
+        }
+        return source.getString(path);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 
     public List<String> getStringList(String path) {
@@ -199,16 +249,16 @@ public final class ConfigManager {
     }
 
     public String format(String path, Map<String, String> vars) {
-        return formatRaw(getString(path), vars);
+        return formatRaw(resolveString(path, path), vars);
     }
 
     public String formatMessage(String key, Map<String, String> vars) {
         String path = messagePath(key);
-        return formatRaw(getString(path, key), vars);
+        return formatRaw(resolveString(path, key), vars);
     }
 
     public String formatGui(String key, Map<String, String> vars) {
-        return formatRaw(getString("gui." + key), vars);
+        return formatRaw(resolveString("gui." + key, key), vars);
     }
 
     public String formatGui(String key) {
@@ -220,11 +270,20 @@ public final class ConfigManager {
     }
 
     public void send(CommandSender sender, String key, Map<String, String> vars) {
-        sender.sendMessage(formatMessage(key, vars));
+        String message = formatMessage(key, vars);
+        if (isBlank(message)) {
+            plugin.getLogger().warning("Refusing to send empty message for key: " + key);
+            return;
+        }
+        sender.sendMessage(message);
     }
 
     public void broadcast(String key, Map<String, String> vars) {
         String msg = formatMessage(key, vars);
+        if (isBlank(msg)) {
+            plugin.getLogger().warning("Refusing to broadcast empty message for key: " + key);
+            return;
+        }
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             player.sendMessage(msg);
         }
@@ -237,6 +296,10 @@ public final class ConfigManager {
 
     public void broadcastCentered(String key, Map<String, String> vars) {
         String msg = colorize(format("messages.centered." + key, vars));
+        if (isBlank(msg)) {
+            plugin.getLogger().warning("Refusing to broadcast empty centered message for key: " + key);
+            return;
+        }
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             player.sendMessage(com.kartersanamo.raidriot.chat.CenteredChat.center(msg));
         }
@@ -244,11 +307,11 @@ public final class ConfigManager {
     }
 
     public String formatRaw(String raw, Map<String, String> vars) {
-        if (raw == null) {
+        if (isBlank(raw)) {
             return "";
         }
         Map<String, String> merged = new HashMap<String, String>(vars);
-        merged.put("prefix", colorize(getString("messages.prefix", "")));
+        merged.put("prefix", colorize(resolveString("messages.prefix", "")));
         String result = raw;
         for (Map.Entry<String, String> entry : merged.entrySet()) {
             String value = entry.getValue() == null ? "" : entry.getValue();
