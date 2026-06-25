@@ -26,7 +26,7 @@ public final class SchematicBlockPlacer {
         WorldEditPlugin we = (WorldEditPlugin) plugin;
         EditSession session = we.getWorldEdit().getEditSessionFactory()
                 .getEditSession(BukkitUtil.getLocalWorld(world), -1);
-        session.setFastMode(true);
+        session.setFastMode(false);
         return session;
     }
 

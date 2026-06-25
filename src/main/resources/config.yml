@@ -18,7 +18,8 @@ world-restore:
 
 arena-prep:
   countdown-delay-ticks: 40
-  blocks-per-tick: 32768
+  # Keep modest on 1.8.8 — very high values can crash the server during world tick
+  blocks-per-tick: 4096
   chunk-snapshots-per-tick: 4
   scan-columns-per-tick: 64
   snapshot-y-padding: 2

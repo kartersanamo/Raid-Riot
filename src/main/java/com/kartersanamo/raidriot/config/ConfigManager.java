@@ -77,7 +77,7 @@ public final class ConfigManager {
     private int terrainScanColumnsPerTick = 32;
     private boolean spectatorsEnabled = true;
     private int arenaPrepCountdownDelayTicks = 40;
-    private int arenaPrepBlocksPerTick = 32768;
+    private int arenaPrepBlocksPerTick = 4096;
     private int arenaPrepChunkSnapshotsPerTick = 4;
     private int arenaPrepScanColumnsPerTick = 64;
     private int arenaPrepSnapshotYPadding = 2;
@@ -184,7 +184,7 @@ public final class ConfigManager {
         terrainScanColumnsPerTick = config.getInt("world-restore.scan-columns-per-tick", 32);
         spectatorsEnabled = config.getBoolean("spectators.enabled", true);
         arenaPrepCountdownDelayTicks = config.getInt("arena-prep.countdown-delay-ticks", 40);
-        arenaPrepBlocksPerTick = config.getInt("arena-prep.blocks-per-tick", 32768);
+        arenaPrepBlocksPerTick = config.getInt("arena-prep.blocks-per-tick", 4096);
         arenaPrepChunkSnapshotsPerTick = config.getInt("arena-prep.chunk-snapshots-per-tick", 4);
         arenaPrepScanColumnsPerTick = config.getInt("arena-prep.scan-columns-per-tick", 64);
         arenaPrepSnapshotYPadding = config.getInt("arena-prep.snapshot-y-padding", 2);
