@@ -66,6 +66,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
     private WorldResetService worldResetService;
     private AsyncWorldRestorer asyncWorldRestorer;
     private RaidRiotGuiService guiService;
+    private ClickableMessageService clickableMessageService;
 
     public static RaidRiotPlugin getInstance() {
         return instance;
@@ -129,6 +130,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
         eventTeamAccessService = new EventTeamAccessService(this, eventFactionService);
         PredefinedKitService predefinedKitService = new PredefinedKitService(raidRiotConfig, eventKitStore);
         ClickableMessageService clickableMessageService = new ClickableMessageService(this);
+        this.clickableMessageService = clickableMessageService;
         QueueManager queueManager = new QueueManager(this, clickableMessageService);
         VoteManager voteManager = new VoteManager(this);
         guiService = new RaidRiotGuiService(this);
@@ -246,5 +248,9 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
     public RaidRiotGuiService getGuiService() {
         return guiService;
+    }
+
+    public ClickableMessageService getClickableMessageService() {
+        return clickableMessageService;
     }
 }

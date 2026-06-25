@@ -448,10 +448,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             }
         }
 
-        Map<String, String> vars = new HashMap<String, String>();
-        vars.put("teamA", match.getFactionTag(TeamSide.A));
-        vars.put("teamB", match.getFactionTag(TeamSide.B));
-        plugin.getMessages().broadcast("match.started", vars);
+        plugin.getClickableMessageService().broadcastEventStarted();
         eventCombatService.enableForMatch(match);
         startTasks(match);
         startGuiRefreshTask();

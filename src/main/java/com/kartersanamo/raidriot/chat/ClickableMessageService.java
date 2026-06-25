@@ -27,6 +27,14 @@ public final class ClickableMessageService {
         }
     }
 
+    public void broadcastEventStarted() {
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            CenteredChat.send(player, "&c&lRAID RIOT");
+            CenteredChat.send(player, "&7The event has started! Run &c/raidriot");
+            CenteredChat.send(player, "&7to spectate the event!");
+        }
+    }
+
     public void broadcastQueueCountdown(int secondsLeft) {
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             CenteredChat.send(player, "&cRaid Riot &8> &7The event is starting in &f" + secondsLeft + " &7seconds...");
