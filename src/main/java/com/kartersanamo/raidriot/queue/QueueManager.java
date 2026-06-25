@@ -65,11 +65,11 @@ public final class QueueManager {
 
     public synchronized void openQueue(TeamAssignmentMode mode) {
         if (session != null) {
-            throw new IllegalStateException(ConfigManager.get("messages.queue.already-open"));
+            throw new IllegalStateException(ConfigManager.get().exceptionMessage("queue.already-open"));
         }
         String world = ConfigManager.get().getEventWorld();
         if (world == null || world.isEmpty()) {
-            throw new IllegalStateException(ConfigManager.get("messages.queue.event-world-not-configured"));
+            throw new IllegalStateException(ConfigManager.get().exceptionMessage("queue.event-world-not-configured"));
         }
         if (Bukkit.getWorld(world) == null) {
             Map<String, String> vars = new HashMap<>();

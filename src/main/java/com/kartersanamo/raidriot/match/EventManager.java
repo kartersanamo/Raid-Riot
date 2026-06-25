@@ -60,6 +60,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private final EventCombatService eventCombatService;
     private final AsyncWorldRestorer asyncWorldRestorer;
     private final AsyncMatchPreparer matchPreparer;
+    private BasePlacementPipeline activePipeline;
     private RaidMatch activeMatch;
     private volatile boolean shuttingDown;
     private BukkitTask timerTask;
@@ -131,6 +132,18 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         return worldResetService;
     }
 
+    public BasePlacementService getBasePlacementService() {
+        return basePlacementService;
+    }
+
+    public AsyncMatchPreparer getMatchPreparer() {
+        return matchPreparer;
+    }
+
+    public BasePlacementPipeline getActivePipeline() {
+        return activePipeline;
+    }
+
     public boolean isShuttingDown() {
         return shuttingDown;
     }
@@ -154,6 +167,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             cancelPendingRestoreTask();
             cancelWaitingForArenaTask();
             matchPreparer.cancel();
+            activePipeline = null;
             stopGuiRefreshTask();
             queueManager.shutdown();
             voteManager.cancel();
@@ -236,10 +250,10 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     public synchronized void startQueue(TeamAssignmentMode mode) {
         if (asyncWorldRestorer.isRestoring() || matchPreparer.isRunning()) {
-            throw new IllegalStateException(ConfigManager.get("messages.match.terrain-restoring"));
+            throw new IllegalStateException(ConfigManager.get().exceptionMessage("match.terrain-restoring"));
         }
         if (hasActiveSession() || queueManager.isOpen()) {
-            throw new IllegalStateException(ConfigManager.get("messages.match.already-active"));
+            throw new IllegalStateException(ConfigManager.get().exceptionMessage("match.already-active"));
         }
         activeMatch = new RaidMatch(
                 ConfigManager.get().getEventWorld(),
@@ -642,6 +656,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                     if (shuttingDown || activeMatch != preparingMatch) {
                         return;
                     }
+                    activePipeline = null;
                     preparingMatch.setBasesReady(true);
                     loadParticipantSpawnChunks(preparingMatch);
                 });
@@ -653,10 +668,12 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                     if (shuttingDown || activeMatch != preparingMatch) {
                         return;
                     }
+                    activePipeline = null;
                     stopMatch("Base placement failed: " + reason);
                 });
             }
         });
+        activePipeline = pipeline;
         matchPreparer.start(pipeline);
     }
 
@@ -828,10 +845,10 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     public synchronized void stopQueue(String reason) {
         if (!queueManager.isOpen()) {
-            throw new IllegalStateException(ConfigManager.get("messages.admin.no-queue-to-stop"));
+            throw new IllegalStateException(ConfigManager.get().exceptionMessage("admin.no-queue-to-stop"));
         }
         if (activeMatch == null || activeMatch.getState() != MatchState.QUEUE_OPEN) {
-            throw new IllegalStateException(ConfigManager.get("messages.admin.no-queue-to-stop"));
+            throw new IllegalStateException(ConfigManager.get().exceptionMessage("admin.no-queue-to-stop"));
         }
         queueManager.cancelQueue(reason == null || reason.isEmpty()
                 ? ConfigManager.get().formatMessageBody("admin.default-queue-stop-reason")
@@ -840,17 +857,17 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
 
     public synchronized void forceStartQueue() {
         if (!queueManager.isOpen()) {
-            throw new IllegalStateException(ConfigManager.get("messages.admin.no-queue-to-forcestart"));
+            throw new IllegalStateException(ConfigManager.get().exceptionMessage("admin.no-queue-to-forcestart"));
         }
         if (activeMatch == null || activeMatch.getState() != MatchState.QUEUE_OPEN) {
-            throw new IllegalStateException(ConfigManager.get("messages.admin.no-queue-to-forcestart"));
+            throw new IllegalStateException(ConfigManager.get().exceptionMessage("admin.no-queue-to-forcestart"));
         }
         QueueManager.ForceStartResult result = queueManager.forceStart();
         switch (result) {
             case NO_QUEUE:
-                throw new IllegalStateException(ConfigManager.get("messages.admin.no-queue-to-forcestart"));
+                throw new IllegalStateException(ConfigManager.get().exceptionMessage("admin.no-queue-to-forcestart"));
             case CANCELLED:
-                throw new IllegalStateException(ConfigManager.get("messages.admin.forcestart-cancelled"));
+                throw new IllegalStateException(ConfigManager.get().exceptionMessage("admin.forcestart-cancelled"));
             case STARTED:
                 break;
             default:
@@ -867,7 +884,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             return;
         }
         if (!hasTeamsAssigned()) {
-            throw new IllegalStateException(ConfigManager.get("messages.admin.no-session-to-stop"));
+            throw new IllegalStateException(ConfigManager.get().exceptionMessage("admin.no-session-to-stop"));
         }
         switch (choice) {
             case TEAM_A:

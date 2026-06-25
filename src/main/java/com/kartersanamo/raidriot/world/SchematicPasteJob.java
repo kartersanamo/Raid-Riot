@@ -74,6 +74,62 @@ public final class SchematicPasteJob {
         return started && indexX >= width;
     }
 
+    public boolean isStarted() {
+        return started;
+    }
+
+    public boolean hasEditSession() {
+        return session != null;
+    }
+
+    public int getOriginX() {
+        return originX;
+    }
+
+    public int getOriginY() {
+        return originY;
+    }
+
+    public int getOriginZ() {
+        return originZ;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public int getLength() {
+        return length;
+    }
+
+    public int getScanProgressPercent() {
+        int total = width * height * length;
+        if (total <= 0) {
+            return 0;
+        }
+        if (isComplete()) {
+            return 100;
+        }
+        if (!started) {
+            return 0;
+        }
+        int scanned = indexX * height * length + indexY * length + indexZ;
+        return Math.min(99, (int) ((scanned * 100L) / total));
+    }
+
+    public void appendStatus(java.util.List<String> lines, String indent) {
+        lines.add(indent + "engine: WorldEdit EditSession (fastMode=false, flush/tick)");
+        lines.add(indent + "session: " + (session != null ? "open" : "not created"));
+        lines.add(indent + "clipboard: " + width + " x " + height + " x " + length);
+        lines.add(indent + "origin: " + originX + ", " + originY + ", " + originZ);
+        lines.add(indent + "volume scan: " + getScanProgressPercent() + "%"
+                + (isComplete() ? " (done)" : (started ? " (pasting)" : " (pending)")));
+    }
+
     private void advance() {
         indexZ++;
         if (indexZ >= length) {

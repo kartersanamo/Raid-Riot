@@ -120,7 +120,7 @@ messages:
     ended-admin: "{prefix}&cMatch stopped: &7{reason}"
     forfeit: "{prefix}&6{winner} &fwins — the entire opposing team has left."
     timer-warning: "{prefix}&c{minutes}:{seconds} &7remaining!"
-    terrain-restoring: "{prefix}&cPrevious event terrain is still restoring."
+    terrain-restoring: "&cPrevious event terrain is still restoring."
     already-active: "&cA Raid Riot session is already active."
     default-stop-reason: "&7Stopped by admin."
 
@@ -228,6 +228,7 @@ messages:
     admin-help-gui: "{prefix}&e/raidriot admin &7- Open admin GUI"
     admin-help-base: "{prefix}&e/raidriot admin base list|set|clear ..."
     admin-help-reload: "{prefix}&e/raidriot admin reload"
+    admin-help-status: "{prefix}&e/raidriot admin status &7- Detailed debug status (paste/WorldEdit)"
 
   centered:
     header: "&c&lRAID RIOT"

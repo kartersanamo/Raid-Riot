@@ -200,6 +200,18 @@ public final class WorldResetService {
         return initialSnapshots.size() + blockDeltas.size();
     }
 
+    public int getClearRegionCount() {
+        return clearOnRestore.size();
+    }
+
+    public boolean hasActiveSession() {
+        return activeWorld != null;
+    }
+
+    public String getActiveWorldName() {
+        return activeWorld;
+    }
+
     private void restoreClearBatch(int blocksBudget) {
         while (blocksBudget > 0) {
             if (currentClearRegion == null) {

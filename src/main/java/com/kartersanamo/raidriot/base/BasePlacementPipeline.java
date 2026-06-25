@@ -79,4 +79,27 @@ public final class BasePlacementPipeline {
     public RaidMatch getMatch() {
         return match;
     }
+
+    public boolean isFinished() {
+        return finished;
+    }
+
+    public boolean isTeamAComplete() {
+        return jobAComplete;
+    }
+
+    public boolean isTeamBComplete() {
+        return jobBComplete;
+    }
+
+    public void describeStatus(BasePlacementService service, java.util.List<String> lines) {
+        lines.add("pipeline finished: " + finished);
+        lines.add("post-processed: " + postProcessed);
+        lines.add("team A done: " + jobAComplete);
+        lines.add("team B done: " + jobBComplete);
+        lines.add("Team A:");
+        service.describeTeamJob(jobA, lines, "  ");
+        lines.add("Team B:");
+        service.describeTeamJob(jobB, lines, "  ");
+    }
 }

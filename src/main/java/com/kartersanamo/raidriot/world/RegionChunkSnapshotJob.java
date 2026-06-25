@@ -69,6 +69,41 @@ public final class RegionChunkSnapshotJob {
         return started && chunkX > maxChunkX && currentBuilder == null;
     }
 
+    public boolean isStarted() {
+        return started;
+    }
+
+    public int getTotalChunks() {
+        return Math.max(0, (maxChunkX - minChunkX + 1) * (maxChunkZ - minChunkZ + 1));
+    }
+
+    public int getProgressPercent() {
+        int total = getTotalChunks();
+        if (total <= 0) {
+            return 100;
+        }
+        if (isComplete()) {
+            return 100;
+        }
+        if (!started) {
+            return 0;
+        }
+        int completed = (chunkX - minChunkX) * (maxChunkZ - minChunkZ + 1) + (chunkZ - minChunkZ);
+        return Math.min(99, (int) (completed * 100L / total));
+    }
+
+    public void appendStatus(java.util.List<String> lines, String indent) {
+        lines.add(indent + "type: bounded chunk snapshot");
+        lines.add(indent + "y-range: " + minY + ".." + maxY);
+        lines.add(indent + "chunks: " + getTotalChunks() + " (" + minChunkX + "," + minChunkZ
+                + " -> " + maxChunkX + "," + maxChunkZ + ")");
+        lines.add(indent + "progress: " + getProgressPercent() + "%"
+                + (isComplete() ? " (done)" : (started ? "" : " (pending)")));
+        if (currentBuilder != null) {
+            lines.add(indent + "current chunk: " + chunkX + ", " + chunkZ + " (in progress)");
+        }
+    }
+
     private void advanceChunk() {
         chunkZ++;
         if (chunkZ > maxChunkZ) {

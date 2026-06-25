@@ -1,5 +1,6 @@
 package com.kartersanamo.raidriot.command;
 
+import com.kartersanamo.raidriot.admin.AdminStatusService;
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BaseDifficultyStore;
@@ -30,10 +31,12 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
 
     private final RaidRiotPlugin plugin;
     private final BaseDifficultyStore baseDifficultyStore;
+    private final AdminStatusService adminStatusService;
 
     public RaidRiotCommand(RaidRiotPlugin plugin, BaseDifficultyStore baseDifficultyStore) {
         this.plugin = plugin;
         this.baseDifficultyStore = baseDifficultyStore;
+        this.adminStatusService = new AdminStatusService(plugin);
     }
 
     @Override
@@ -202,10 +205,17 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
                 plugin.getEventKitStore().load();
                 ConfigManager.get().send(sender, "admin.reload");
                 return true;
+            case "status":
+                return adminStatus(sender);
             default:
                 sendAdminHelp(sender);
                 return true;
         }
+    }
+
+    private boolean adminStatus(CommandSender sender) {
+        adminStatusService.sendDebugStatus(sender);
+        return true;
     }
 
     private boolean adminSetup(CommandSender sender, String[] args) {
@@ -464,6 +474,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         ConfigManager.get().send(sender, "command.admin-help-gui");
         ConfigManager.get().send(sender, "command.admin-help-base");
         ConfigManager.get().send(sender, "command.admin-help-reload");
+        ConfigManager.get().send(sender, "command.admin-help-status");
     }
 
     @Override
@@ -475,7 +486,7 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
             return filterPrefix(Collections.singletonList("leave"), args[1]);
         }
         if (args.length == 2 && "admin".equalsIgnoreCase(args[0]) && sender.hasPermission("raidriot.admin")) {
-            return filterPrefix(Arrays.asList("setup", "start", "forcestart", "stop", "stopqueue", "base", "kit", "reload"), args[1]);
+            return filterPrefix(Arrays.asList("setup", "start", "forcestart", "stop", "stopqueue", "base", "kit", "reload", "status"), args[1]);
         }
         if (args.length == 3 && "admin".equalsIgnoreCase(args[0]) && "kit".equalsIgnoreCase(args[1])) {
             return filterPrefix(Collections.singletonList("set"), args[2]);

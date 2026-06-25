@@ -74,6 +74,10 @@ public final class CrossWorldCopyJob {
         return started && chunkIndex >= chunks.size();
     }
 
+    public boolean isStarted() {
+        return started;
+    }
+
     private void advance() {
         y++;
         if (y > 255) {

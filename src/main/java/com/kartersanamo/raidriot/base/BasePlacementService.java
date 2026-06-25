@@ -138,6 +138,41 @@ public final class BasePlacementService {
             }
         }
 
+        void appendStatus(List<String> lines, String indent) {
+            lines.add(indent + "phase: " + phase);
+            if (option != null) {
+                lines.add(indent + "base option: " + option.name());
+                if (option != BaseVoteOption.FACTION) {
+                    String fileName = baseDifficultyStore.getSchematic(option);
+                    lines.add(indent + "schematic file: " + (fileName == null ? "(none)" : fileName));
+                }
+            }
+            if (snapshotJob == null) {
+                if (pasteJob != null || phase != TeamJobPhase.PREP) {
+                    lines.add(indent + "terrain snapshot: skipped"
+                            + (ConfigManager.get().isArenaPrepAssumeEmptyTerrain()
+                            ? " (assume-empty-terrain)" : " (not required)"));
+                }
+            } else {
+                snapshotJob.appendStatus(lines, indent);
+            }
+            if (pasteJob != null) {
+                pasteJob.appendStatus(lines, indent);
+            }
+            if (copyJob != null) {
+                lines.add(indent + "terrain engine: Bukkit cross-world copy (physics=false)");
+                lines.add(indent + "copy progress: " + (copyJob.isComplete() ? "done" : (copyJob.isStarted() ? "running" : "pending")));
+            }
+            if (scanJob != null) {
+                lines.add(indent + "solid region scan: " + (scanJob.isComplete() ? "done" : "running"));
+            }
+            if (analysis != null) {
+                lines.add(indent + "schematic size: " + analysis.width + " x " + analysis.height
+                        + " x " + analysis.length + " (solid y " + analysis.lowestNonAirY
+                        + ".." + analysis.highestNonAirY + ")");
+            }
+        }
+
         private void prepare() throws Exception {
             option = resolvePerTeam(match, voteWinner).get(side);
             eventWorld = Bukkit.getWorld(match.getEventWorld());
@@ -311,6 +346,14 @@ public final class BasePlacementService {
 
     TeamPlacementJob beginTeamPlacement(RaidMatch match, BaseVoteOption voteWinner, TeamSide side) {
         return new TeamPlacementJob(match, voteWinner, side);
+    }
+
+    void describeTeamJob(TeamPlacementJob job, List<String> lines, String indent) {
+        if (job == null) {
+            lines.add(indent + "(not started)");
+            return;
+        }
+        job.appendStatus(lines, indent);
     }
 
     void finalizePlacement(RaidMatch match) {

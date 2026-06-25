@@ -292,6 +292,15 @@ public final class ConfigManager {
         return formatMessageBody(key, new HashMap<>());
     }
 
+    /** Plain message text for IllegalStateException / sendError (no {prefix} placeholder). */
+    public String exceptionMessage(String key) {
+        return formatMessageBody(key);
+    }
+
+    public String exceptionMessage(String key, Map<String, String> vars) {
+        return formatMessageBody(key, vars);
+    }
+
     public String formatGui(String key, Map<String, String> vars) {
         return formatRaw(resolveString("gui." + key, key), vars);
     }

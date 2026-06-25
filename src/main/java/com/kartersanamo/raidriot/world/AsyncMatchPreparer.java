@@ -20,6 +20,10 @@ public final class AsyncMatchPreparer {
         return task != null;
     }
 
+    public TerrainBudget peekBudget() {
+        return createBudget();
+    }
+
     public void start(BasePlacementPipeline pipeline) {
         cancel();
         task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
