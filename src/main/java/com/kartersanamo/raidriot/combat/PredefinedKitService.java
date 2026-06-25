@@ -30,10 +30,10 @@ public final class PredefinedKitService {
         PlayerInventory inv = player.getInventory();
         inv.clear();
         inv.setArmorContents(new ItemStack[]{
-            item(config.getPredefinedKitHelmet()),
-            item(config.getPredefinedKitChestplate()),
+            item(config.getPredefinedKitBoots()),
             item(config.getPredefinedKitLeggings()),
-            item(config.getPredefinedKitBoots())
+            item(config.getPredefinedKitChestplate()),
+            item(config.getPredefinedKitHelmet())
         });
         int slot = 0;
         for (String entry : config.getPredefinedKitItems()) {
