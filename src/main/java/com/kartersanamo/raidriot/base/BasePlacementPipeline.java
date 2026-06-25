@@ -1,6 +1,5 @@
 package com.kartersanamo.raidriot.base;
 
-import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.world.TerrainBudget;
@@ -8,6 +7,7 @@ import com.kartersanamo.raidriot.world.TerrainBudget;
 public final class BasePlacementPipeline {
 
     public interface CompletionListener {
+
         void onComplete();
 
         void onFailed(String reason);

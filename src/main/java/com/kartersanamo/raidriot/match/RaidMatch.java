@@ -60,6 +60,7 @@ public final class RaidMatch {
     private long activeEndMs;
     private long activeStartMs;
     private long countdownEndMs;
+    private boolean basesReady;
 
     public String getEventWorld() {
         return eventWorld;
@@ -158,6 +159,14 @@ public final class RaidMatch {
 
     public void setCountdownEndMs(long countdownEndMs) {
         this.countdownEndMs = countdownEndMs;
+    }
+
+    public boolean areBasesReady() {
+        return basesReady;
+    }
+
+    public void setBasesReady(boolean basesReady) {
+        this.basesReady = basesReady;
     }
 
     public int getCountdownRemainingSeconds() {

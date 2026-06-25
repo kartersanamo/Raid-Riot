@@ -11,6 +11,7 @@ import com.kartersanamo.raidriot.faction.EventFactionService;
 import com.kartersanamo.raidriot.faction.FactionBaseClaimProvider;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.world.ChunkKey;
+import com.kartersanamo.raidriot.world.ChunkLoadHelper;
 import com.kartersanamo.raidriot.world.CrossWorldCopyJob;
 import com.kartersanamo.raidriot.world.EventWorldBorderService;
 import com.kartersanamo.raidriot.world.RegionChunkSnapshotJob;
@@ -22,6 +23,7 @@ import com.kartersanamo.raidriot.world.SolidRegionScanner;
 import com.kartersanamo.raidriot.world.TerrainBudget;
 import com.kartersanamo.raidriot.world.WorldResetService;
 import com.sk89q.worldedit.CuboidClipboard;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -33,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 public final class BasePlacementService {
 
@@ -188,8 +191,8 @@ public final class BasePlacementService {
             String sourceWorldName = null;
             List<FactionBaseClaimProvider.ChunkCoordinate> chunks = null;
             for (String worldName : sourceWorldNames) {
-                List<FactionBaseClaimProvider.ChunkCoordinate> found =
-                        factionBaseClaimProvider.listBaseClaimChunks(faction, worldName);
+                List<FactionBaseClaimProvider.ChunkCoordinate> found
+                        = factionBaseClaimProvider.listBaseClaimChunks(faction, worldName);
                 if (!found.isEmpty()) {
                     sourceWorldName = worldName;
                     chunks = found;
@@ -211,8 +214,8 @@ public final class BasePlacementService {
             }
 
             CuboidRegion sourceBounds = factionBaseClaimProvider.computeBounds(chunks, sourceWorldName);
-            FactionBaseClaimProvider.BorderContact contact =
-                    factionBaseClaimProvider.detectBorderContact(sourceBounds, sourceWorld);
+            FactionBaseClaimProvider.BorderContact contact
+                    = factionBaseClaimProvider.detectBorderContact(sourceBounds, sourceWorld);
 
             targetMinX = computeTargetMinX(eventWorld, sourceBounds, contact, anchor.getBlockX());
             targetMinZ = computeTargetMinZ(eventWorld, sourceBounds, contact, anchor.getBlockZ());
@@ -304,6 +307,9 @@ public final class BasePlacementService {
                 base.setCannonRegion(base.getBounds());
             }
             applySpawn(base, eventWorld);
+            if (base.getSpawn() != null) {
+                ChunkLoadHelper.loadAround(base.getSpawn());
+            }
         }
         worldBorderService.applyForMatch(match);
     }
@@ -329,7 +335,7 @@ public final class BasePlacementService {
                     && factionBaseClaimProvider.hasBaseClaims(faction, sourceWorlds)) {
                 out.put(side, BaseVoteOption.FACTION);
             } else {
-                plugin.getLogger().warning("Faction base missing for " + match.getFactionTag(side) + ", using Hard.");
+                plugin.getLogger().log(Level.WARNING, "Faction base missing for {0}, using Hard.", match.getFactionTag(side));
                 out.put(side, BaseVoteOption.HARD);
             }
         }

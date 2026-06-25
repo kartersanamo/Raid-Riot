@@ -97,6 +97,7 @@ messages:
 
   match:
     countdown: "{prefix}&7The event is starting in &f{seconds} &7seconds..."
+    waiting-for-arena: "{prefix}&eWaiting for base generation..."
     started: "{prefix}&7Raid Riot has begun! &7{teamA} &fvs &7{teamB}"
     ended-breach: "{prefix}&7{winner} &7breached &c{loser}&7 in &e{time}&7!"
     ended-depth: "{prefix}&7{winner} &7won with depth &e{depth}&7 vs &c{otherDepth}&7!"

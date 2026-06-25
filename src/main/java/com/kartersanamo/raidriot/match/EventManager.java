@@ -2,7 +2,6 @@ package com.kartersanamo.raidriot.match;
 
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.config.ConfigManager;
-import com.kartersanamo.raidriot.arena.SpawnLocationResolver;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.base.BasePlacementService;
 import com.kartersanamo.raidriot.base.BasePlacementPipeline;
@@ -23,6 +22,7 @@ import com.kartersanamo.raidriot.vote.KitVoteOption;
 import com.kartersanamo.raidriot.vote.VoteManager;
 import com.kartersanamo.raidriot.world.AsyncMatchPreparer;
 import com.kartersanamo.raidriot.world.AsyncWorldRestorer;
+import com.kartersanamo.raidriot.world.ChunkLoadHelper;
 import com.kartersanamo.raidriot.world.EventWorldBorderService;
 import com.kartersanamo.raidriot.world.WorldResetService;
 import org.bukkit.Bukkit;
@@ -63,6 +63,8 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private BukkitTask depthTask;
     private BukkitTask guiRefreshTask;
     private BukkitTask pendingRestoreTask;
+    private BukkitTask waitingForArenaTask;
+    private long lastArenaWaitBroadcastMs;
     private final List<BukkitTask> countdownTasks = new ArrayList<BukkitTask>();
 
     public EventManager(RaidRiotPlugin plugin, QueueManager queueManager, VoteManager voteManager,
@@ -145,6 +147,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             cancelTasks();
             cancelCountdownTasks();
             cancelPendingRestoreTask();
+            cancelWaitingForArenaTask();
             matchPreparer.cancel();
             stopGuiRefreshTask();
             queueManager.shutdown();
@@ -298,6 +301,9 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             return;
         }
         ConfigManager.get().broadcast("queue.locked", new HashMap<String, String>());
+        if (activeMatch.getEventWorld() != null && !activeMatch.getEventWorld().isEmpty()) {
+            worldResetService.beginSession(activeMatch.getEventWorld());
+        }
         if (ConfigManager.get().isFixedMatchSettingsEnabled()) {
             onVoteComplete(activeMatch, ConfigManager.get().getFixedBase(),
                     ConfigManager.get().getFixedKit());
@@ -404,15 +410,14 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         activeMatch.setSelectedBaseVote(baseWinner);
         activeMatch.setSelectedKitVote(kitWinner);
         activeMatch.setState(MatchState.PREPARING);
+        activeMatch.setBasesReady(false);
 
         Map<String, String> vars = new HashMap<String, String>();
         vars.put("base", baseWinner.displayName());
         vars.put("kit", kitWinner.displayName());
         ConfigManager.get().broadcast("vote.winner", vars);
 
-        worldResetService.beginSession(activeMatch.getEventWorld());
         final RaidMatch preparingMatch = activeMatch;
-        teleportParticipantsToPrepHolding(preparingMatch);
         startGuiRefreshTask();
         BasePlacementPipeline pipeline = basePlacementService.createPipeline(
                 preparingMatch, baseWinner, new BasePlacementPipeline.CompletionListener() {
@@ -425,6 +430,8 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                                         || preparingMatch.getState() != MatchState.PREPARING) {
                                     return;
                                 }
+                                preparingMatch.setBasesReady(true);
+                                loadParticipantSpawnChunks(preparingMatch);
                                 beginCountdown(preparingMatch);
                             }
                         });
@@ -452,15 +459,6 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         final int countdown = ConfigManager.get().getCountdownSeconds();
         match.setCountdownEndMs(System.currentTimeMillis() + countdown * 1000L);
         startGuiRefreshTask();
-        Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
-            @Override
-            public void run() {
-                if (shuttingDown || activeMatch != match || match.getState() != MatchState.COUNTDOWN) {
-                    return;
-                }
-                teleportParticipantsToSpawns(match);
-            }
-        }, 1L);
         for (int i = countdown; i >= 1; i--) {
             final int sec = i;
             countdownTasks.add(Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
@@ -481,9 +479,55 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                 if (shuttingDown || activeMatch != match || match.getState() != MatchState.COUNTDOWN) {
                     return;
                 }
-                activateMatch(match);
+                tryActivateMatch(match);
             }
         }, countdown * 20L));
+    }
+
+    private void tryActivateMatch(final RaidMatch match) {
+        if (shuttingDown || activeMatch != match || match.getState() != MatchState.COUNTDOWN) {
+            return;
+        }
+        if (!match.areBasesReady() || matchPreparer.isRunning()) {
+            long now = System.currentTimeMillis();
+            if (lastArenaWaitBroadcastMs == 0L || now - lastArenaWaitBroadcastMs >= 3000L) {
+                ConfigManager.get().broadcast("match.waiting-for-arena", new HashMap<String, String>());
+                lastArenaWaitBroadcastMs = now;
+            }
+            cancelWaitingForArenaTask();
+            waitingForArenaTask = Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+                @Override
+                public void run() {
+                    waitingForArenaTask = null;
+                    tryActivateMatch(match);
+                }
+            }, 20L);
+            return;
+        }
+        cancelWaitingForArenaTask();
+        lastArenaWaitBroadcastMs = 0L;
+        loadParticipantSpawnChunks(match);
+        activateMatch(match);
+    }
+
+    private void cancelWaitingForArenaTask() {
+        if (waitingForArenaTask != null) {
+            waitingForArenaTask.cancel();
+            waitingForArenaTask = null;
+        }
+    }
+
+    private void loadParticipantSpawnChunks(RaidMatch match) {
+        World world = Bukkit.getWorld(match.getEventWorld());
+        if (world == null) {
+            return;
+        }
+        for (TeamSide side : new TeamSide[]{TeamSide.A, TeamSide.B}) {
+            Location spawn = match.getTeamBase(side).getSpawn();
+            if (spawn != null) {
+                ChunkLoadHelper.loadAround(spawn);
+            }
+        }
     }
 
     private void activateMatch(RaidMatch match) {
@@ -713,6 +757,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             task.cancel();
         }
         countdownTasks.clear();
+        cancelWaitingForArenaTask();
     }
 
     private void cancelPendingRestoreTask() {
@@ -727,39 +772,8 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         if (match == null || !match.isParticipant(player)) {
             return;
         }
-        MatchState state = match.getState();
-        if (state == MatchState.PREPARING) {
-            teleportParticipantToPrepHolding(player, match);
-        } else if (state == MatchState.COUNTDOWN || state == MatchState.ACTIVE) {
+        if (match.getState() == MatchState.ACTIVE) {
             teleportParticipantToSpawn(player, match);
-        }
-    }
-
-    private void teleportParticipantsToPrepHolding(RaidMatch match) {
-        World world = Bukkit.getWorld(match.getEventWorld());
-        if (world == null) {
-            return;
-        }
-        Location holding = SpawnLocationResolver.resolvePrepHolding(match, world);
-        if (holding == null) {
-            return;
-        }
-        for (UUID id : match.getParticipants()) {
-            Player player = Bukkit.getPlayer(id);
-            if (player != null && player.isOnline()) {
-                player.teleport(holding);
-            }
-        }
-    }
-
-    private void teleportParticipantToPrepHolding(Player player, RaidMatch match) {
-        World world = Bukkit.getWorld(match.getEventWorld());
-        if (world == null) {
-            return;
-        }
-        Location holding = SpawnLocationResolver.resolvePrepHolding(match, world);
-        if (holding != null) {
-            player.teleport(holding);
         }
     }
 
