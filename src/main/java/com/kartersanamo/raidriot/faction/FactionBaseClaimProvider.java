@@ -18,7 +18,6 @@ public final class FactionBaseClaimProvider {
 
     private final RaidRiotPlugin plugin;
     private boolean ok;
-    private Method claimGetFaction;
     private Method baseClaimCheck;
 
     public FactionBaseClaimProvider(RaidRiotPlugin plugin) {
@@ -29,7 +28,6 @@ public final class FactionBaseClaimProvider {
         ok = false;
         try {
             Class<?> fLocationClass = Class.forName("com.massivecraft.factions.FLocation");
-            claimGetFaction = fLocationClass.getMethod("getFaction");
             String methodName = ConfigManager.get().getBaseClaimMethod();
             try {
                 baseClaimCheck = fLocationClass.getMethod(methodName);
@@ -73,10 +71,6 @@ public final class FactionBaseClaimProvider {
         }
         FactionsBridge bridge = plugin.getFactionsBridge();
         for (Object claim : bridge.getClaimsForFaction(factionRef)) {
-            Object faction = claimGetFaction.invoke(claim);
-            if (!bridge.factionsEqual(faction, factionRef)) {
-                continue;
-            }
             String claimWorld = bridge.getClaimWorldName(claim);
             if (claimWorld != null && worldName != null && !claimWorld.equals(worldName)) {
                 continue;

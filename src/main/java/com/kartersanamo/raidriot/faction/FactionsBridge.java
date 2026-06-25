@@ -24,7 +24,6 @@ public final class FactionsBridge {
     private Method boardRemoveAt;
     private Method boardGetAllClaimsForFaction;
     private Method fLocationWrapChunk;
-    private Method fLocationGetFaction;
     private Method fLocationGetX;
     private Method fLocationGetZ;
     private Method fLocationGetWorldName;
@@ -67,11 +66,13 @@ public final class FactionsBridge {
             }
 
             Class<?> fLocationClass = Class.forName("com.massivecraft.factions.FLocation");
-            fLocationWrapChunk = fLocationClass.getMethod("wrap", Chunk.class);
-            fLocationGetFaction = fLocationClass.getMethod("getFaction");
-            fLocationGetX = fLocationClass.getMethod("getX");
-            fLocationGetZ = fLocationClass.getMethod("getZ");
-            fLocationGetWorldName = fLocationClass.getMethod("getWorldName");
+            fLocationWrapChunk = resolveStaticMethod(fLocationClass, "wrap", Chunk.class);
+            fLocationGetX = resolveMethod(fLocationClass, "getX", "getChunkX");
+            fLocationGetZ = resolveMethod(fLocationClass, "getZ", "getChunkZ");
+            fLocationGetWorldName = resolveMethod(fLocationClass, "getWorldName", "getWorld");
+            if (fLocationWrapChunk == null || fLocationGetX == null || fLocationGetZ == null) {
+                throw new NoSuchMethodException("FLocation coordinate API unavailable.");
+            }
 
             Class<?> factionsClass = Class.forName("com.massivecraft.factions.Factions");
             factionsInstance = factionsClass.getMethod("getInstance").invoke(null);
@@ -86,7 +87,11 @@ public final class FactionsBridge {
             factionGetTag = factionClass.getMethod("getTag");
             factionSetTag = factionClass.getMethod("setTag", String.class);
             factionSetPermanent = factionClass.getMethod("setPermanent", boolean.class);
-            factionSetPermanentPower = factionClass.getMethod("setPermanentPower", Integer.class);
+            try {
+                factionSetPermanentPower = factionClass.getMethod("setPermanentPower", int.class);
+            } catch (NoSuchMethodException ex) {
+                factionSetPermanentPower = factionClass.getMethod("setPermanentPower", Integer.class);
+            }
             factionGetSize = factionClass.getMethod("getSize");
 
             Class<?> fPlayersClass = Class.forName("com.massivecraft.factions.FPlayers");
@@ -214,6 +219,13 @@ public final class FactionsBridge {
         boardRemoveAt.invoke(boardInstance, floc);
     }
 
+    public Object getFactionAtClaim(Object claim) throws Exception {
+        if (claim == null) {
+            return null;
+        }
+        return boardGetFactionAt.invoke(boardInstance, claim);
+    }
+
     public Collection<?> getClaimsForFaction(Object faction) throws Exception {
         if (faction == null || boardGetAllClaimsForFaction == null) {
             return java.util.Collections.emptyList();
@@ -242,6 +254,24 @@ public final class FactionsBridge {
 
     public int getClaimChunkZ(Object claim) throws Exception {
         return ((Number) fLocationGetZ.invoke(claim)).intValue();
+    }
+
+    private Method resolveMethod(Class<?> clazz, String... names) throws NoSuchMethodException {
+        for (String name : names) {
+            try {
+                return clazz.getMethod(name);
+            } catch (NoSuchMethodException ignored) {
+            }
+        }
+        throw new NoSuchMethodException(clazz.getName() + "." + names[0]);
+    }
+
+    private Method resolveStaticMethod(Class<?> clazz, String name, Class<?>... parameterTypes) {
+        try {
+            return clazz.getMethod(name, parameterTypes);
+        } catch (NoSuchMethodException ex) {
+            return null;
+        }
     }
 
     /**

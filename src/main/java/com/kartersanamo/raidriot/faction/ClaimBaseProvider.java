@@ -35,10 +35,6 @@ public final class ClaimBaseProvider {
         boolean found = false;
 
         for (Object claim : bridge.getClaimsForFaction(teamBase.getFactionRef())) {
-            Object faction = claim.getClass().getMethod("getFaction").invoke(claim);
-            if (!bridge.factionsEqual(faction, teamBase.getFactionRef())) {
-                continue;
-            }
             String claimWorld = bridge.getClaimWorldName(claim);
             if (claimWorld != null && worldName != null && !claimWorld.equals(worldName)) {
                 continue;
@@ -125,10 +121,6 @@ public final class ClaimBaseProvider {
             return out;
         }
         for (Object claim : bridge.getClaimsForFaction(factionRef)) {
-            Object faction = claim.getClass().getMethod("getFaction").invoke(claim);
-            if (!bridge.factionsEqual(faction, factionRef)) {
-                continue;
-            }
             String claimWorld = bridge.getClaimWorldName(claim);
             if (claimWorld != null && !claimWorld.equals(worldName)) {
                 continue;
