@@ -18,11 +18,7 @@ public final class FactionBaseClaimProvider {
 
     private final RaidRiotPlugin plugin;
     private boolean ok;
-    private Method boardGetAllClaims;
     private Method claimGetFaction;
-    private Method claimGetX;
-    private Method claimGetZ;
-    private Method claimGetWorldName;
     private Method baseClaimCheck;
 
     public FactionBaseClaimProvider(RaidRiotPlugin plugin) {
@@ -32,13 +28,8 @@ public final class FactionBaseClaimProvider {
     public boolean init() {
         ok = false;
         try {
-            Class<?> boardClass = Class.forName("com.massivecraft.factions.Board");
-            boardGetAllClaims = boardClass.getMethod("getAllClaims");
             Class<?> fLocationClass = Class.forName("com.massivecraft.factions.FLocation");
             claimGetFaction = fLocationClass.getMethod("getFaction");
-            claimGetX = fLocationClass.getMethod("getX");
-            claimGetZ = fLocationClass.getMethod("getZ");
-            claimGetWorldName = fLocationClass.getMethod("getWorldName");
             String methodName = ConfigManager.get().getBaseClaimMethod();
             try {
                 baseClaimCheck = fLocationClass.getMethod(methodName);
@@ -77,20 +68,16 @@ public final class FactionBaseClaimProvider {
 
     public List<ChunkCoordinate> listBaseClaimChunks(Object factionRef, String worldName) throws Exception {
         List<ChunkCoordinate> out = new ArrayList<ChunkCoordinate>();
-        if (!ok || boardGetAllClaims == null) {
+        if (!ok) {
             return out;
         }
-        Object board = Class.forName("com.massivecraft.factions.Board").getMethod("getInstance").invoke(null);
-        Object claimsObj = boardGetAllClaims.invoke(board);
-        if (!(claimsObj instanceof Iterable)) {
-            return out;
-        }
-        for (Object claim : (Iterable<?>) claimsObj) {
+        FactionsBridge bridge = plugin.getFactionsBridge();
+        for (Object claim : bridge.getClaimsForFaction(factionRef)) {
             Object faction = claimGetFaction.invoke(claim);
-            if (!plugin.getFactionsBridge().factionsEqual(faction, factionRef)) {
+            if (!bridge.factionsEqual(faction, factionRef)) {
                 continue;
             }
-            String claimWorld = (String) claimGetWorldName.invoke(claim);
+            String claimWorld = bridge.getClaimWorldName(claim);
             if (claimWorld != null && worldName != null && !claimWorld.equals(worldName)) {
                 continue;
             }
@@ -98,9 +85,7 @@ public final class FactionBaseClaimProvider {
             if (!baseClaim) {
                 continue;
             }
-            int cx = ((Number) claimGetX.invoke(claim)).intValue();
-            int cz = ((Number) claimGetZ.invoke(claim)).intValue();
-            out.add(new ChunkCoordinate(cx, cz));
+            out.add(new ChunkCoordinate(bridge.getClaimChunkX(claim), bridge.getClaimChunkZ(claim)));
         }
         return out;
     }

@@ -8,9 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Talks to SaberFactions via reflection so Raid Riot compiles without the
@@ -24,7 +22,7 @@ public final class FactionsBridge {
     private Method boardGetFactionAt;
     private Method boardSetFactionAt;
     private Method boardRemoveAt;
-    private Method boardGetAllClaims;
+    private Method boardGetAllClaimsForFaction;
     private Method fLocationWrapChunk;
     private Method fLocationGetFaction;
     private Method fLocationGetX;
@@ -60,7 +58,13 @@ public final class FactionsBridge {
             boardGetFactionAt = boardClass.getMethod("getFactionAt", Class.forName("com.massivecraft.factions.FLocation"));
             boardSetFactionAt = boardClass.getMethod("setFactionAt", Class.forName("com.massivecraft.factions.Faction"), Class.forName("com.massivecraft.factions.FLocation"));
             boardRemoveAt = boardClass.getMethod("removeAt", Class.forName("com.massivecraft.factions.FLocation"));
-            boardGetAllClaims = boardClass.getMethod("getAllClaims");
+
+            Class<?> factionClass = Class.forName("com.massivecraft.factions.Faction");
+            try {
+                boardGetAllClaimsForFaction = boardClass.getMethod("getAllClaims", factionClass);
+            } catch (NoSuchMethodException ex) {
+                plugin.getLogger().info("Board.getAllClaims(Faction) unavailable; using chunk scan fallbacks for claim lookup.");
+            }
 
             Class<?> fLocationClass = Class.forName("com.massivecraft.factions.FLocation");
             fLocationWrapChunk = fLocationClass.getMethod("wrap", Chunk.class);
@@ -77,7 +81,6 @@ public final class FactionsBridge {
             factionsForceSave = factionsClass.getMethod("forceSave");
             factionsIsTagTaken = factionsClass.getMethod("isTagTaken", String.class);
 
-            Class<?> factionClass = Class.forName("com.massivecraft.factions.Faction");
             factionIsWilderness = factionClass.getMethod("isWilderness");
             factionGetId = factionClass.getMethod("getId");
             factionGetTag = factionClass.getMethod("getTag");
@@ -211,6 +214,36 @@ public final class FactionsBridge {
         boardRemoveAt.invoke(boardInstance, floc);
     }
 
+    public Collection<?> getClaimsForFaction(Object faction) throws Exception {
+        if (faction == null || boardGetAllClaimsForFaction == null) {
+            return java.util.Collections.emptyList();
+        }
+        return normalizeClaims(boardGetAllClaimsForFaction.invoke(boardInstance, faction));
+    }
+
+    public String getClaimWorldName(Object claim) throws Exception {
+        if (claim == null) {
+            return null;
+        }
+        if (fLocationGetWorldName != null) {
+            Object world = fLocationGetWorldName.invoke(claim);
+            if (world != null) {
+                return world.toString();
+            }
+        }
+        Method getWorld = claim.getClass().getMethod("getWorld");
+        Object world = getWorld.invoke(claim);
+        return world == null ? null : world.toString();
+    }
+
+    public int getClaimChunkX(Object claim) throws Exception {
+        return ((Number) fLocationGetX.invoke(claim)).intValue();
+    }
+
+    public int getClaimChunkZ(Object claim) throws Exception {
+        return ((Number) fLocationGetZ.invoke(claim)).intValue();
+    }
+
     /**
      * Removes every board claim in {@code worldName} owned by any of the given
      * factions.
@@ -219,42 +252,70 @@ public final class FactionsBridge {
         if (worldName == null || worldName.isEmpty() || factions == null || factions.isEmpty()) {
             return 0;
         }
-        Set<String> factionIds = new HashSet<String>();
+        int removed = 0;
         for (Object faction : factions) {
-            if (faction != null && !isWilderness(faction)) {
-                factionIds.add((String) factionGetId.invoke(faction));
-            }
-        }
-        if (factionIds.isEmpty()) {
-            return 0;
-        }
-        Object claimsObj = boardGetAllClaims.invoke(boardInstance);
-        if (!(claimsObj instanceof Iterable)) {
-            return 0;
-        }
-        List<Object> toRemove = new ArrayList<Object>();
-        for (Object claim : (Iterable<?>) claimsObj) {
-            Object faction = fLocationGetFaction.invoke(claim);
             if (faction == null || isWilderness(faction)) {
                 continue;
             }
-            String id = (String) factionGetId.invoke(faction);
-            if (!factionIds.contains(id)) {
-                continue;
-            }
-            String claimWorld = (String) fLocationGetWorldName.invoke(claim);
+            removed += unclaimFactionClaimsInWorld(worldName, faction);
+        }
+        if (removed > 0) {
+            factionsForceSave.invoke(factionsInstance);
+        }
+        return removed;
+    }
+
+    private int unclaimFactionClaimsInWorld(String worldName, Object faction) throws Exception {
+        int removed = 0;
+        for (Object claim : getClaimsForFaction(faction)) {
+            String claimWorld = getClaimWorldName(claim);
             if (claimWorld == null || !claimWorld.equals(worldName)) {
                 continue;
             }
-            toRemove.add(claim);
-        }
-        for (Object claim : toRemove) {
             boardRemoveAt.invoke(boardInstance, claim);
+            removed++;
         }
-        if (!toRemove.isEmpty()) {
-            factionsForceSave.invoke(factionsInstance);
+        if (removed == 0) {
+            removed = unclaimLoadedChunksForFaction(worldName, faction);
         }
-        return toRemove.size();
+        return removed;
+    }
+
+    private int unclaimLoadedChunksForFaction(String worldName, Object faction) throws Exception {
+        org.bukkit.World world = org.bukkit.Bukkit.getWorld(worldName);
+        if (world == null) {
+            return 0;
+        }
+        int removed = 0;
+        for (org.bukkit.Chunk chunk : world.getLoadedChunks()) {
+            Object at = getFactionAtChunk(chunk);
+            if (at == null || isWilderness(at) || !factionsEqual(at, faction)) {
+                continue;
+            }
+            unclaimChunk(chunk);
+            removed++;
+        }
+        return removed;
+    }
+
+    private Collection<?> normalizeClaims(Object claimsObj) {
+        if (claimsObj == null) {
+            return java.util.Collections.emptyList();
+        }
+        if (claimsObj instanceof Collection) {
+            return (Collection<?>) claimsObj;
+        }
+        if (claimsObj instanceof Iterable) {
+            List<Object> claims = new ArrayList<Object>();
+            for (Object claim : (Iterable<?>) claimsObj) {
+                claims.add(claim);
+            }
+            return claims;
+        }
+        if (claimsObj instanceof java.util.Map) {
+            return ((java.util.Map<?, ?>) claimsObj).keySet();
+        }
+        return java.util.Collections.emptyList();
     }
 
     public boolean isWilderness(Object faction) throws Exception {

@@ -10,46 +10,21 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
 public final class ClaimBaseProvider {
 
     private final RaidRiotPlugin plugin;
-    private Method boardGetAllClaims;
-    private Method claimGetFaction;
-    private Method claimGetX;
-    private Method claimGetZ;
-    private Method claimGetWorldName;
 
     public ClaimBaseProvider(RaidRiotPlugin plugin) {
         this.plugin = plugin;
-        initReflection();
-    }
-
-    private void initReflection() {
-        try {
-            Class<?> boardClass = Class.forName("com.massivecraft.factions.Board");
-            boardGetAllClaims = boardClass.getMethod("getAllClaims");
-            Class<?> fLocationClass = Class.forName("com.massivecraft.factions.FLocation");
-            claimGetFaction = fLocationClass.getMethod("getFaction");
-            claimGetX = fLocationClass.getMethod("getX");
-            claimGetZ = fLocationClass.getMethod("getZ");
-            claimGetWorldName = fLocationClass.getMethod("getWorldName");
-        } catch (Throwable t) {
-            plugin.getLogger().warning("ClaimBaseProvider reflection init failed: " + t.getMessage());
-        }
     }
 
     public void applyClaimBounds(TeamBase teamBase, String worldName) throws Exception {
-        if (boardGetAllClaims == null) {
+        FactionsBridge bridge = plugin.getFactionsBridge();
+        if (!bridge.isReady()) {
             throw new IllegalStateException("Factions claim API unavailable.");
-        }
-        Object board = Class.forName("com.massivecraft.factions.Board").getMethod("getInstance").invoke(null);
-        Object claimsObj = boardGetAllClaims.invoke(board);
-        if (!(claimsObj instanceof Iterable)) {
-            throw new IllegalStateException("Unexpected claims type from Factions Board.");
         }
         int minX = Integer.MAX_VALUE;
         int minZ = Integer.MAX_VALUE;
@@ -59,17 +34,17 @@ public final class ClaimBaseProvider {
         int maxY = 255;
         boolean found = false;
 
-        for (Object claim : (Iterable<?>) claimsObj) {
-            Object faction = claimGetFaction.invoke(claim);
-            if (!plugin.getFactionsBridge().factionsEqual(faction, teamBase.getFactionRef())) {
+        for (Object claim : bridge.getClaimsForFaction(teamBase.getFactionRef())) {
+            Object faction = claim.getClass().getMethod("getFaction").invoke(claim);
+            if (!bridge.factionsEqual(faction, teamBase.getFactionRef())) {
                 continue;
             }
-            String claimWorld = (String) claimGetWorldName.invoke(claim);
+            String claimWorld = bridge.getClaimWorldName(claim);
             if (claimWorld != null && worldName != null && !claimWorld.equals(worldName)) {
                 continue;
             }
-            int cx = ((Number) claimGetX.invoke(claim)).intValue();
-            int cz = ((Number) claimGetZ.invoke(claim)).intValue();
+            int cx = bridge.getClaimChunkX(claim);
+            int cz = bridge.getClaimChunkZ(claim);
             int chunkMinX = cx << 4;
             int chunkMinZ = cz << 4;
             int chunkMaxX = chunkMinX + 15;
@@ -144,27 +119,21 @@ public final class ClaimBaseProvider {
 
     public List<Chunk> listOwnedChunks(Object factionRef, String worldName) throws Exception {
         List<Chunk> out = new ArrayList<Chunk>();
-        if (boardGetAllClaims == null) {
-            return out;
-        }
-        Object board = Class.forName("com.massivecraft.factions.Board").getMethod("getInstance").invoke(null);
-        Object claimsObj = boardGetAllClaims.invoke(board);
+        FactionsBridge bridge = plugin.getFactionsBridge();
         World world = Bukkit.getWorld(worldName);
-        if (world == null || !(claimsObj instanceof Iterable)) {
+        if (world == null) {
             return out;
         }
-        for (Object claim : (Iterable<?>) claimsObj) {
-            Object faction = claimGetFaction.invoke(claim);
-            if (!plugin.getFactionsBridge().factionsEqual(faction, factionRef)) {
+        for (Object claim : bridge.getClaimsForFaction(factionRef)) {
+            Object faction = claim.getClass().getMethod("getFaction").invoke(claim);
+            if (!bridge.factionsEqual(faction, factionRef)) {
                 continue;
             }
-            String claimWorld = (String) claimGetWorldName.invoke(claim);
+            String claimWorld = bridge.getClaimWorldName(claim);
             if (claimWorld != null && !claimWorld.equals(worldName)) {
                 continue;
             }
-            int cx = ((Number) claimGetX.invoke(claim)).intValue();
-            int cz = ((Number) claimGetZ.invoke(claim)).intValue();
-            out.add(world.getChunkAt(cx, cz));
+            out.add(world.getChunkAt(bridge.getClaimChunkX(claim), bridge.getClaimChunkZ(claim)));
         }
         return out;
     }
