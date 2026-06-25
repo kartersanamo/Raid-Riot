@@ -35,6 +35,7 @@ import com.kartersanamo.raidriot.queue.QueueManager;
 import com.kartersanamo.raidriot.ui.RaidRiotGuiListener;
 import com.kartersanamo.raidriot.ui.RaidRiotGuiService;
 import com.kartersanamo.raidriot.vote.VoteManager;
+import com.kartersanamo.raidriot.world.AsyncWorldRestorer;
 import com.kartersanamo.raidriot.world.EventWorldBorderService;
 import com.kartersanamo.raidriot.world.SchematicService;
 import com.kartersanamo.raidriot.world.WorldResetService;
@@ -63,6 +64,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
     private BreachService breachService;
     private NakedPatchEnforcer nakedPatchEnforcer;
     private WorldResetService worldResetService;
+    private AsyncWorldRestorer asyncWorldRestorer;
     private RaidRiotGuiService guiService;
 
     public static RaidRiotPlugin getInstance() {
@@ -114,6 +116,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
         SchematicService schematicService = new SchematicService();
         ClaimBaseProvider claimBaseProvider = new ClaimBaseProvider(this);
         worldResetService = new WorldResetService();
+        asyncWorldRestorer = new AsyncWorldRestorer(this, worldResetService);
         eventWorldBorderService = new EventWorldBorderService(this);
         BasePlacementService basePlacementService = new BasePlacementService(
                 this, schematicService, baseDifficultyStore, factionBaseClaimProvider,
@@ -131,7 +134,8 @@ public final class RaidRiotPlugin extends JavaPlugin {
         guiService = new RaidRiotGuiService(this);
         eventManager = new EventManager(this, queueManager, voteManager, basePlacementService,
                 worldResetService, respawnQueue, predefinedKitService, guiService,
-                eventFactionService, eventWorldBorderService, virtualDeathService, eventCombatService);
+                eventFactionService, eventWorldBorderService, virtualDeathService, eventCombatService,
+                asyncWorldRestorer);
 
         breachService = new BreachService(this);
         nakedPatchEnforcer = new NakedPatchEnforcer(this);
@@ -159,7 +163,7 @@ public final class RaidRiotPlugin extends JavaPlugin {
             raidriotCommand.setExecutor(command);
             raidriotCommand.setTabCompleter(command);
         } else {
-            getLogger().severe("Command 'raidriot' missing from plugin.yml — commands will not work.");
+            getLogger().severe("Command 'raidriot' missing from plugin.yml - commands will not work.");
         }
 
         getLogger().info("Raid Riot enabled.");
@@ -168,7 +172,10 @@ public final class RaidRiotPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (eventManager != null) {
-            eventManager.shutdown("Server shutdown.");
+            eventManager.shutdown("Server shutdown.", false, true);
+        }
+        if (asyncWorldRestorer != null) {
+            asyncWorldRestorer.cancel();
         }
         instance = null;
     }
@@ -231,6 +238,10 @@ public final class RaidRiotPlugin extends JavaPlugin {
 
     public WorldResetService getWorldResetService() {
         return worldResetService;
+    }
+
+    public AsyncWorldRestorer getAsyncWorldRestorer() {
+        return asyncWorldRestorer;
     }
 
     public RaidRiotGuiService getGuiService() {

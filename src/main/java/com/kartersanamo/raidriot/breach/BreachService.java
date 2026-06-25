@@ -7,14 +7,15 @@ import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.match.RaidMatch;
 import com.kartersanamo.raidriot.match.WinReason;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 public final class BreachService {
+
+    private static final int PENETRATION_THRESHOLD = 1;
 
     private final RaidRiotPlugin plugin;
 
@@ -23,81 +24,70 @@ public final class BreachService {
     }
 
     public boolean tryBreachBlock(RaidMatch match, Block block, Player actor) {
-        return tryBreachBlock(match, block, actor, null);
+        return tryPenetration(match, block.getLocation(), actor, null);
     }
 
     public boolean tryBreachBlock(RaidMatch match, Block block, Player actor, TeamSide attackerOverride) {
-        if (match == null || !match.isActive()) {
-            return false;
-        }
-        Set<Material> breachMaterials = plugin.getRaidRiotConfig().getBreachMaterials();
-        if (!breachMaterials.contains(block.getType())) {
-            return false;
-        }
-        TeamSide defender = findWallOwner(match, block.getLocation());
-        if (defender == null) {
-            return false;
-        }
-        TeamSide attacker = attackerOverride != null ? attackerOverride : defender.opposite();
-        if (actor != null && !match.isParticipant(actor)) {
-            return false;
-        }
-        if (actor != null && !match.isOnTeam(actor, attacker)) {
-            return false;
-        }
-        if (attackerOverride != null && attackerOverride == defender) {
-            return false;
-        }
-        plugin.getEventManager().endMatch(attacker, WinReason.BREACH);
-        return true;
+        return tryPenetration(match, block.getLocation(), actor, attackerOverride);
     }
 
-    public void tryBreachFromExplosion(RaidMatch match, List<Block> blocks, Location epicenter, Player actor, TeamSide attackerOverride) {
+    public void tryBreachFromExplosion(RaidMatch match, List<Block> blocks, Location epicenter, Player actor,
+            TeamSide attackerOverride) {
         if (match == null || !match.isActive()) {
             return;
         }
+        List<Location> locations = new ArrayList<Location>();
+        if (epicenter != null) {
+            locations.add(epicenter);
+        }
         for (Block block : blocks) {
-            if (tryBreachBlock(match, block, actor, attackerOverride)) {
+            locations.add(block.getLocation());
+        }
+        for (Location location : locations) {
+            if (tryPenetration(match, location, actor, attackerOverride)) {
                 return;
             }
         }
-        tryBreachEpicenter(match, epicenter, actor, attackerOverride);
     }
 
-    private void tryBreachEpicenter(RaidMatch match, Location epicenter, Player actor, TeamSide attackerOverride) {
-        if (epicenter == null || epicenter.getWorld() == null) {
-            return;
+    public boolean tryPenetrationFromPlayer(RaidMatch match, Player player) {
+        if (player == null || match == null || !match.isActive()) {
+            return false;
         }
-        TeamSide defender = findWallOwner(match, epicenter);
-        if (defender == null) {
-            return;
+        TeamSide attacker = match.getTeamFor(player);
+        if (attacker == null) {
+            return false;
         }
-        Set<Material> breachMaterials = plugin.getRaidRiotConfig().getBreachMaterials();
-        Block block = epicenter.getBlock();
-        if (!breachMaterials.contains(block.getType())) {
-            return;
-        }
-        TeamSide attacker = attackerOverride != null ? attackerOverride : defender.opposite();
-        if (actor != null && !match.isParticipant(actor)) {
-            return;
-        }
-        if (actor != null && !match.isOnTeam(actor, attacker)) {
-            return;
-        }
-        if (attackerOverride != null && attackerOverride == defender) {
-            return;
-        }
-        plugin.getEventManager().endMatch(attacker, WinReason.BREACH);
+        return tryPenetration(match, player.getLocation(), player, attacker);
     }
 
-    private TeamSide findWallOwner(RaidMatch match, Location loc) {
-        for (TeamSide side : new TeamSide[]{TeamSide.A, TeamSide.B}) {
-            TeamBase base = match.getTeamBase(side);
-            CuboidRegion wall = base.getWallRegion();
-            if (wall != null && wall.contains(loc)) {
-                return side;
+    private boolean tryPenetration(RaidMatch match, Location loc, Player actor, TeamSide attackerOverride) {
+        if (match == null || !match.isActive() || loc == null || loc.getWorld() == null) {
+            return false;
+        }
+        for (TeamSide defender : new TeamSide[]{TeamSide.A, TeamSide.B}) {
+            TeamBase defenderBase = match.getTeamBase(defender);
+            CuboidRegion bounds = defenderBase.getBounds();
+            if (bounds == null || !bounds.contains(loc)) {
+                continue;
             }
+            int depth = defenderBase.measureDepthIntoBase(loc);
+            if (depth < PENETRATION_THRESHOLD) {
+                continue;
+            }
+            TeamSide attacker = attackerOverride != null ? attackerOverride : defender.opposite();
+            if (attacker == defender) {
+                continue;
+            }
+            if (actor != null && !match.isParticipant(actor)) {
+                continue;
+            }
+            if (actor != null && !match.isOnTeam(actor, attacker)) {
+                continue;
+            }
+            plugin.getEventManager().endMatch(attacker, WinReason.BREACH);
+            return true;
         }
-        return null;
+        return false;
     }
 }

@@ -4,11 +4,15 @@ import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.arena.TeamSide;
 import com.kartersanamo.raidriot.breach.BreachService;
 import com.kartersanamo.raidriot.match.RaidMatch;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityExplodeEvent;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public final class ExplosionBreachListener implements Listener {
 
@@ -28,10 +32,13 @@ public final class ExplosionBreachListener implements Listener {
         if (match == null || !match.isActive() || !match.isInEventWorld(event.getLocation())) {
             return;
         }
-        plugin.getWorldResetService().snapshotBeforeChange(event.getLocation());
+        List<Location> affected = new ArrayList<Location>();
+        affected.add(event.getLocation());
         for (org.bukkit.block.Block block : event.blockList()) {
-            plugin.getWorldResetService().snapshotBeforeChange(block.getLocation());
+            affected.add(block.getLocation());
         }
+        plugin.getWorldResetService().snapshotAffectedChunks(event.getLocation().getWorld(), affected);
+
         TntAttributionTracker.ExplosionAttribution attribution = tntAttributionTracker.resolveExplosion(event);
         Player actor = attribution.player;
         TeamSide attacker = null;
@@ -40,7 +47,6 @@ public final class ExplosionBreachListener implements Listener {
                 attacker = match.resolveTeam(attribution.faction, plugin.getFactionsBridge());
             }
         } catch (Exception ignored) {
-            // fall back to player-only credit
         }
         breachService.tryBreachFromExplosion(match, event.blockList(), event.getLocation(), actor, attacker);
         TeamSide depthTeam = attacker != null ? attacker : (actor != null ? match.getTeamFor(actor) : null);

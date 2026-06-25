@@ -58,6 +58,7 @@ public final class RaidMatch {
     private TeamSide winner;
     private WinReason winReason;
     private long activeEndMs;
+    private long activeStartMs;
     private long countdownEndMs;
 
     public String getEventWorld() {
@@ -138,6 +139,21 @@ public final class RaidMatch {
 
     public void setActiveEndMs(long activeEndMs) {
         this.activeEndMs = activeEndMs;
+    }
+
+    public long getActiveStartMs() {
+        return activeStartMs;
+    }
+
+    public void setActiveStartMs(long activeStartMs) {
+        this.activeStartMs = activeStartMs;
+    }
+
+    public int getElapsedActiveSeconds() {
+        if (activeStartMs <= 0) {
+            return 0;
+        }
+        return (int) Math.max(0, (System.currentTimeMillis() - activeStartMs) / 1000L);
     }
 
     public void setCountdownEndMs(long countdownEndMs) {

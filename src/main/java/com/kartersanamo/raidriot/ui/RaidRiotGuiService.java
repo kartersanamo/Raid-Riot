@@ -32,7 +32,8 @@ public final class RaidRiotGuiService {
         }
 
         VoteManager voteManager = plugin.getEventManager().getVoteManager();
-        if (match.getState() == MatchState.VOTING && voteManager.isVoting()) {
+        if (!plugin.getRaidRiotConfig().isFixedMatchSettingsEnabled()
+                && match.getState() == MatchState.VOTING && voteManager.isVoting()) {
             player.openInventory(RaidRiotGui.createVoteGui(plugin, voteManager));
             return true;
         }
@@ -72,7 +73,8 @@ public final class RaidRiotGuiService {
         }
 
         VoteManager voteManager = plugin.getEventManager().getVoteManager();
-        if (match.getState() == MatchState.VOTING && voteManager.isVoting()) {
+        if (!plugin.getRaidRiotConfig().isFixedMatchSettingsEnabled()
+                && match.getState() == MatchState.VOTING && voteManager.isVoting()) {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (RaidRiotGui.isRaidRiotInventory(player.getOpenInventory().getTopInventory())) {
                     player.openInventory(RaidRiotGui.createVoteGui(plugin, voteManager));
@@ -108,7 +110,7 @@ public final class RaidRiotGuiService {
     }
 
     public boolean shouldAutoRefresh() {
-        if (plugin.getEventManager().isShuttingDown()) {
+        if (plugin.getEventManager().isShuttingDown() || plugin.getEventManager().isWorldRestoring()) {
             return false;
         }
         if (plugin.getEventManager().getQueueManager().isOpen()) {
@@ -118,7 +120,8 @@ public final class RaidRiotGuiService {
         if (match == null || match.getState() == MatchState.IDLE) {
             return false;
         }
-        if (match.getState() == MatchState.VOTING && plugin.getEventManager().getVoteManager().isVoting()) {
+        if (!plugin.getRaidRiotConfig().isFixedMatchSettingsEnabled()
+                && match.getState() == MatchState.VOTING && plugin.getEventManager().getVoteManager().isVoting()) {
             return true;
         }
         return isStatusView(match.getState()) || match.isActive();

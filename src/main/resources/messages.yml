@@ -1,4 +1,4 @@
-prefix: "&cRaid Riot &8> &r"
+prefix: "&c&lRaid Riot &8» &r&7"
 
 queue:
   joined: "{prefix}&aYou joined the queue! &7({count}/{max})"
@@ -9,7 +9,7 @@ queue:
   faction-not-qualified: "{prefix}&cYour faction is not eligible for this event."
   not-qualified: "{prefix}&cYou did not qualify for this event."
   cancelled: "{prefix}&cEvent cancelled: &7{reason}"
-  locked: "{prefix}&aQueue locked! Vote for base type and kits in the GUI."
+  locked: "{prefix}&aQueue locked! Preparing the arena..."
 
 vote:
   winner: "{prefix}&aSelected base: &e{base}&7 | Kit: &e{kit}&7. Preparing arena..."
@@ -17,7 +17,7 @@ vote:
 match:
   countdown: "{prefix}&7The event is starting in &f{seconds} &7seconds..."
   started: "{prefix}&aRaid Riot has begun! &7{teamA} &fvs &7{teamB}"
-  ended-breach: "{prefix}&a{winner} &7won by breaching &c{loser}&7's wall!"
+  ended-breach: "{prefix}&a{winner} &7breached &c{loser}&7 in &e{time}&7!"
   ended-depth: "{prefix}&a{winner} &7won with depth &e{depth}&7 vs &c{otherDepth}&7!"
   ended-draw: "{prefix}&eDraw! &7Both teams reached depth &e{depth}&7."
   ended-admin: "{prefix}&cMatch stopped: &7{reason}"

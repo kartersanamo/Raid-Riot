@@ -311,7 +311,8 @@ public final class RaidRiotCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/raidriot admin start random|faction");
         sender.sendMessage(ChatColor.YELLOW + "/raidriot admin stop [reason]");
         sender.sendMessage(ChatColor.YELLOW + "/raidriot admin base list|set|clear ...");
-        sender.sendMessage(ChatColor.YELLOW + "/raidriot admin kit set");
+        // Don't show kit set command to players for privacy
+        // sender.sendMessage(ChatColor.YELLOW + "/raidriot admin kit set");
         sender.sendMessage(ChatColor.YELLOW + "/raidriot admin reload");
     }
 

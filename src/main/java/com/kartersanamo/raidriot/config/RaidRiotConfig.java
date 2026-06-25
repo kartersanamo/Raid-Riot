@@ -3,6 +3,7 @@ package com.kartersanamo.raidriot.config;
 import com.kartersanamo.raidriot.RaidRiotPlugin;
 import com.kartersanamo.raidriot.base.BaseVoteOption;
 import com.kartersanamo.raidriot.arena.TeamSide;
+import com.kartersanamo.raidriot.vote.KitVoteOption;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -53,6 +54,11 @@ public final class RaidRiotConfig {
     private int pasteExtraY;
     private int pasteExtraZ;
     private Set<Material> breachMaterials = new HashSet<Material>();
+    private boolean fixedMatchSettingsEnabled = true;
+    private BaseVoteOption fixedBase = BaseVoteOption.MEDIUM;
+    private KitVoteOption fixedKit = KitVoteOption.PREDEFINED;
+    private int worldRestoreBlocksPerTick = 4096;
+    private int worldRestoreChunksPerTick = 2;
 
     public RaidRiotConfig(RaidRiotPlugin plugin) {
         this.plugin = plugin;
@@ -110,6 +116,12 @@ public final class RaidRiotConfig {
         pasteExtraX = c.getInt("worldedit-paste-offset.extra-x", 0);
         pasteExtraY = c.getInt("worldedit-paste-offset.extra-y", 0);
         pasteExtraZ = c.getInt("worldedit-paste-offset.extra-z", 0);
+
+        fixedMatchSettingsEnabled = c.getBoolean("fixed-match-settings.enabled", true);
+        fixedBase = parseBaseVoteOption(c.getString("fixed-match-settings.base", "medium"), BaseVoteOption.MEDIUM);
+        fixedKit = parseKitVoteOption(c.getString("fixed-match-settings.kit", "predefined"), KitVoteOption.PREDEFINED);
+        worldRestoreBlocksPerTick = c.getInt("world-restore.blocks-per-tick", 4096);
+        worldRestoreChunksPerTick = c.getInt("world-restore.chunks-per-tick", 2);
 
         breachMaterials.clear();
         List<String> mats = c.getStringList("breach-materials");
@@ -318,5 +330,49 @@ public final class RaidRiotConfig {
     public int[] getSchematicCenterOffset(BaseVoteOption option) {
         int[] offset = schematicCenterFromMin.get(option);
         return offset == null ? new int[]{8, 0, 8} : offset;
+    }
+
+    public boolean isFixedMatchSettingsEnabled() {
+        return fixedMatchSettingsEnabled;
+    }
+
+    public BaseVoteOption getFixedBase() {
+        return fixedBase;
+    }
+
+    public KitVoteOption getFixedKit() {
+        return fixedKit;
+    }
+
+    public int getWorldRestoreBlocksPerTick() {
+        return worldRestoreBlocksPerTick;
+    }
+
+    public int getWorldRestoreChunksPerTick() {
+        return worldRestoreChunksPerTick;
+    }
+
+    private BaseVoteOption parseBaseVoteOption(String raw, BaseVoteOption fallback) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return fallback;
+        }
+        try {
+            return BaseVoteOption.parse(raw);
+        } catch (IllegalArgumentException ex) {
+            plugin.getLogger().warning("Unknown fixed base option: " + raw);
+            return fallback;
+        }
+    }
+
+    private KitVoteOption parseKitVoteOption(String raw, KitVoteOption fallback) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return fallback;
+        }
+        try {
+            return KitVoteOption.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            plugin.getLogger().warning("Unknown fixed kit option: " + raw);
+            return fallback;
+        }
     }
 }

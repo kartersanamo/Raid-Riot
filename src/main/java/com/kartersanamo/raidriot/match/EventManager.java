@@ -16,8 +16,10 @@ import com.kartersanamo.raidriot.queue.QueueManager;
 import com.kartersanamo.raidriot.queue.QueueSession;
 import com.kartersanamo.raidriot.queue.TeamAssignmentMode;
 import com.kartersanamo.raidriot.ui.RaidRiotGuiService;
+import com.kartersanamo.raidriot.ui.TimeFormat;
 import com.kartersanamo.raidriot.vote.KitVoteOption;
 import com.kartersanamo.raidriot.vote.VoteManager;
+import com.kartersanamo.raidriot.world.AsyncWorldRestorer;
 import com.kartersanamo.raidriot.world.EventWorldBorderService;
 import com.kartersanamo.raidriot.world.WorldResetService;
 import org.bukkit.Bukkit;
@@ -47,6 +49,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     private final EventWorldBorderService worldBorderService;
     private final VirtualDeathService virtualDeathService;
     private final EventCombatService eventCombatService;
+    private final AsyncWorldRestorer asyncWorldRestorer;
     private RaidMatch activeMatch;
     private volatile boolean shuttingDown;
     private BukkitTask timerTask;
@@ -60,7 +63,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             RespawnQueue respawnQueue, PredefinedKitService predefinedKitService,
             RaidRiotGuiService guiService, EventFactionService eventFactionService,
             EventWorldBorderService worldBorderService, VirtualDeathService virtualDeathService,
-            EventCombatService eventCombatService) {
+            EventCombatService eventCombatService, AsyncWorldRestorer asyncWorldRestorer) {
         this.plugin = plugin;
         this.queueManager = queueManager;
         this.voteManager = voteManager;
@@ -73,6 +76,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         this.worldBorderService = worldBorderService;
         this.virtualDeathService = virtualDeathService;
         this.eventCombatService = eventCombatService;
+        this.asyncWorldRestorer = asyncWorldRestorer;
         queueManager.setListener(this);
         voteManager.setListener(this);
     }
@@ -82,7 +86,14 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     }
 
     public boolean hasActiveSession() {
+        if (asyncWorldRestorer.isRestoring()) {
+            return true;
+        }
         return activeMatch != null && activeMatch.getState() != MatchState.IDLE;
+    }
+
+    public boolean isWorldRestoring() {
+        return asyncWorldRestorer.isRestoring();
     }
 
     public boolean hasActiveMatch() {
@@ -106,10 +117,14 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     }
 
     public synchronized void shutdown(String reason) {
-        shutdown(reason, false);
+        shutdown(reason, false, false);
     }
 
     public synchronized void shutdown(String reason, boolean broadcast) {
+        shutdown(reason, broadcast, false);
+    }
+
+    public synchronized void shutdown(String reason, boolean broadcast, boolean syncWorldRestore) {
         if (shuttingDown) {
             return;
         }
@@ -133,23 +148,50 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                 restoreAllPreEventStates(match);
                 eventFactionService.unclaimAll(match);
                 worldBorderService.reset();
-                worldResetService.restoreAll();
-                worldResetService.endSession();
-                match.setState(MatchState.IDLE);
                 activeMatch = null;
                 if (broadcast && reason != null && !reason.isEmpty()) {
                     Map<String, String> vars = new HashMap<String, String>();
                     vars.put("reason", reason);
                     plugin.getMessages().broadcast("match.ended-admin", vars);
                 }
-            } else if (worldResetService.getSnapshotCount() > 0) {
+            } else {
                 worldBorderService.reset();
-                worldResetService.restoreAll();
-                worldResetService.endSession();
             }
+            scheduleWorldRestore(syncWorldRestore);
         } finally {
-            shuttingDown = false;
+            if (!asyncWorldRestorer.isRestoring()) {
+                shuttingDown = false;
+            }
         }
+    }
+
+    private void scheduleWorldRestore() {
+        scheduleWorldRestore(false);
+    }
+
+    private void scheduleWorldRestore(boolean syncWorldRestore) {
+        if (worldResetService.getSnapshotCount() <= 0) {
+            worldResetService.endSession();
+            return;
+        }
+        if (syncWorldRestore) {
+            asyncWorldRestorer.cancel();
+            worldResetService.prepareRestore();
+            while (!worldResetService.isRestoreComplete()) {
+                worldResetService.restoreNextBatch(Integer.MAX_VALUE, Integer.MAX_VALUE);
+            }
+            worldResetService.finishRestore();
+            worldResetService.endSession();
+            shuttingDown = false;
+            return;
+        }
+        asyncWorldRestorer.startRestore(new Runnable() {
+            @Override
+            public void run() {
+                worldResetService.endSession();
+                shuttingDown = false;
+            }
+        });
     }
 
     private void restoreAllPreEventStates(RaidMatch match) {
@@ -160,6 +202,9 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
     }
 
     public synchronized void startQueue(TeamAssignmentMode mode) {
+        if (asyncWorldRestorer.isRestoring()) {
+            throw new IllegalStateException("Previous event terrain is still restoring.");
+        }
         if (hasActiveSession() || queueManager.isOpen()) {
             throw new IllegalStateException("A Raid Riot session is already active.");
         }
@@ -179,7 +224,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         guiRefreshTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
             @Override
             public void run() {
-                if (shuttingDown) {
+                if (shuttingDown || asyncWorldRestorer.isRestoring()) {
                     stopGuiRefreshTask();
                     return;
                 }
@@ -189,7 +234,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                     stopGuiRefreshTask();
                 }
             }
-        }, 10L, 10L);
+        }, 20L, 20L);
     }
 
     private void stopGuiRefreshTask() {
@@ -228,8 +273,13 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             return;
         }
         plugin.getMessages().broadcast("queue.locked", new HashMap<String, String>());
-        voteManager.startVote(activeMatch);
-        startGuiRefreshTask();
+        if (plugin.getRaidRiotConfig().isFixedMatchSettingsEnabled()) {
+            onVoteComplete(activeMatch, plugin.getRaidRiotConfig().getFixedBase(),
+                    plugin.getRaidRiotConfig().getFixedKit());
+        } else {
+            voteManager.startVote(activeMatch);
+            startGuiRefreshTask();
+        }
     }
 
     private void assignTeams(QueueSession session, RaidMatch match) throws Exception {
@@ -378,6 +428,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             return;
         }
         match.setState(MatchState.ACTIVE);
+        match.setActiveStartMs(System.currentTimeMillis());
         long durationMs = plugin.getRaidRiotConfig().getMatchDurationSeconds() * 1000L;
         match.setActiveEndMs(System.currentTimeMillis() + durationMs);
 
@@ -437,6 +488,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
                     Player player = Bukkit.getPlayer(id);
                     if (player != null) {
                         match.getDepthTracker().recordPlayer(match, player);
+                        plugin.getBreachService().tryPenetrationFromPlayer(match, player);
                     }
                 }
             }
@@ -464,6 +516,7 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
         if (reason == WinReason.BREACH && winner != null && loser != null) {
             vars.put("winner", activeMatch.getFactionTag(winner));
             vars.put("loser", activeMatch.getFactionTag(loser));
+            vars.put("time", TimeFormat.format(activeMatch.getElapsedActiveSeconds()));
             plugin.getMessages().broadcast("match.ended-breach", vars);
         } else if (reason == WinReason.DEPTH && winner != null) {
             vars.put("winner", activeMatch.getFactionTag(winner));
@@ -519,13 +572,9 @@ public final class EventManager implements QueueManager.QueueListener, VoteManag
             restoreAllPreEventStates(match);
             eventFactionService.unclaimAll(match);
             worldBorderService.reset();
+            activeMatch = null;
         }
-        worldResetService.restoreAll();
-        worldResetService.endSession();
-        if (match != null) {
-            match.setState(MatchState.IDLE);
-        }
-        activeMatch = null;
+        scheduleWorldRestore();
     }
 
     private void cancelTasks() {

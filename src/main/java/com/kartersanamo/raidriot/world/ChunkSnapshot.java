@@ -4,7 +4,9 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class ChunkSnapshot {
@@ -14,6 +16,7 @@ public final class ChunkSnapshot {
     private final int chunkZ;
     private final Map<Integer, Material> blocks = new HashMap<Integer, Material>();
     private final Map<Integer, Byte> data = new HashMap<Integer, Byte>();
+    private int restoreIndex;
 
     private ChunkSnapshot(String worldName, int chunkX, int chunkZ) {
         this.worldName = worldName;
@@ -29,6 +32,9 @@ public final class ChunkSnapshot {
             for (int z = 0; z < 16; z++) {
                 for (int y = 0; y <= 255; y++) {
                     Block block = world.getBlockAt(baseX + x, y, baseZ + z);
+                    if (block.getType() == Material.AIR) {
+                        continue;
+                    }
                     int key = pack(x, y, z);
                     snapshot.blocks.put(key, block.getType());
                     snapshot.data.put(key, block.getData());
@@ -38,14 +44,18 @@ public final class ChunkSnapshot {
         return snapshot;
     }
 
-    public void restore() {
+    public int restoreBatch(int maxBlocks) {
         World world = org.bukkit.Bukkit.getWorld(worldName);
         if (world == null) {
-            return;
+            restoreIndex = blocks.size();
+            return maxBlocks;
         }
         int baseX = chunkX << 4;
         int baseZ = chunkZ << 4;
-        for (Map.Entry<Integer, Material> entry : blocks.entrySet()) {
+        List<Map.Entry<Integer, Material>> entries = new ArrayList<Map.Entry<Integer, Material>>(blocks.entrySet());
+        int restored = 0;
+        while (restoreIndex < entries.size() && restored < maxBlocks) {
+            Map.Entry<Integer, Material> entry = entries.get(restoreIndex++);
             int x = unpackX(entry.getKey());
             int y = unpackY(entry.getKey());
             int z = unpackZ(entry.getKey());
@@ -55,19 +65,23 @@ public final class ChunkSnapshot {
             if (d != null) {
                 block.setData(d);
             }
+            restored++;
         }
+        return maxBlocks - restored;
     }
 
-    public String getWorldName() {
-        return worldName;
+    public boolean isFullyRestored() {
+        return restoreIndex >= blocks.size();
     }
 
-    public int getChunkX() {
-        return chunkX;
+    public void resetRestoreProgress() {
+        restoreIndex = 0;
     }
 
-    public int getChunkZ() {
-        return chunkZ;
+    public void restore() {
+        while (!isFullyRestored()) {
+            restoreBatch(Integer.MAX_VALUE);
+        }
     }
 
     public static long chunkKey(int chunkX, int chunkZ) {

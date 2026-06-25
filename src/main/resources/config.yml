@@ -5,6 +5,16 @@ team-b-display-name: Red Team
 max-faction-queue-players: 100
 queue-countdown-seconds: 120
 vote-duration-seconds: 30
+
+fixed-match-settings:
+  enabled: true
+  base: medium
+  kit: predefined
+
+world-restore:
+  blocks-per-tick: 4096
+  chunks-per-tick: 2
+
 base-separation-blocks: 200
 spawn-y: 255
 paste-anchor-x: 0
