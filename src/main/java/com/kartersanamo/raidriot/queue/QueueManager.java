@@ -41,6 +41,8 @@ public final class QueueManager {
     private QueueSession session;
     private BukkitTask tickTask;
     private QueueListener listener;
+    private int lastJoinReportedSize;
+    private int lastJoinReportedMax;
 
     public QueueManager(RaidRiotPlugin plugin, ClickableMessageService clickableMessages) {
         this.plugin = plugin;
@@ -94,6 +96,14 @@ public final class QueueManager {
         }
     }
 
+    public int getLastJoinReportedSize() {
+        return lastJoinReportedSize;
+    }
+
+    public int getLastJoinReportedMax() {
+        return lastJoinReportedMax;
+    }
+
     public synchronized JoinResult tryJoin(Player player) {
         if (session == null) {
             return JoinResult.NO_QUEUE;
@@ -116,11 +126,13 @@ public final class QueueManager {
                 session.add(id, faction);
                 FactionQueueResolver.assignQualifyingFactions(session, bridge,
                         ConfigManager.get().getPlayersPerTeam());
+                recordJoinStats();
                 checkFactionLock(bridge);
                 snapshotOnJoin(player);
                 return JoinResult.SUCCESS;
             }
             session.add(id, faction);
+            recordJoinStats();
             checkImmediateLock();
             snapshotOnJoin(player);
             return JoinResult.SUCCESS;
@@ -141,6 +153,13 @@ public final class QueueManager {
                 plugin.getEventManager().restorePreEventState(player, snapshot);
                 match.removePreEventSnapshot(player.getUniqueId());
             }
+        }
+    }
+
+    private void recordJoinStats() {
+        if (session != null) {
+            lastJoinReportedSize = session.size();
+            lastJoinReportedMax = maxQueueSize();
         }
     }
 

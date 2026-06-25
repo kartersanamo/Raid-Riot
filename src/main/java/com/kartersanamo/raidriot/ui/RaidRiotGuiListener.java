@@ -125,8 +125,19 @@ public final class RaidRiotGuiListener implements Listener {
         Map<String, String> vars = new HashMap<String, String>();
         switch (result) {
             case SUCCESS:
-                vars.put("count", String.valueOf(plugin.getEventManager().getQueueManager().getSession().size()));
-                vars.put("max", String.valueOf(maxQueueDisplay()));
+                QueueManager queueManager = plugin.getEventManager().getQueueManager();
+                QueueSession session = queueManager.getSession();
+                int count;
+                int max;
+                if (session != null) {
+                    count = session.size();
+                    max = maxQueueDisplay(session);
+                } else {
+                    count = queueManager.getLastJoinReportedSize();
+                    max = queueManager.getLastJoinReportedMax();
+                }
+                vars.put("count", String.valueOf(count));
+                vars.put("max", String.valueOf(max));
                 ConfigManager.get().send(player, "queue.joined", vars);
                 break;
             case ALREADY_IN:
@@ -144,9 +155,8 @@ public final class RaidRiotGuiListener implements Listener {
         }
     }
 
-    private int maxQueueDisplay() {
-        if (plugin.getEventManager().getQueueManager().getSession().getMode()
-                == com.kartersanamo.raidriot.queue.TeamAssignmentMode.FACTION) {
+    private int maxQueueDisplay(QueueSession session) {
+        if (session.getMode() == com.kartersanamo.raidriot.queue.TeamAssignmentMode.FACTION) {
             return ConfigManager.get().getMaxFactionQueuePlayers();
         }
         return ConfigManager.get().getMaxPlayers();
